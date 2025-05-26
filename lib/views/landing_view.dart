@@ -22,7 +22,7 @@ class LandingView extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Navigate to login screen
+                      Navigator.pushNamed(context, '/login');
                     },
                     child: const Text('Login'),
                   ),

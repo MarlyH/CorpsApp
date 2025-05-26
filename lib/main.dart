@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'views/landing_view.dart';
+import 'views/login_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,6 +18,9 @@ class MyApp extends StatelessWidget {
       ),
       home: const LandingView(),
       debugShowCheckedModeBanner: false,
+      routes: {
+        '/login': (context) => const LoginView(),
+      },
     );
   }
 }

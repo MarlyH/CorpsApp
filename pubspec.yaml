@@ -50,15 +50,15 @@ dev_dependencies:
   flutter_native_splash: ^2.4.6
 
 flutter_native_splash:
-  color: "#42a5f5"
-  image: assets/logo.png
+  color: "#000000"
+  image: assets/yourcorps_logo_vertical.png
   android: true
   ios: true
   web: false
   fullscreen: true
   android_12:
     color: "#000000"
-    image: assets/logo.png
+    image: assets/yourcorps_logo_vertical.png
 
 
 
@@ -78,7 +78,7 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - assets/logo.png
+    - assets/yourcorps_logo_vertical.png
     - assets/welcome_back.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see

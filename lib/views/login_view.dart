@@ -145,7 +145,7 @@ class _LoginViewState extends State<LoginView> {
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
                             onTap: () {
-                              // TODO: handle forgot password
+                              Navigator.pushNamed(context, '/forgot-password');
                             },
                             child: const Text(
                               'Forgot password?',

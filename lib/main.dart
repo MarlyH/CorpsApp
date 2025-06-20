@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'views/landing_view.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
+import 'views/forgot_password_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginView(),
         '/register': (context) => const RegisterView(),
+        '/forgot-password': (context) => const ForgotPasswordView(),
       },
     );
   }

@@ -14,7 +14,7 @@ class LandingView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/logo.png',
+                  'assets/welcome_back.jpg',
                   height: 150,
                 ),
                 const SizedBox(height: 40),

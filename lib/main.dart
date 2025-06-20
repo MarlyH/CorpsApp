@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'views/landing_view.dart';
 import 'views/login_view.dart';
+import 'views/register_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,13 +14,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Welcome App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const LandingView(),
       debugShowCheckedModeBanner: false,
       routes: {
         '/login': (context) => const LoginView(),
+        '/register': (context) => const RegisterView(),
       },
     );
   }

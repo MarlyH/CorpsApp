@@ -32,10 +32,11 @@ class LandingView extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      // TODO: Navigate to register screen
+                      Navigator.pushNamed(context, '/register');
                     },
                     child: const Text('Register'),
                   ),
+
                 ),
                 const SizedBox(height: 20),
                 GestureDetector(

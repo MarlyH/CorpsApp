@@ -15,7 +15,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Welcome App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      // theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        fontFamily: 'CorpsFont',
+        scaffoldBackgroundColor: Colors.black,
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.white),
+          displayLarge: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      ),
       home: const LandingView(),
       debugShowCheckedModeBanner: false,
       routes: {

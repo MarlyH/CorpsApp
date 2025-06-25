@@ -37,7 +37,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         final data = jsonDecode(response.body);
         final resetToken = data['resetPswdToken'];
 
-        // Navigate to VerifyOtpView with email + token
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -66,96 +65,105 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          Expanded(flex: 1, child: Container(color: Colors.black)),
-          Expanded(
-            flex: 4,
-            child: Container(
-              width: width,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
-              child: Stack(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
                 children: [
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.only(top: 48),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 32),
-                        Image.asset(
-                          'assets/welcome_back.jpg', // TODO: add the image asset here for foget password
-                          height: 100,
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Forgot Password',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter your email',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (errorMessage != null)
-                          Text(
-                            errorMessage!,
-                            style: const TextStyle(color: Colors.red),
-                            textAlign: TextAlign.center,
-                          ),
-                        if (successMessage != null)
-                          Text(
-                            successMessage!,
-                            style: const TextStyle(color: Colors.green),
-                            textAlign: TextAlign.center,
-                          ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: isLoading ? null : sendResetEmail,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                            child: isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text('Send Reset Link'),
-                          ),
-                        ),
-                      ],
+                  Image.asset(
+                    'assets/question_mark.png', // Make sure this image matches your prototype
+                    height: 140,
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'FORGOT PASSWORD?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Don't worry! We can help you reset it in a few steps.\nSimply follow the instructions.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: const TextStyle(color: Colors.white),
+                      hintText: 'Enter your email',
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.blue),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (errorMessage != null)
+                    Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  if (successMessage != null)
+                    Text(
+                      successMessage!,
+                      style: const TextStyle(color: Colors.green),
+                      textAlign: TextAlign.center,
+                    ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: isLoading ? null : sendResetEmail,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'SEND CODE',
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

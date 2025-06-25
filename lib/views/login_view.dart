@@ -11,9 +11,9 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
   bool canResend = false;
@@ -45,11 +45,6 @@ class _LoginViewState extends State<LoginView> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        final accessToken = data['accessToken'];
-        final refreshToken = data['refreshToken'];
-
-        // TODO: Save tokens securely (flutter secure storage?)
-
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -63,7 +58,8 @@ class _LoginViewState extends State<LoginView> {
         });
       } else {
         setState(() {
-          errorMessage = data['message'] ?? 'Unexpected error: ${response.statusCode}';
+          errorMessage =
+              data['message'] ?? 'Unexpected error: ${response.statusCode}';
         });
       }
     } catch (_) {
@@ -78,7 +74,9 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> resendConfirmationEmail() async {
-    final resendUrl = Uri.parse('http://10.0.2.2:5133/api/auth/resend-confirmation');
+    final resendUrl = Uri.parse(
+      'http://10.0.2.2:5133/api/auth/resend-confirmation',
+    );
     final resendBody = jsonEncode({'email': emailController.text.trim()});
 
     try {
@@ -89,7 +87,6 @@ class _LoginViewState extends State<LoginView> {
       );
 
       final data = jsonDecode(resendResponse.body);
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(data['message'] ?? 'Email resent')),
       );
@@ -106,173 +103,169 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  Widget buildTextField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      validator: validator,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        hintText: 'Enter your $label',
+        hintStyle: const TextStyle(color: Colors.grey),
+        enabledBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white, width: 1.5),
+        ),
+        focusedBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.blue, width: 2),
+        ),
+        suffixIcon: suffixIcon,
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          const Spacer(flex: 1),
-          Expanded(
-            flex: 4,
-            child: Container(
-              width: width,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Optional: Add top logo or background here
+
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SingleChildScrollView(
+                reverse: true,
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32), // horizontal + bottom padding
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'WELCOME BACK',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      buildTextField(
+                        label: 'Email',
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Email is required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      buildTextField(
+                        label: 'Password',
+                        controller: passwordController,
+                        obscureText: obscurePassword,
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Password is required' : null,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() => obscurePassword = !obscurePassword);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                          child: const Text(
+                            'Forgot password?',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (errorMessage != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (canResend)
+                        TextButton(
+                          onPressed: resendConfirmationEmail,
+                          child: const Text('Resend Confirmation Email'),
+                        ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: isLoading ? null : login,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white, width: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 4.65,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'By logging in, you agree to the Terms and Conditions and Privacy Policy.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.only(top: 48),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          Image.asset(
-                            'assets/welcome_back.jpg',
-                            height: MediaQuery.of(context).size.height * 0.15,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 32),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Email is required';
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                              hintText: 'Enter your email',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text('Password', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: passwordController,
-                            obscureText: obscurePassword,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Password is required';
-                              }
-                              return null;
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Enter your password',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    obscurePassword = !obscurePassword;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.pushNamed(context, '/forgot-password');
-                              },
-                              child: const Text(
-                                'Forgot password?',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (errorMessage != null) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error_outline, color: Colors.red),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      errorMessage!,
-                                      style: const TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (canResend)
-                            TextButton(
-                              onPressed: resendConfirmationEmail,
-                              child: const Text('Resend Confirmation Email'),
-                            ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: isLoading ? null : login,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text('Login'),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'By logging in, you agree to the Terms and Conditions and Privacy Policy.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -38,7 +38,7 @@ class _RegisterViewState extends State<RegisterView> {
       'password': passwordController.text,
       'firstName': firstNameController.text.trim(),
       'lastName': lastNameController.text.trim(),
-      'dateOfBirth': dobController.text.trim(), // in YYYY-MM-DD
+      'dateOfBirth': dobController.text.trim(),
     });
 
     try {
@@ -86,165 +86,116 @@ class _RegisterViewState extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          const Spacer(flex: 1),
-          Expanded(
-            flex: 4,
-            child: Container(
-              width: width,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const BackButton(color: Colors.white),
+                const SizedBox(height: 20),
+                const Text(
+                  textAlign: TextAlign.center,
+                  'REGISTER',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  
                 ),
-              ),
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.only(top: 48),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          Image.asset('assets/welcome_back.jpg', height: 100),
-                          const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                          buildTextField(
-                            label: 'Username',
-                            controller: userNameController,
-                            validator: (value) => value!.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
+                buildTextField(label: 'Username', controller: userNameController),
+                buildTextField(label: 'First Name', controller: firstNameController),
+                buildTextField(label: 'Last Name', controller: lastNameController),
 
-                          buildTextField(
-                            label: 'First Name',
-                            controller: firstNameController,
-                            validator: (value) => value!.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
-
-                          buildTextField(
-                            label: 'Last Name',
-                            controller: lastNameController,
-                            validator: (value) => value!.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
-
-                          GestureDetector(
-                            onTap: pickDateOfBirth,
-                            child: AbsorbPointer(
-                              child: buildTextField(
-                                label: 'Date of Birth',
-                                controller: dobController,
-                                validator: (value) => value!.isEmpty ? 'Required' : null,
-                                keyboardType: TextInputType.datetime,
-                                suffixIcon: const Icon(Icons.calendar_today),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          buildTextField(
-                            label: 'Email',
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return 'Required';
-                              if (!value.contains('@')) return 'Invalid email';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          buildTextField(
-                            label: 'Password',
-                            controller: passwordController,
-                            obscureText: obscurePassword,
-                            validator: (value) => value!.length < 6
-                                ? 'Minimum 6 characters'
-                                : null,
-                            suffixIcon: IconButton(
-                              icon: Icon(obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility),
-                              onPressed: () {
-                                setState(() => obscurePassword = !obscurePassword);
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-                          if (errorMessage != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error_outline, color: Colors.red),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      errorMessage!,
-                                      style: const TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: isLoading ? null : register,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Register'),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'By registering, you agree to the Terms and Privacy Policy.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
+                GestureDetector(
+                  onTap: pickDateOfBirth,
+                  child: AbsorbPointer(
+                    child: buildTextField(
+                      label: 'Date of Birth',
+                      controller: dobController,
+                      keyboardType: TextInputType.datetime,
+                      suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
                     ),
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                ),
+
+                buildTextField(
+                  label: 'Email',
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+
+                buildTextField(
+                  label: 'Password',
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white54,
+                    ),
+                    onPressed: () => setState(() => obscurePassword = !obscurePassword),
+                  ),
+                ),
+
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.black)
+                        : const Text('Register'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'By registering, you agree to the Terms and Privacy Policy.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -254,25 +205,38 @@ class _RegisterViewState extends State<RegisterView> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     bool obscureText = false,
-    String? Function(String?)? validator,
     Widget? suffixIcon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            suffixIcon: suffixIcon,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF2A2A2A),
+              hintText: 'Enter your $label',
+              hintStyle: const TextStyle(color: Colors.white54),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: suffixIcon,
+            ),
+            validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+          ),
+        ],
+      ),
     );
   }
 }

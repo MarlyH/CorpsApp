@@ -11,17 +11,18 @@ class ResetSuccessView extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 52),
+            
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Image.asset(
-                  'assets/success_check.png', // Replace with your success image
-                  height: 140,
+                  'assets/success.jpg', // Replace with your success image
+                  height: 240,
                 ),
                 const SizedBox(height: 32),
                 const Text(
-                  'Password Reset!',
+                  'SUCCESS!!!',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -34,7 +35,7 @@ class ResetSuccessView extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 100),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -46,7 +47,7 @@ class ResetSuccessView extends StatelessWidget {
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white, width: 2),
+                      side: const BorderSide(color: Colors.white, width: 4),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

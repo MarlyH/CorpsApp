@@ -7,7 +7,7 @@ import 'views/register_view.dart';
 import 'views/forgot_password_view.dart';
 
 Future<void> main() async {
-  // ive loaded my ngrok server to test backend and connect
+  // Load environment variables
   await dotenv.load(fileName: ".env");
 
   runApp(const MyApp());
@@ -24,6 +24,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'CorpsFont',
         scaffoldBackgroundColor: Colors.black,
+        colorScheme: const ColorScheme.dark(),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
         textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.white),
           displayLarge: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),

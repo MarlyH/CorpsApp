@@ -14,3 +14,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+for running ngrok tunnel (Remember to grab the new forward address if the server is restarted as it generated a new address and then replace the variable in the .env)
+
+ngrok http 5133

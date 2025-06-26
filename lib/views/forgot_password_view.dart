@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'verify_otp_view.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ForgotPasswordView extends StatefulWidget {
@@ -24,6 +23,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       successMessage = null;
       errorMessage = null;
     });
+
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url = Uri.parse('$baseUrl/api/auth/forgot-password');
     final body = jsonEncode({'email': emailController.text.trim()});
@@ -56,7 +56,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           errorMessage = data['message'] ?? 'Failed to send reset email.';
         });
       }
-    } catch (e) {
+    } catch (_) {
       setState(() {
         errorMessage = 'Failed to connect to server.';
       });
@@ -72,101 +72,123 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Image.asset(
-                    'assets/question_mark.png', // Make sure this image matches your prototype
-                    height: 140,
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'FORGOT PASSWORD?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Don't worry! We can help you reset it in a few steps.\nSimply follow the instructions.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: const TextStyle(color: Colors.white),
-                      hintText: 'Enter your email',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.blue),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (errorMessage != null)
-                    Text(
-                      errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                  if (successMessage != null)
-                    Text(
-                      successMessage!,
-                      style: const TextStyle(color: Colors.green),
-                      textAlign: TextAlign.center,
-                    ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: isLoading ? null : sendResetEmail,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 52),
+              reverse: true,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      // Back Arrow
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 16.0),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         ),
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'SEND CODE',
-                              style: TextStyle(color: Colors.white),
+
+                      const Spacer(),
+
+                      Image.asset(
+                        'assets/forgot_password.png',
+                        height: 240,
+                      ),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'FORGOT PASSWORD?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Don't worry! We can help you reset it in a few steps.\nSimply follow the instructions.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 32),
+
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'EMAIL',
+                          labelStyle: const TextStyle(color: Colors.white),
+                          hintText: 'Enter your email',
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white, width: 1.5),
+                          ),
+                          focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.blue, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 36),
+
+                      if (errorMessage != null)
+                        Text(
+                          errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                      if (successMessage != null)
+                        Text(
+                          successMessage!,
+                          style: const TextStyle(color: Colors.green),
+                          textAlign: TextAlign.center,
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: isLoading ? null : sendResetEmail,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white, width: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                    ),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'SEND CODE',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20), // Spacer for keyboard padding
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
+
 }

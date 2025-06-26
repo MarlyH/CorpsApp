@@ -29,6 +29,8 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter_dotenv: ^5.1.0
+  flutter_launcher_icons: ^0.13.1
+  url_launcher: ^6.2.6
   flutter:
     sdk: flutter
 
@@ -60,7 +62,14 @@ flutter_native_splash:
   android_12:
     color: "#000000"
     image: assets/yourcorps_logo_vertical.png
-
+    
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/yourcorps_logo_vertical_app_icon.png"
+  background_color: "#000000"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/yourcorps_logo_vertical_app_icon.png"
 
 
 # For information on the generic Dart part of this file, see the
@@ -82,6 +91,10 @@ flutter:
     - assets/yourcorps_logo_vertical.png
     - assets/welcome_back.jpg
     - .env
+    - assets/forgot_password.png
+    - assets/otp.jpg
+    - assets/change_password.jpg
+    - assets/success.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

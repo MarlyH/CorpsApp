@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RegisterView extends StatefulWidget {
@@ -32,6 +33,7 @@ class _RegisterViewState extends State<RegisterView> {
       isLoading = true;
       errorMessage = null;
     });
+
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url = Uri.parse('$baseUrl/api/auth/register');
     final body = jsonEncode({
@@ -86,6 +88,46 @@ class _RegisterViewState extends State<RegisterView> {
     }
   }
 
+  Widget buildTextField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter your $label',
+              hintStyle: const TextStyle(color: Colors.white54),
+              suffixIcon: suffixIcon,
+              enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+              ),
+            ),
+            validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,19 +138,21 @@ class _RegisterViewState extends State<RegisterView> {
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const BackButton(color: Colors.white),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: const BackButton(color: Colors.white),
+                ),
                 const SizedBox(height: 20),
                 const Text(
-                  textAlign: TextAlign.center,
                   'REGISTER',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
-                  
                 ),
                 const SizedBox(height: 24),
 
@@ -116,14 +160,17 @@ class _RegisterViewState extends State<RegisterView> {
                 buildTextField(label: 'First Name', controller: firstNameController),
                 buildTextField(label: 'Last Name', controller: lastNameController),
 
-                GestureDetector(
-                  onTap: pickDateOfBirth,
-                  child: AbsorbPointer(
-                    child: buildTextField(
-                      label: 'Date of Birth',
-                      controller: dobController,
-                      keyboardType: TextInputType.datetime,
-                      suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
+                Material(
+                  color: Colors.transparent,
+                  child: GestureDetector(
+                    onTap: pickDateOfBirth,
+                    child: AbsorbPointer(
+                      child: buildTextField(
+                        label: 'Date of Birth',
+                        controller: dobController,
+                        keyboardType: TextInputType.datetime,
+                        suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
+                      ),
                     ),
                   ),
                 ),
@@ -189,55 +236,48 @@ class _RegisterViewState extends State<RegisterView> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'By registering, you agree to the Terms and Privacy Policy.',
+                RichText(
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    children: [
+                      const TextSpan(text: 'By logging in, you agree to the '),
+                      TextSpan(
+                        text: 'Terms and Conditions',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions');
+                            if (await launcher.canLaunchUrl(url)) {
+                              await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                            }
+                          },
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy.',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');
+                            if (await launcher.canLaunchUrl(url)) {
+                              await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                            }
+                          },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget buildTextField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            obscureText: obscureText,
-            keyboardType: keyboardType,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: const Color(0xFF2A2A2A),
-              hintText: 'Enter your $label',
-              hintStyle: const TextStyle(color: Colors.white54),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              suffixIcon: suffixIcon,
-            ),
-            validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-          ),
-        ],
       ),
     );
   }

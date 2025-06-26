@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'home_view.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart' as launcher;
 
 
 class LoginView extends StatefulWidget {
@@ -32,7 +33,7 @@ class _LoginViewState extends State<LoginView> {
       canResend = false;
     });
 
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133'; // can use an env that point to ngrok or just use emulators
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url = Uri.parse('$baseUrl/api/auth/login');
     final body = jsonEncode({
       'Email': emailController.text.trim(),
@@ -78,8 +79,9 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> resendConfirmationEmail() async {
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final resendUrl = Uri.parse(
-      'http://10.0.2.2:5133/api/auth/resend-confirmation',
+      '$baseUrl/api/auth/resend-confirmation',
     );
     final resendBody = jsonEncode({'email': emailController.text.trim()});
 
@@ -136,6 +138,7 @@ class _LoginViewState extends State<LoginView> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,129 +146,176 @@ class _LoginViewState extends State<LoginView> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Optional: Add top logo or background here
+            // Back Button
+            Positioned(
+              top: 16,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ),
 
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: SingleChildScrollView(
-                reverse: true,
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32), // horizontal + bottom padding
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'WELCOME BACK',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      buildTextField(
-                        label: 'Email',
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Email is required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      buildTextField(
-                        label: 'Password',
-                        controller: passwordController,
-                        obscureText: obscurePassword,
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Password is required' : null,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscurePassword ? Icons.visibility_off : Icons.visibility,
+            // Login Form
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'WELCOME BACK',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
-                          onPressed: () {
-                            setState(() => obscurePassword = !obscurePassword);
-                          },
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(color: Colors.white),
+                        const SizedBox(height: 32),
+                        buildTextField(
+                          label: 'EMAIL',
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) =>
+                              value == null || value.isEmpty
+                                  ? 'Email is required'
+                                  : null,
+                        ),
+                        const SizedBox(height: 16),
+                        buildTextField(
+                          label: 'PASSWORD',
+                          controller: passwordController,
+                          obscureText: obscurePassword,
+                          validator: (value) =>
+                              value == null || value.isEmpty
+                                  ? 'Password is required'
+                                  : null,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white,
+                            ),
+                            onPressed: () {
+                              setState(() => obscurePassword = !obscurePassword);
+                            },
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (errorMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade100,
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/forgot-password'),
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  errorMessage!,
-                                  style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 16),
+                        if (errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    errorMessage!,
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        if (canResend)
+                          TextButton(
+                            onPressed: resendConfirmationEmail,
+                            child: const Text('Resend Confirmation Email'),
+                          ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: isLoading ? null : login,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white, width: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 4.65,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'LOGIN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            children: [
+                              const TextSpan(text: 'By logging in, you agree to the '),
+                              TextSpan(
+                                text: 'Terms and Conditions',
+                                style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255), decoration: TextDecoration.underline),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () async {
+                                    final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions'); // need to grab the actual t&cs
+                                    if (await launcher.canLaunchUrl(url)) {
+                                      await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                                    }
+                                  },
+                              ),
+                              const TextSpan(text: ' and '),
+                              TextSpan(
+                                text: 'Privacy Policy.',
+                                style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255), decoration: TextDecoration.underline),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () async {
+                                    final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');
+                                    if (await launcher.canLaunchUrl(url)) {
+                                      await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                                    }
+                                  },
                               ),
                             ],
                           ),
                         ),
-                      if (canResend)
-                        TextButton(
-                          onPressed: resendConfirmationEmail,
-                          child: const Text('Resend Confirmation Email'),
-                        ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: isLoading ? null : login,
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white, width: 2),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 4.65,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'LOGIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'By logging in, you agree to the Terms and Conditions and Privacy Policy.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
+
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],

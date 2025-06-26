@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
-            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           },
         ),

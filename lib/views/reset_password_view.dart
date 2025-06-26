@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:corpsapp/views/reset_success_view.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'login_view.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 class ResetPasswordView extends StatefulWidget {
   final String email;
   final String resetToken;
@@ -46,8 +46,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
       errorMessage = null;
       successMessage = null;
     });
-
-    final url = Uri.parse('http://10.0.2.2:5133/api/auth/reset-password');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$baseUrl/api/auth/reset-password');
     final body = jsonEncode({
       'email': widget.email,
       'resetPasswordToken': widget.resetToken,

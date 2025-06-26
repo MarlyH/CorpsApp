@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'views/landing_view.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
 import 'views/forgot_password_view.dart';
 
-void main() {
+Future<void> main() async {
+  // ive loaded my ngrok server to test backend and connect
+  await dotenv.load(fileName: ".env");
+
   runApp(const MyApp());
 }
 
@@ -15,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Welcome App',
-      // theme: ThemeData(primarySwatch: Colors.blue),
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'CorpsFont',
         scaffoldBackgroundColor: Colors.black,
@@ -25,7 +30,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const LandingView(),
-      debugShowCheckedModeBanner: false,
       routes: {
         '/login': (context) => const LoginView(),
         '/register': (context) => const RegisterView(),

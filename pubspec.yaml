@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  flutter_dotenv: ^5.1.0
   flutter:
     sdk: flutter
 
@@ -80,6 +81,7 @@ flutter:
   assets:
     - assets/yourcorps_logo_vertical.png
     - assets/welcome_back.jpg
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

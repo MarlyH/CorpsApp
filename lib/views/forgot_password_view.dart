@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'verify_otp_view.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
 
@@ -22,8 +24,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       successMessage = null;
       errorMessage = null;
     });
-
-    final url = Uri.parse('http://10.0.2.2:5133/api/auth/forgot-password');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$baseUrl/api/auth/forgot-password');
     final body = jsonEncode({'email': emailController.text.trim()});
 
     try {

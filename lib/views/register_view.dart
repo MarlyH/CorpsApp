@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
 
@@ -30,8 +32,8 @@ class _RegisterViewState extends State<RegisterView> {
       isLoading = true;
       errorMessage = null;
     });
-
-    final url = Uri.parse('http://10.0.2.2:5133/api/auth/register');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$baseUrl/api/auth/register');
     final body = jsonEncode({
       'userName': userNameController.text.trim(),
       'email': emailController.text.trim(),

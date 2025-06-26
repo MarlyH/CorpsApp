@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'home_view.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
@@ -29,7 +32,8 @@ class _LoginViewState extends State<LoginView> {
       canResend = false;
     });
 
-    final url = Uri.parse('http://10.0.2.2:5133/api/auth/login');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133'; // can use an env that point to ngrok or just use emulators
+    final url = Uri.parse('$baseUrl/api/auth/login');
     final body = jsonEncode({
       'Email': emailController.text.trim(),
       'Password': passwordController.text,

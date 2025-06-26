@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'reset_password_view.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class VerifyOtpView extends StatefulWidget {
   final String email;
   final String resetToken;
@@ -23,8 +25,8 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
       isLoading = true;
       errorMessage = null;
     });
-
-    final url = Uri.parse('http://10.0.2.2:5133/api/auth/verify-otp');
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$baseUrl/api/auth/verify-otp');
     final body = jsonEncode({
       'email': widget.email,
       'otp': otpController.text.trim(),

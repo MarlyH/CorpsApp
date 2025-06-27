@@ -6,7 +6,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
-
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
@@ -16,13 +15,20 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
   bool isLoading = false;
   bool canResend = false;
   bool obscurePassword = true;
   String? errorMessage;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -47,42 +53,37 @@ class _LoginViewState extends State<LoginView> {
         body: body,
       );
 
+      if (!mounted) return;
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeView()),
-          );
-        }
-      } else if (response.statusCode == 401) {
-        setState(() {
-          errorMessage = data['message'] ?? 'Unauthorized';
-          canResend = data['canResend'] ?? false;
-        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeView()),
+        );
       } else {
         setState(() {
-          errorMessage =
-              data['message'] ?? 'Unexpected error: ${response.statusCode}';
+          errorMessage = data['message'] ?? 'Unexpected error';
+          canResend = response.statusCode == 401 ? (data['canResend'] ?? false) : false;
         });
       }
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         errorMessage = 'Failed to connect to server';
       });
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> resendConfirmationEmail() async {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final resendUrl = Uri.parse(
-      '$baseUrl/api/auth/resend-confirmation',
-    );
+    final resendUrl = Uri.parse('$baseUrl/api/auth/resend-confirmation');
     final resendBody = jsonEncode({'email': emailController.text.trim()});
 
     try {
@@ -92,17 +93,18 @@ class _LoginViewState extends State<LoginView> {
         body: resendBody,
       );
 
+      if (!mounted) return;
       final data = jsonDecode(resendResponse.body);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(data['message'] ?? 'Email resent')),
       );
 
       if (resendResponse.statusCode == 200) {
-        setState(() {
-          canResend = false;
-        });
+        setState(() => canResend = false);
       }
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Server error, try again later.')),
       );
@@ -146,19 +148,14 @@ class _LoginViewState extends State<LoginView> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Back Button
             Positioned(
               top: 16,
               left: 8,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(context),
               ),
             ),
-
-            // Login Form
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Column(
@@ -167,7 +164,6 @@ class _LoginViewState extends State<LoginView> {
                   Form(
                     key: _formKey,
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Text(
@@ -184,9 +180,7 @@ class _LoginViewState extends State<LoginView> {
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) =>
-                              value == null || value.isEmpty
-                                  ? 'Email is required'
-                                  : null,
+                              value == null || value.isEmpty ? 'Email is required' : null,
                         ),
                         const SizedBox(height: 16),
                         buildTextField(
@@ -194,9 +188,7 @@ class _LoginViewState extends State<LoginView> {
                           controller: passwordController,
                           obscureText: obscurePassword,
                           validator: (value) =>
-                              value == null || value.isEmpty
-                                  ? 'Password is required'
-                                  : null,
+                              value == null || value.isEmpty ? 'Password is required' : null,
                           suffixIcon: IconButton(
                             icon: Icon(
                               obscurePassword
@@ -204,27 +196,20 @@ class _LoginViewState extends State<LoginView> {
                                   : Icons.visibility,
                               color: Colors.white,
                             ),
-                            onPressed: () {
-                              setState(() => obscurePassword = !obscurePassword);
-                            },
+                            onPressed: () => setState(() => obscurePassword = !obscurePassword),
                           ),
                         ),
-                        const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/forgot-password'),
-                            child: const Text(
-                              'Forgot password?',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                            child: const Text('Forgot password?', style: TextStyle(color: Colors.white)),
                           ),
                         ),
-                        const SizedBox(height: 16),
                         if (errorMessage != null)
                           Container(
                             padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(top: 16),
                             decoration: BoxDecoration(
                               color: Colors.red.shade100,
                               borderRadius: BorderRadius.circular(8),
@@ -287,10 +272,13 @@ class _LoginViewState extends State<LoginView> {
                               const TextSpan(text: 'By logging in, you agree to the '),
                               TextSpan(
                                 text: 'Terms and Conditions',
-                                style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255), decoration: TextDecoration.underline),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  decoration: TextDecoration.underline,
+                                ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () async {
-                                    final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions'); // need to grab the actual t&cs
+                                    final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions');
                                     if (await launcher.canLaunchUrl(url)) {
                                       await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
                                     }
@@ -299,7 +287,10 @@ class _LoginViewState extends State<LoginView> {
                               const TextSpan(text: ' and '),
                               TextSpan(
                                 text: 'Privacy Policy.',
-                                style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255), decoration: TextDecoration.underline),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  decoration: TextDecoration.underline,
+                                ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () async {
                                     final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');
@@ -311,7 +302,6 @@ class _LoginViewState extends State<LoginView> {
                             ],
                           ),
                         ),
-
                       ],
                     ),
                   ),

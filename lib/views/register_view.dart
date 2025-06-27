@@ -15,19 +15,59 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController userNameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController firstNameController = TextEditingController();
-  final TextEditingController lastNameController = TextEditingController();
-  final TextEditingController dobController = TextEditingController();
+  final userNameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final dobController = TextEditingController();
+
+  final Map<String, FocusNode> focusNodes = {};
 
   bool isLoading = false;
   String? errorMessage;
   bool obscurePassword = true;
 
+  @override
+  void initState() {
+    super.initState();
+    for (var label in [
+      'Username',
+      'Email',
+      'Password',
+      'Confirm Password',
+      'First Name',
+      'Last Name',
+      'Date of Birth',
+    ]) {
+      focusNodes[label] = FocusNode();
+      focusNodes[label]!.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    userNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    dobController.dispose();
+    for (var node in focusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> register() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (passwordController.text != confirmPasswordController.text) {
+      setState(() => errorMessage = 'Passwords do not match.');
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -52,6 +92,7 @@ class _RegisterViewState extends State<RegisterView> {
         body: body,
       );
 
+      if (!mounted) return;
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -59,19 +100,18 @@ class _RegisterViewState extends State<RegisterView> {
           const SnackBar(content: Text('Registration successful! Check your email.')),
         );
         Navigator.pop(context);
+      } else if (response.statusCode == 400 && data['errors'] != null) {
+        final errors = data['errors'] as Map<String, dynamic>;
+        final errorList = errors.values.expand((e) => List<String>.from(e)).toList();
+        setState(() => errorMessage = errorList.join('\n'));
       } else {
-        setState(() {
-          errorMessage = data['message']?.toString() ?? 'Registration failed';
-        });
+        setState(() => errorMessage = data['message']?.toString() ?? 'Registration failed');
       }
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Failed to connect to server';
-      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => errorMessage = 'Failed to connect to server');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -82,8 +122,7 @@ class _RegisterViewState extends State<RegisterView> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       dobController.text = pickedDate.toIso8601String().split('T').first;
     }
   }
@@ -94,24 +133,30 @@ class _RegisterViewState extends State<RegisterView> {
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
+    final node = focusNodes[label]!;
+
+    final showHint = node.hasFocus && controller.text.isEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
-            obscureText: obscureText,
+            focusNode: node,
             keyboardType: keyboardType,
+            obscureText: obscureText,
+            readOnly: readOnly,
+            onTap: onTap,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Enter your $label',
+              hintText: showHint ? 'Enter your $label' : null,
               hintStyle: const TextStyle(color: Colors.white54),
               suffixIcon: suffixIcon,
               enabledBorder: const UnderlineInputBorder(
@@ -128,6 +173,21 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
+  Widget passwordField(String label, TextEditingController controller) {
+    return buildTextField(
+      label: label,
+      controller: controller,
+      obscureText: obscurePassword,
+      suffixIcon: IconButton(
+        icon: Icon(
+          obscurePassword ? Icons.visibility_off : Icons.visibility,
+          color: Colors.white54,
+        ),
+        onPressed: () => setState(() => obscurePassword = !obscurePassword),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,62 +198,35 @@ class _RegisterViewState extends State<RegisterView> {
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
-                  child: const BackButton(color: Colors.white),
+                  child: BackButton(color: Colors.white),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   'REGISTER',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 24),
-
                 buildTextField(label: 'Username', controller: userNameController),
                 buildTextField(label: 'First Name', controller: firstNameController),
                 buildTextField(label: 'Last Name', controller: lastNameController),
-
-                Material(
-                  color: Colors.transparent,
-                  child: GestureDetector(
-                    onTap: pickDateOfBirth,
-                    child: AbsorbPointer(
-                      child: buildTextField(
-                        label: 'Date of Birth',
-                        controller: dobController,
-                        keyboardType: TextInputType.datetime,
-                        suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
-                      ),
-                    ),
-                  ),
+                buildTextField(
+                  label: 'Date of Birth',
+                  controller: dobController,
+                  keyboardType: TextInputType.datetime,
+                  suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
+                  readOnly: true,
+                  onTap: pickDateOfBirth,
                 ),
-
                 buildTextField(
                   label: 'Email',
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                 ),
-
-                buildTextField(
-                  label: 'Password',
-                  controller: passwordController,
-                  obscureText: obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white54,
-                    ),
-                    onPressed: () => setState(() => obscurePassword = !obscurePassword),
-                  ),
-                ),
-
+                passwordField('Password', passwordController),
+                passwordField('Confirm Password', confirmPasswordController),
                 if (errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -207,16 +240,12 @@ class _RegisterViewState extends State<RegisterView> {
                         const Icon(Icons.error_outline, color: Colors.red),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            errorMessage!,
-                            style: const TextStyle(color: Colors.red),
-                          ),
+                          child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -226,9 +255,7 @@ class _RegisterViewState extends State<RegisterView> {
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.black)
@@ -244,10 +271,7 @@ class _RegisterViewState extends State<RegisterView> {
                       const TextSpan(text: 'By logging in, you agree to the '),
                       TextSpan(
                         text: 'Terms and Conditions',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                        ),
+                        style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () async {
                             final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions');
@@ -259,10 +283,7 @@ class _RegisterViewState extends State<RegisterView> {
                       const TextSpan(text: ' and '),
                       TextSpan(
                         text: 'Privacy Policy.',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                        ),
+                        style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () async {
                             final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');

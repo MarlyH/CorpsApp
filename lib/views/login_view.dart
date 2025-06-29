@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'home_view.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
+import 'package:provider/provider.dart';
+import '../services/token_service.dart';
+import '../providers/auth_provider.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -57,10 +59,15 @@ class _LoginViewState extends State<LoginView> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeView()),
-        );
+        final accessToken = data['accessToken'];
+        final refreshToken = data['refreshToken'];
+
+        if (accessToken != null && refreshToken != null) {
+          await TokenService.saveTokens(accessToken, refreshToken);
+          await context.read<AuthProvider>().loadUser(); // Update global state
+        }
+
+        Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
         setState(() {
           errorMessage = data['message'] ?? 'Unexpected error';

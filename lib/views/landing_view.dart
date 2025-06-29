@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+
+import '../services/token_service.dart';
+import '../providers/auth_provider.dart';
 
 class LandingView extends StatefulWidget {
   const LandingView({super.key});
@@ -11,24 +15,37 @@ class LandingView extends StatefulWidget {
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   bool _isVideoReady = false;
+  bool _hasToken = false;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkForToken();
     _initializeVideo();
+  }
+
+  Future<void> _checkForToken() async {
+    final token = await TokenService.getAccessToken();
+    if (token != null) {
+      await context.read<AuthProvider>().loadUser();
+    }
+    setState(() {
+      _hasToken = token != null;
+      _loading = false;
+    });
   }
 
   void _initializeVideo() {
     _controller = VideoPlayerController.asset("assets/videos/landingvid1.mp4")
       ..initialize().then((_) {
         if (mounted) {
-          setState(() {
-            _isVideoReady = true;
-          });
-          _controller?.setLooping(true);
-          _controller?.setVolume(0);
-          _controller?.play();
+          setState(() => _isVideoReady = true);
+          _controller
+            ?..setLooping(true)
+            ..setVolume(0)
+            ..play();
         }
       });
   }
@@ -51,8 +68,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_controller?.value.isInitialized != true) return;
-
+    if (!(_controller?.value.isInitialized ?? false)) return;
     if (state == AppLifecycleState.paused) {
       _controller?.pause();
     } else if (state == AppLifecycleState.resumed) {
@@ -61,11 +77,15 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   }
 
   Future<void> _navigateSafely(String route) async {
-    _disposeVideo(); // Clean up before navigating
+    _disposeVideo();
     await Navigator.pushNamed(context, route);
-
-    // Reinitialize when coming back
     _initializeVideo();
+    _checkForToken();
+  }
+
+  Future<void> _logout() async {
+    await context.read<AuthProvider>().logout();
+    setState(() => _hasToken = false);
   }
 
   @override
@@ -87,14 +107,13 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
           else
             Container(color: Colors.black),
 
-          Container(color: Colors.black.withValues(alpha: 0.5)),
+          Container(color: Colors.black.withOpacity(0.5)),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Image.asset(
                     'assets/yourcorps_logo_vertical.png',
@@ -102,68 +121,156 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 120),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white, width: 4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: () => _navigateSafely('/login'),
-                      child: const Text(
-                        'LOGIN',
-                        style: TextStyle(
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white, width: 4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: () => _navigateSafely('/register'),
-                      child: const Text(
-                        'REGISTER',
-                        style: TextStyle(
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Handle guest login
+                  // Animated content section
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
                     },
-                    child: const Text(
-                      'CONTINUE AS GUEST',
-                      style: TextStyle(
-                        color: Colors.white,
-                        decoration: TextDecoration.underline,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
+                    child: _loading
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                            key: ValueKey('loading'),
+                          )
+                        : Column(
+                            key: ValueKey(_hasToken ? 'loggedIn' : 'loggedOut'),
+                            children: _hasToken
+                                ? [
+                                    // ✅ Continue to Dashboard
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(
+                                              color: Colors.white, width: 4),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
+                                        ),
+                                        onPressed: () =>
+                                            _navigateSafely('/dashboard'),
+                                        child: const Text(
+                                          'CONTINUE TO DASHBOARD',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // ❌ Log Out
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(
+                                              color: Colors.red, width: 4),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
+                                        ),
+                                        onPressed: _logout,
+                                        child: const Text(
+                                          'LOG OUT',
+                                          style: TextStyle(
+                                            color: Colors.redAccent,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ]
+                                : [
+                                    // 🔐 Login
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(
+                                              color: Colors.white, width: 4),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
+                                        ),
+                                        onPressed: () =>
+                                            _navigateSafely('/login'),
+                                        child: const Text(
+                                          'LOGIN',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // 📝 Register
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(
+                                              color: Colors.white, width: 4),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
+                                        ),
+                                        onPressed: () =>
+                                            _navigateSafely('/register'),
+                                        child: const Text(
+                                          'REGISTER',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            letterSpacing: 1.5,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    // 👀 Guest Mode
+                                    GestureDetector(
+                                      onTap: () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
+                                          content:
+                                              Text('Guest mode coming soon'),
+                                        ));
+                                      },
+                                      child: const Text(
+                                        'CONTINUE AS GUEST',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          decoration: TextDecoration.underline,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                          ),
                   ),
+
                   const SizedBox(height: 32),
                 ],
               ),

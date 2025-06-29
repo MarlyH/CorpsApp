@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'reset_password_view.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'reset_password_view.dart';
 
 class VerifyOtpView extends StatefulWidget {
   final String email;
@@ -24,7 +24,9 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   String? errorMessage;
 
   Future<void> verifyOtp() async {
-    if (otpController.text.trim().length != 6) {
+    final otp = otpController.text.trim();
+
+    if (otp.length != 6) {
       setState(() {
         errorMessage = 'Please enter a 6-digit code';
       });
@@ -40,7 +42,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
     final url = Uri.parse('$baseUrl/api/auth/verify-otp');
     final body = jsonEncode({
       'email': widget.email,
-      'otp': otpController.text.trim(),
+      'otp': otp,
     });
 
     try {
@@ -49,6 +51,8 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
@@ -67,13 +71,14 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
         });
       }
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         errorMessage = 'Connection failed';
       });
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -85,18 +90,13 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
           width: 45,
           height: 60,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             border: Border(
-              bottom: BorderSide(
-                color: Colors.white,
-                width: 2,
-              ),
+              bottom: BorderSide(color: Colors.white, width: 2),
             ),
           ),
           child: Text(
-            index < otpController.text.length
-                ? otpController.text[index]
-                : '',
+            index < otpController.text.length ? otpController.text[index] : '',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -117,6 +117,44 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
     }
   }
 
+  Future<void> openOtpDialog() async {
+    FocusScope.of(context).unfocus();
+
+    final tempController = TextEditingController(text: otpController.text);
+
+    await showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          content: TextField(
+            controller: tempController,
+            maxLength: 6,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white, fontSize: 20),
+            decoration: const InputDecoration(
+              hintText: 'Enter 6-digit code',
+              hintStyle: TextStyle(color: Colors.grey),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blue),
+              ),
+            ),
+            onChanged: (val) {
+              handleOtpInput(val);
+              if (val.length == 6 && mounted) {
+                Navigator.pop(context);
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,7 +170,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                 child: IntrinsicHeight(
                   child: Column(
                     children: [
-                      // Back Arrow
+                      // Back Button
                       Align(
                         alignment: Alignment.topLeft,
                         child: Padding(
@@ -146,11 +184,10 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
 
                       const Spacer(),
 
-                      Image.asset(
-                        'assets/otp.jpg',
-                        height: 240,
-                      ),
+                      // OTP Image
+                      Image.asset('assets/otp.jpg', height: 240),
                       const SizedBox(height: 32),
+
                       const Text(
                         'CHECK YOUR EMAIL',
                         textAlign: TextAlign.center,
@@ -161,6 +198,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                         ),
                       ),
                       const SizedBox(height: 12),
+
                       const Text(
                         'We’ve sent you an email with a one-time code. Please check your inbox or spam and enter the 6-digit code below.',
                         textAlign: TextAlign.center,
@@ -168,46 +206,15 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                       ),
                       const SizedBox(height: 32),
 
+                      // OTP Fields
                       GestureDetector(
-                        onTap: () {
-                          FocusScope.of(context).requestFocus(FocusNode());
-                          showDialog(
-                            context: context,
-                            builder: (_) {
-                              String buffer = otpController.text;
-                              final tempController = TextEditingController(text: buffer);
-                              return AlertDialog(
-                                backgroundColor: Colors.black,
-                                content: TextField(
-                                  controller: tempController,
-                                  maxLength: 6,
-                                  autofocus: true,
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                                  decoration: const InputDecoration(
-                                    hintText: 'Enter 6-digit code',
-                                    hintStyle: TextStyle(color: Colors.grey),
-                                    enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.white),
-                                    ),
-                                    focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(color: Colors.blue),
-                                    ),
-                                  ),
-                                  onChanged: (val) {
-                                    handleOtpInput(val);
-                                    if (val.length == 6) Navigator.pop(context);
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        },
+                        onTap: openOtpDialog,
                         child: buildOtpFields(),
                       ),
 
                       const SizedBox(height: 16),
 
+                      // Error Message
                       if (errorMessage != null)
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -231,6 +238,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
 
                       const SizedBox(height: 24),
 
+                      // Submit Button
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -258,7 +266,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                         ),
                       ),
 
-                      const SizedBox(height: 20), // padding below button
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -269,5 +277,4 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
       ),
     );
   }
-
 }

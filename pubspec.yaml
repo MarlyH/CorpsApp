@@ -35,6 +35,10 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   jwt_decoder: ^2.0.1
   provider: ^6.1.1
+  qr_code_scanner:
+    git:
+      url: https://github.com/juliuscanute/qr_code_scanner.git
+      
   flutter:
     sdk: flutter
 

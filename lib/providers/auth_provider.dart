@@ -51,7 +51,10 @@ class AuthProvider extends ChangeNotifier {
         };
 
         _userProfile = {
-          ...userData,
+          'userName': userData['userName'],
+          'firstName': userData['firstName'],
+          'lastName': userData['lastName'],
+          'email': userData['email'],
           'roles': roles,
         };
 

@@ -21,7 +21,7 @@ class _DashboardViewState extends State<DashboardView> {
   Future<void> _handlePop() async {
     final shouldExit = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (c) => AlertDialog(
         backgroundColor: Colors.black,
         title: const Text('Exit App', style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -40,20 +40,26 @@ class _DashboardViewState extends State<DashboardView> {
         ],
       ),
     );
+    if (shouldExit == true) SystemNavigator.pop();
+  }
 
-    if (shouldExit == true) {
-      SystemNavigator.pop(); // 🚪 Clean exit, no token loss
-    }
+  bool _hasRole(String role) {
+    final roles = context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ?? [];
+    return roles.contains(role);
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().userProfile;
-    final isAdmin = user?['roles']?.contains('Admin') ?? false;
+    final isStaff        = _hasRole('Staff');
+    final isEventManager = _hasRole('Event Manager');
+    final isAdmin        = _hasRole('Admin');
 
-    final List<Widget> fragments = [
+    final canScanQR      = isStaff || isEventManager || isAdmin;
+    final canCreateEvent = isEventManager || isAdmin;
+
+    final fragments = <Widget>[
       const HomeFragment(),
-      isAdmin ? const QrScanFragment() : const TicketsFragment(),
+      const TicketsFragment(),
       const ProfileFragment(),
     ];
 
@@ -63,42 +69,91 @@ class _DashboardViewState extends State<DashboardView> {
         if (!didPop) _handlePop();
       },
       child: Scaffold(
+        extendBody: true, // so FAB notch floats cleanly
+        backgroundColor: Colors.black,
+
+        // main content
         body: IndexedStack(
           index: _selectedIndex,
           children: fragments,
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.grey,
-          backgroundColor: Colors.black,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner),
-              label: 'QR / Tickets',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+
+        // bottom nav
+        bottomNavigationBar: MediaQuery.removeViewPadding(
+          context: context,
+          removeBottom: true, // zero out system nav inset
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: (i) => setState(() => _selectedIndex = i),
+            backgroundColor: Colors.black,
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.confirmation_number),
+                label: 'Tickets',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
-        floatingActionButton: isAdmin
-            ? FloatingActionButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Admin FAB action coming soon')),
-                  );
-                },
-                child: const Icon(Icons.qr_code),
+
+        // FABs
+        floatingActionButton: canScanQR
+            ? Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // QR‐scan button in center
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 40),
+                      child: FloatingActionButton(
+                        heroTag: 'scanQR',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const QrScanFragment(),
+                            ),
+                          );
+                        },
+                        backgroundColor: Colors.deepPurple,
+                        child: const Icon(Icons.qr_code_scanner),
+                      ),
+                    ),
+                  ),
+                  // Create‐event button bottom‐right
+                  if (canCreateEvent)
+                    Positioned(
+                      bottom: 40,
+                      right: 16,
+                      child: FloatingActionButton(
+                        heroTag: 'createEvent',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Create Event coming soon')),
+                          );
+                        },
+                        backgroundColor: Colors.grey.shade700,
+                        child: const Icon(Icons.add),
+                      ),
+                    ),
+                ],
               )
             : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+        floatingActionButtonLocation: canScanQR
+            ? FloatingActionButtonLocation.centerDocked
+            : null,
       ),
     );
   }

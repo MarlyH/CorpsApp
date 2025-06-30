@@ -50,13 +50,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       });
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _disposeVideo();
-    super.dispose();
-  }
-
   void _disposeVideo() {
     if (_controller?.value.isInitialized ?? false) {
       _controller?.pause();
@@ -64,6 +57,13 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     _controller?.dispose();
     _controller = null;
     _isVideoReady = false;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _disposeVideo();
+    super.dispose();
   }
 
   @override
@@ -88,8 +88,29 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     setState(() => _hasToken = false);
   }
 
+  String maskEmail(String email) {
+    final parts = email.split('@');
+    if (parts.length != 2) return email;
+
+    final name = parts[0];
+    final domain = parts[1];
+
+    if (name.length <= 2) {
+      return '*' * name.length + '@' + domain;
+    }
+
+    final visibleStart = name.substring(0, 2);
+    final visibleEnd = name.length > 4 ? name.substring(name.length - 2) : '';
+    final masked = '*' * (name.length - visibleStart.length - visibleEnd.length);
+
+    return '$visibleStart$masked$visibleEnd@$domain';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().userProfile;
+    final email = user?['email'] ?? 'USER';
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -121,12 +142,10 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 120),
 
-                  // Animated content section
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
                     child: _loading
                         ? const CircularProgressIndicator(
                             color: Colors.white,
@@ -136,7 +155,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             key: ValueKey(_hasToken ? 'loggedIn' : 'loggedOut'),
                             children: _hasToken
                                 ? [
-                                    // ✅ Continue to Dashboard
+                                    // Continue to Dashboard
                                     SizedBox(
                                       width: double.infinity,
                                       child: OutlinedButton(
@@ -144,17 +163,15 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                           side: const BorderSide(
                                               color: Colors.white, width: 4),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 16),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
-                                        onPressed: () =>
-                                            _navigateSafely('/dashboard'),
-                                        child: const Text(
-                                          'CONTINUE TO DASHBOARD',
-                                          style: TextStyle(
+                                        onPressed: () => _navigateSafely('/dashboard'),
+                                        child: Text(
+                                          'CONTINUE AS ${maskEmail(email)}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             letterSpacing: 1.5,
                                             fontWeight: FontWeight.bold,
@@ -164,19 +181,17 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    // ❌ Log Out
+
+                                    // Log Out
                                     SizedBox(
                                       width: double.infinity,
                                       child: OutlinedButton(
                                         style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(
-                                              color: Colors.red, width: 4),
+                                          side: const BorderSide(color: Colors.red, width: 4),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 16),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
                                         onPressed: _logout,
                                         child: const Text(
@@ -192,22 +207,18 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                     ),
                                   ]
                                 : [
-                                    // 🔐 Login
+                                    // Login
                                     SizedBox(
                                       width: double.infinity,
                                       child: OutlinedButton(
                                         style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(
-                                              color: Colors.white, width: 4),
+                                          side: const BorderSide(color: Colors.white, width: 4),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 16),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
-                                        onPressed: () =>
-                                            _navigateSafely('/login'),
+                                        onPressed: () => _navigateSafely('/login'),
                                         child: const Text(
                                           'LOGIN',
                                           style: TextStyle(
@@ -220,22 +231,19 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    // 📝 Register
+
+                                    // Register
                                     SizedBox(
                                       width: double.infinity,
                                       child: OutlinedButton(
                                         style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(
-                                              color: Colors.white, width: 4),
+                                          side: const BorderSide(color: Colors.white, width: 4),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 16),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
-                                        onPressed: () =>
-                                            _navigateSafely('/register'),
+                                        onPressed: () => _navigateSafely('/register'),
                                         child: const Text(
                                           'REGISTER',
                                           style: TextStyle(
@@ -248,14 +256,15 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                       ),
                                     ),
                                     const SizedBox(height: 24),
-                                    // 👀 Guest Mode
+
+                                    // Guest Mode
                                     GestureDetector(
                                       onTap: () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                          content:
-                                              Text('Guest mode coming soon'),
-                                        ));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Guest mode coming soon'),
+                                          ),
+                                        );
                                       },
                                       child: const Text(
                                         'CONTINUE AS GUEST',

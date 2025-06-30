@@ -89,40 +89,42 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ),
 
-        bottomNavigationBar: MediaQuery.removeViewPadding(
-          context: context,
-          removeBottom: true,
-          child: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedIndex,
-            onTap: (i) => setState(() => _selectedIndex = i),
-            backgroundColor: Colors.black,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: Colors.grey,
-            selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-              fontSize: 12,
-              // fontFamily: 'Orbitron', // Optional futuristic font
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: MediaQuery.removeViewPadding(
+            context: context,
+            removeBottom: true,
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _selectedIndex,
+              onTap: (i) => setState(() => _selectedIndex = i),
+              backgroundColor: Colors.black,
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.grey,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontSize: 12,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 11,
+                letterSpacing: 1.1,
+              ),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'HOME',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.confirmation_number),
+                  label: 'TICKETS',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'PROFILE',
+                ),
+              ],
             ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 11,
-              letterSpacing: 1.1,
-            ),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'HOME',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.confirmation_number),
-                label: 'TICKETS',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'PROFILE',
-              ),
-            ],
           ),
         ),
 
@@ -133,7 +135,7 @@ class _DashboardViewState extends State<DashboardView> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 40),
+                      padding: const EdgeInsets.only(bottom: 55),
                       child: FloatingActionButton(
                         heroTag: 'scanQR',
                         backgroundColor: Colors.black,
@@ -157,7 +159,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   if (canCreateEvent)
                     Positioned(
-                      bottom: 40,
+                      bottom: 55,
                       right: 16,
                       child: FloatingActionButton(
                         heroTag: 'createEvent',

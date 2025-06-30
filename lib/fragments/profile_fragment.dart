@@ -15,7 +15,13 @@ class _ProfileFragmentState extends State<ProfileFragment> {
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.grey[900],
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _handleEmailChange() async {
@@ -23,15 +29,31 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Change Email"),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Change Email", style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: "New Email"),
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            labelText: "New Email",
+            labelStyle: TextStyle(color: Colors.grey),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white24),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white),
+            ),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Submit")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("SUBMIT", style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -57,18 +79,64 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Update Profile"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: usernameController, decoration: const InputDecoration(labelText: "New Username")),
-            TextField(controller: firstNameController, decoration: const InputDecoration(labelText: "New First Name")),
-            TextField(controller: lastNameController, decoration: const InputDecoration(labelText: "New Last Name")),
-          ],
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Update Profile", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: usernameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "New Username",
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: firstNameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "New First Name",
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: lastNameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "New Last Name",
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Update")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("UPDATE", style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -95,11 +163,18 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Delete Profile"),
-        content: const Text("Are you sure you want to delete your account? This cannot be undone."),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Profile", style: TextStyle(color: Colors.white)),
+        content: const Text("Are you sure you want to delete your account? This cannot be undone.",
+            style: TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("DELETE", style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
@@ -120,58 +195,99 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final user = context.watch<AuthProvider>().userProfile;
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().userProfile;
 
-  return Center(
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.person, size: 100, color: Colors.white),
-          const SizedBox(height: 16),
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.person, size: 100, color: Colors.white),
+              const SizedBox(height: 20),
+              Text(
+                user?['userName'] ?? '',
+                style: const TextStyle(fontSize: 18, color: Colors.white70),
+              ),
+              Text(
+                '${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                user?['email'] ?? '',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 30),
 
-          Text(user?['userName'] ?? '', style: const TextStyle(fontSize: 18, color: Colors.white)),
-          Text('${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(user?['email'] ?? '', style: const TextStyle(color: Colors.grey)),
-
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : _handleEmailChange,
-            icon: const Icon(Icons.email),
-            label: const Text('Change Email'),
+              // Buttons
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleEmailChange,
+                    icon: const Icon(Icons.email, color: Colors.white),
+                    label: const Text('Change Email'),
+                    style: _buttonStyle,
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleUpdateProfile,
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    label: const Text('Update Profile'),
+                    style: _buttonStyle,
+                  ),
+                  if (!context.watch<AuthProvider>().isAdmin)
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _handleDeleteProfile,
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      label: const Text('Delete Profile'),
+                      style: _buttonStyle.copyWith(
+                        foregroundColor: MaterialStateProperty.all(Colors.redAccent),
+                        side: MaterialStateProperty.all(
+                            const BorderSide(color: Colors.redAccent)),
+                      ),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            await context.read<AuthProvider>().logout();
+                            if (context.mounted) {
+                              Navigator.pushReplacementNamed(context, '/landing');
+                            }
+                          },
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    label: const Text('Logout'),
+                    style: _buttonStyle,
+                  ),
+                ],
+              ),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Colors.grey),
+                ),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : _handleUpdateProfile,
-            icon: const Icon(Icons.edit),
-            label: const Text('Update Profile'),
-          ),
-          if (!context.watch<AuthProvider>().isAdmin)
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _handleDeleteProfile,
-              icon: const Icon(Icons.delete),
-              label: const Text('Delete Profile'),
-            ),
-          ElevatedButton.icon(
-            onPressed: _isLoading
-                ? null
-                : () async {
-                    await context.read<AuthProvider>().logout();
-                    if (context.mounted) {
-                      Navigator.pushReplacementNamed(context, '/landing');
-                    }
-                  },
-            icon: const Icon(Icons.logout),
-            label: const Text('Logout'),
-          ),
-          if (_isLoading) const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-
+  ButtonStyle get _buttonStyle => OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      );
 }

@@ -23,7 +23,15 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: Colors.black,
-        title: const Text('Exit App', style: TextStyle(color: Colors.white)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'EXIT APP',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+          ),
+        ),
         content: const Text(
           'Do you want to exit the app?',
           style: TextStyle(color: Colors.white70),
@@ -31,15 +39,16 @@ class _DashboardViewState extends State<DashboardView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Exit', style: TextStyle(color: Colors.red)),
+            child: const Text('EXIT', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
     );
+
     if (shouldExit == true) SystemNavigator.pop();
   }
 
@@ -69,19 +78,20 @@ class _DashboardViewState extends State<DashboardView> {
         if (!didPop) _handlePop();
       },
       child: Scaffold(
-        extendBody: true, // so FAB notch floats cleanly
+        extendBody: true,
         backgroundColor: Colors.black,
 
-        // main content
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: fragments,
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: fragments,
+          ),
         ),
 
-        // bottom nav
         bottomNavigationBar: MediaQuery.removeViewPadding(
           context: context,
-          removeBottom: true, // zero out system nav inset
+          removeBottom: true,
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             currentIndex: _selectedIndex,
@@ -89,35 +99,50 @@ class _DashboardViewState extends State<DashboardView> {
             backgroundColor: Colors.black,
             selectedItemColor: Colors.white,
             unselectedItemColor: Colors.grey,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              fontSize: 12,
+              // fontFamily: 'Orbitron', // Optional futuristic font
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.1,
+            ),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home),
-                label: 'Home',
+                label: 'HOME',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.confirmation_number),
-                label: 'Tickets',
+                label: 'TICKETS',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person),
-                label: 'Profile',
+                label: 'PROFILE',
               ),
             ],
           ),
         ),
 
-        // FABs
         floatingActionButton: canScanQR
             ? Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // QR‐scan button in center
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 40),
                       child: FloatingActionButton(
                         heroTag: 'scanQR',
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: const BorderSide(color: Colors.white, width: 2),
+                        ),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -126,24 +151,30 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
                           );
                         },
-                        backgroundColor: Colors.deepPurple,
                         child: const Icon(Icons.qr_code_scanner),
                       ),
                     ),
                   ),
-                  // Create‐event button bottom‐right
                   if (canCreateEvent)
                     Positioned(
                       bottom: 40,
                       right: 16,
                       child: FloatingActionButton(
                         heroTag: 'createEvent',
+                        backgroundColor: Colors.grey.shade900,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Create Event coming soon')),
+                            const SnackBar(
+                              content: Text('Create Event coming soon'),
+                              backgroundColor: Colors.grey,
+                            ),
                           );
                         },
-                        backgroundColor: Colors.grey.shade700,
                         child: const Icon(Icons.add),
                       ),
                     ),

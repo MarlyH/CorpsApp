@@ -353,7 +353,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
           borderSide: BorderSide(color: Colors.white),
         ),
       ),
-    );
+    ); 
   }
 
   ButtonStyle get _buttonStyle => OutlinedButton.styleFrom(

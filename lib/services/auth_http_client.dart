@@ -120,6 +120,22 @@ class AuthHttpClient {
     );
     _ensureSuccess(response);
   }
+
+  // Change a user’s role (Admin only)
+  static Future<http.Response> changeUserRole({
+    required String email,
+    required String role,
+  }) {
+    return post(
+      '/api/auth/change-role',
+      body: {
+        'email': email,
+        'role': role,
+      },
+    );
+  }
+
+
   // Child-Specific Endpoints
 
 

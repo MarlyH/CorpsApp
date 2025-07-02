@@ -40,7 +40,8 @@ class AuthProvider extends ChangeNotifier {
 
         // Decode JWT and extract roles
         final decodedToken = JwtDecoder.decode(token);
-        final rawRoles = decodedToken['role'] ??
+        final rawRoles =
+            decodedToken['role'] ??
             decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
 
         // Normalize roles into a list of strings

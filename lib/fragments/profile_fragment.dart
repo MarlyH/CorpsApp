@@ -261,6 +261,14 @@ class _ProfileFragmentState extends State<ProfileFragment> {
               Text(user?['email'] ?? '',
                   style: const TextStyle(color: Colors.grey)),
               const SizedBox(height: 30),
+              if (user?['age'] != null)
+                Text('Age: ${user!['age']}',
+                    style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 20),
+              const Text(
+                "Manage your profile settings below.",
+                style: TextStyle(color: Colors.white70),
+              ),
 
               Wrap(
                 spacing: 10,

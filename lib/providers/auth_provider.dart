@@ -56,6 +56,7 @@ class AuthProvider extends ChangeNotifier {
           'lastName': userData['lastName'],
           'email': userData['email'],
           'roles': roles,
+          'age': userData['age'],
         };
 
         notifyListeners();

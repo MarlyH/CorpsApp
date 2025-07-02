@@ -7,6 +7,11 @@ import 'views/register_view.dart';
 import 'views/forgot_password_view.dart';
 import 'views/dashboard_view.dart';
 import 'providers/auth_provider.dart';
+import 'views/manage_children_view.dart';
+import 'views/children/create_child.dart';
+import 'views/children/edit_child.dart';
+import 'models/child_model.dart';
+
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
@@ -45,6 +50,12 @@ class MyApp extends StatelessWidget {
           '/register': (context) => const RegisterView(),
           '/forgot-password': (context) => const ForgotPasswordView(),
           '/dashboard': (context) => const DashboardView(),
+          '/children': (context) => const ManageChildrenView(),
+          '/children/create': (_) => const CreateChildView(),
+          '/children/edit': (context) {
+            final child = ModalRoute.of(context)!.settings.arguments as ChildModel;
+            return EditChildView(child: child);
+          },
         },
               ),
     );

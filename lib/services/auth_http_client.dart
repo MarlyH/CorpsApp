@@ -10,7 +10,8 @@ class AuthHttpClient {
   static final String _baseUrl =
       dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
 
-  // Performs a GET against [endpoint], refreshing tokens if needed.
+  // Generic HTTP Methods
+
   static Future<http.Response> get(String endpoint,
       {Map<String, String>? extraHeaders}) async {
     await _ensureValidToken();
@@ -23,7 +24,6 @@ class AuthHttpClient {
     return response;
   }
 
-  // Performs a POST against [endpoint], refreshing tokens if needed.
   static Future<http.Response> post(String endpoint,
       {Map<String, String>? extraHeaders, dynamic body}) async {
     await _ensureValidToken();
@@ -37,7 +37,6 @@ class AuthHttpClient {
     return response;
   }
 
-  // Performs a PATCH against [endpoint], refreshing tokens if needed.
   static Future<http.Response> patch(String endpoint,
       {Map<String, String>? extraHeaders, dynamic body}) async {
     await _ensureValidToken();
@@ -51,7 +50,19 @@ class AuthHttpClient {
     return response;
   }
 
-  // Performs a DELETE against [endpoint], refreshing tokens if needed.
+  static Future<http.Response> put(String endpoint,
+      {Map<String, String>? extraHeaders, dynamic body}) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+    final response = await _client.put(
+      Uri.parse('$_baseUrl$endpoint'),
+      headers: _buildHeaders(token, extraHeaders),
+      body: jsonEncode(body),
+    );
+    _checkForErrors(response);
+    return response;
+  }
+
   static Future<http.Response> delete(String endpoint,
       {Map<String, String>? extraHeaders}) async {
     await _ensureValidToken();
@@ -64,25 +75,20 @@ class AuthHttpClient {
     return response;
   }
 
-  // Sends the email-change request, returning the raw response so the UI
-  // can inspect statusCode and JSON body.
+  // Profile & Auth-Specific
+
   static Future<http.Response> requestEmailChange(String newEmail) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final uri = Uri.parse('$_baseUrl/api/auth/request-email-change');
     final response = await _client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      headers: _buildHeaders(token),
       body: jsonEncode({'newEmail': newEmail}),
     );
-    // do not throw here
     return response;
   }
 
-  // Updates the profile; throws on non-200.
   static Future<void> updateProfile({
     String? newUserName,
     String? newFirstName,
@@ -98,43 +104,51 @@ class AuthHttpClient {
     };
     final response = await _client.patch(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      headers: _buildHeaders(token),
       body: jsonEncode(body),
     );
     _ensureSuccess(response);
   }
 
-  // Deletes the profile; throws on non-200.
   static Future<void> deleteProfile() async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final uri = Uri.parse('$_baseUrl/api/auth/profile');
     final response = await _client.delete(
       uri,
-      headers: {
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      headers: _buildHeaders(token),
     );
     _ensureSuccess(response);
   }
+  // Child-Specific Endpoints
 
-  // these below are internal Helpers
 
-  // Builds standard JSON + Bearer headers.
+  static Future<http.Response> fetchChildren() => get('/api/child');
+
+  static Future<http.Response> fetchChildById(int id) =>
+      get('/api/child/$id');
+
+  static Future<http.Response> createChild(Map<String, dynamic> data) =>
+      post('/api/child', body: data);
+
+  static Future<http.Response> updateChild(int id, Map<String, dynamic> data) =>
+      put('/api/child/$id', body: data);
+
+  static Future<http.Response> deleteChild(int id) =>
+      delete('/api/child/$id');
+
+  // Internal Helpers
+
   static Map<String, String> _buildHeaders(
-      String? token, Map<String, String>? extra) {
-    final h = <String, String>{
+      String? token, [Map<String, String>? extra]) {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
-    if (extra != null) h.addAll(extra);
-    return h;
+    if (extra != null) headers.addAll(extra);
+    return headers;
   }
 
-  // Ensures tokens are valid, and attempts to refresh if missing/expired.
   static Future<void> _ensureValidToken() async {
     final access = await TokenService.getAccessToken();
     if (access == null || JwtDecoder.isExpired(access)) {
@@ -142,8 +156,6 @@ class AuthHttpClient {
     }
   }
 
-  // Calls the backend `/refresh` endpoint; on success saves new tokens,
-  // on failure clears and throws.
   static Future<void> _refreshToken() async {
     final refresh = await TokenService.getRefreshToken();
     if (refresh == null) {
@@ -175,17 +187,15 @@ class AuthHttpClient {
     }
   }
 
-  // Throws if status code >=400.
-  static void _checkForErrors(http.Response resp) {
-    if (resp.statusCode >= 400) {
-      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+  static void _checkForErrors(http.Response response) {
+    if (response.statusCode >= 400) {
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
   }
 
-  // Similar to _checkForErrors but allows 200 only.
-  static void _ensureSuccess(http.Response resp) {
-    if (resp.statusCode != 200) {
-      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+  static void _ensureSuccess(http.Response response) {
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
   }
 }

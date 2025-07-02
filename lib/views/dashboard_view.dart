@@ -17,13 +17,27 @@ class DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<DashboardView> {
   int _selectedIndex = 0;
+  late final PageController _pageController;
 
-  Future<void> _handlePop() async {
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _onWillPop() async {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'EXIT APP',
           style: TextStyle(
@@ -38,93 +52,99 @@ class _DashboardViewState extends State<DashboardView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(c).pop(false),
             child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(c).pop(true),
             child: const Text('EXIT', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
     );
-
     if (shouldExit == true) SystemNavigator.pop();
+    return Future.value(false);
   }
 
   bool _hasRole(String role) {
-    final roles = context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ?? [];
+    final roles =
+        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ??
+            [];
     return roles.contains(role);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isStaff        = _hasRole('Staff');
+    final isStaff = _hasRole('Staff');
     final isEventManager = _hasRole('Event Manager');
-    final isAdmin        = _hasRole('Admin');
+    final isAdmin = _hasRole('Admin');
 
-    final canScanQR      = isStaff || isEventManager || isAdmin;
+    final canScanQR = isStaff || isEventManager || isAdmin;
     final canCreateEvent = isEventManager || isAdmin;
+    final canAccessTickets = !isEventManager && !isAdmin;
 
-    final fragments = <Widget>[
-      const HomeFragment(),
-      const TicketsFragment(),
-      const ProfileFragment(),
+    // Build your fragments & nav-items list
+    final tabs = <MapEntry<Widget, BottomNavigationBarItem>>[
+      MapEntry(
+        const HomeFragment(),
+        const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
+      ),
+      if (canAccessTickets)
+        MapEntry(
+          const TicketsFragment(),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.confirmation_number), label: 'TICKETS'),
+        ),
+      MapEntry(
+        const ProfileFragment(),
+        const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),
+      ),
     ];
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (!didPop) _handlePop();
-      },
+    // Clamp _selectedIndex if needed
+    if (_selectedIndex >= tabs.length) _selectedIndex = 0;
+
+    return WillPopScope(
+      onWillPop: _onWillPop,
       child: Scaffold(
         extendBody: true,
         backgroundColor: Colors.black,
 
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: IndexedStack(
-            index: _selectedIndex,
-            children: fragments,
-          ),
+        // PageView for swipe gestures
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (idx) {
+            setState(() => _selectedIndex = idx);
+          },
+          children: tabs.map((e) => e.key).toList(),
         ),
 
         bottomNavigationBar: SafeArea(
           top: false,
-          child: MediaQuery.removeViewPadding(
-            context: context,
-            removeBottom: true,
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _selectedIndex,
-              onTap: (i) => setState(() => _selectedIndex = i),
-              backgroundColor: Colors.black,
-              selectedItemColor: Colors.white,
-              unselectedItemColor: Colors.grey,
-              selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 11,
-                letterSpacing: 1.1,
-              ),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'HOME',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.confirmation_number),
-                  label: 'TICKETS',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: 'PROFILE',
-                ),
-              ],
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.black,
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.grey,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              fontSize: 12,
             ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.1,
+            ),
+            currentIndex: _selectedIndex,
+            onTap: (idx) {
+              setState(() => _selectedIndex = idx);
+              _pageController.animateToPage(
+                idx,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            items: tabs.map((e) => e.value).toList(),
           ),
         ),
 
@@ -143,16 +163,14 @@ class _DashboardViewState extends State<DashboardView> {
                         elevation: 6,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: Colors.white, width: 2),
+                          side:
+                              const BorderSide(color: Colors.white, width: 2),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const QrScanFragment(),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const QrScanFragment()),
+                        ),
                         child: const Icon(Icons.qr_code_scanner),
                       ),
                     ),
@@ -169,21 +187,17 @@ class _DashboardViewState extends State<DashboardView> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Create Event coming soon'),
-                              backgroundColor: Colors.grey,
-                            ),
-                          );
-                        },
+                        onPressed: () => ScaffoldMessenger.of(context)
+                            .showSnackBar(const SnackBar(
+                          content: Text('Create Event coming soon'),
+                          backgroundColor: Colors.grey,
+                        )),
                         child: const Icon(Icons.add),
                       ),
                     ),
                 ],
               )
             : null,
-
         floatingActionButtonLocation: canScanQR
             ? FloatingActionButtonLocation.centerDocked
             : null,

@@ -25,7 +25,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     });
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/auth/forgot-password');
+    final url = Uri.parse('$baseUrl/api/password/forgot-password');
     final body = jsonEncode({'email': emailController.text.trim()});
 
     try {

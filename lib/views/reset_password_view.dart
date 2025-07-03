@@ -48,7 +48,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     });
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/auth/reset-password');
+    final url = Uri.parse('$baseUrl/api/password/reset-password');
     final body = jsonEncode({
       'email': widget.email,
       'resetPasswordToken': widget.resetToken,

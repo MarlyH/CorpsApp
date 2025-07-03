@@ -80,7 +80,7 @@ class AuthHttpClient {
   static Future<http.Response> requestEmailChange(String newEmail) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
-    final uri = Uri.parse('$_baseUrl/api/auth/request-email-change');
+    final uri = Uri.parse('$_baseUrl/api/email/request-email-change');
     final response = await _client.post(
       uri,
       headers: _buildHeaders(token),
@@ -96,7 +96,7 @@ class AuthHttpClient {
   }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
-    final uri = Uri.parse('$_baseUrl/api/auth/profile');
+    final uri = Uri.parse('$_baseUrl/api/profile/profile');
     final body = <String, String>{
       if (newUserName != null) 'newUserName': newUserName,
       if (newFirstName != null) 'newFirstName': newFirstName,
@@ -113,7 +113,7 @@ class AuthHttpClient {
   static Future<void> deleteProfile() async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
-    final uri = Uri.parse('$_baseUrl/api/auth/profile');
+    final uri = Uri.parse('$_baseUrl/api/profile/profile');
     final response = await _client.delete(
       uri,
       headers: _buildHeaders(token),
@@ -127,7 +127,7 @@ class AuthHttpClient {
     required String role,
   }) {
     return post(
-      '/api/auth/change-role',
+      '/api/userManagement/change-role',
       body: {
         'email': email,
         'role': role,

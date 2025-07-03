@@ -39,7 +39,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
     });
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/auth/verify-otp');
+    final url = Uri.parse('$baseUrl/api/password/verify-otp');
     final body = jsonEncode({
       'email': widget.email,
       'otp': otp,

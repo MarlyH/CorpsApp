@@ -90,7 +90,7 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> resendConfirmationEmail() async {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final resendUrl = Uri.parse('$baseUrl/api/auth/resend-confirmation');
+    final resendUrl = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
     final resendBody = jsonEncode({'email': emailController.text.trim()});
 
     try {

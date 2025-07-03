@@ -2,15 +2,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 import '../fragments/home_fragment.dart';
 import '../fragments/profile_fragment.dart';
 import '../fragments/tickets_fragment.dart';
 import '../fragments/qr_scan_fragment.dart';
-import './change_user_role_view.dart';
+import '../views/create_event_view.dart';
+import '../views/change_user_role_view.dart';
 
 class DashboardView extends StatefulWidget {
-  const DashboardView({super.key});
+  const DashboardView({Key? key}) : super(key: key);
 
   @override
   State<DashboardView> createState() => _DashboardViewState();
@@ -40,52 +42,43 @@ class _DashboardViewState extends State<DashboardView>
     super.dispose();
   }
 
-  Future<bool> _onWillPop() async {
-    // if menu open, close it first
-    if (_menuCtl.value > 0) {
+  bool get _isMenuOpen => _menuCtl.value > 0;
+
+  Future<bool> _handleBack() async {
+    if (_isMenuOpen) {
       _menuCtl.reverse();
       return false;
     }
-    // otherwise confirm exit
-    final shouldExit = await showDialog<bool>(
+    final exit = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'EXIT APP',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-        content: const Text(
-          'Do you want to exit the app?',
-          style: TextStyle(color: Colors.white70),
-        ),
+        title: const Text('EXIT APP',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        content:
+            const Text('Do you want to exit the app?', style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(c).pop(false),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child:
+                  const Text('CANCEL', style: TextStyle(color: Colors.grey))),
           TextButton(
-            onPressed: () => Navigator.of(c).pop(true),
-            child:
-                const Text('EXIT', style: TextStyle(color: Colors.redAccent)),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child:
+                  const Text('EXIT', style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
-    if (shouldExit == true) SystemNavigator.pop();
+    if (exit == true) SystemNavigator.pop();
     return Future.value(false);
   }
 
   bool _hasRole(String role) {
     final roles =
-        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ??
-            [];
+        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ?? [];
     return roles.contains(role);
   }
 
@@ -99,76 +92,25 @@ class _DashboardViewState extends State<DashboardView>
     final canCreateEvent = isEventManager || isAdmin;
     final canAccessTickets = !isEventManager && !isAdmin;
 
-    // Pages & NavItems
-    final tabs = <MapEntry<Widget, BottomNavigationBarItem>>[
-      MapEntry(const HomeFragment(),
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME')),
-      if (canAccessTickets)
-        MapEntry(
-            const TicketsFragment(),
-            const BottomNavigationBarItem(
-                icon: Icon(Icons.confirmation_number), label: 'TICKETS')),
-      MapEntry(const ProfileFragment(),
-          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE')),
-    ];
-    if (_selectedIndex >= tabs.length) _selectedIndex = 0;
+    final pages = _buildPages(canAccessTickets);
+    final navItems = _buildNavItems(canAccessTickets);
 
-    // Tools for the radial wheel
-    final tools = <_ToolButton>[];
-    if (canCreateEvent) {
-      tools.addAll([
-        _ToolButton(
-          icon: Icons.add,
-          label: 'Add',
-          onTap: () => ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Create Event coming soon'))),
-        ),
-        _ToolButton(
-          icon: Icons.settings,
-          label: 'Settings',
-          onTap: () => ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Settings coming soon'))),
-        ),
-        _ToolButton(
-          icon: Icons.people_sharp,
-          label: 'Roles',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ChangeUserRoleView(),
-              ),
-            );
-          },
-        ),
-        _ToolButton(
-          icon: Icons.query_stats,
-          label: 'Reports',
-          onTap: () => ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Generate reports coming soon'))),
-        ),
-      ]);
-    }
-
-    // Geometry
+    // Pre‐compute geometry
     final screenW = MediaQuery.of(context).size.width;
-    final radius = screenW / 3; // 1/3 screen width
+    final radius = screenW / 3;
     final diameter = radius * 2;
     final midY = MediaQuery.of(context).size.height / 2 - radius;
 
     return WillPopScope(
-      onWillPop: _onWillPop,
+      onWillPop: _handleBack,
       child: Scaffold(
         extendBody: true,
         backgroundColor: Colors.black,
-
-        // Swipeable pages
         body: PageView(
           controller: _pageController,
           onPageChanged: (i) => setState(() => _selectedIndex = i),
-          children: tabs.map((e) => e.key).toList(),
+          children: pages,
         ),
-
-        // Bottom bar
         bottomNavigationBar: SafeArea(
           top: false,
           child: BottomNavigationBar(
@@ -183,122 +125,192 @@ class _DashboardViewState extends State<DashboardView>
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut);
             },
-            items: tabs.map((e) => e.value).toList(),
+            items: navItems,
           ),
         ),
-
-        // FABs
         floatingActionButton: canScanQR
-            ? Stack(clipBehavior: Clip.none, children: [
-                // QR Scanner FAB
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 55),
-                    child: FloatingActionButton(
-                      heroTag: 'scanQR',
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const QrScanFragment()),
-                      ),
-                      child: const Icon(Icons.qr_code_scanner),
-                    ),
-                  ),
-                ),
-
-                // Radial drawer + outside‐tap detector
-                if (tools.isNotEmpty)
-                  AnimatedBuilder(
-                    animation: _menuCtl,
-                    builder: (_, __) {
-                      final openPct = _menuCtl.value;
-                      if (openPct == 0) return const SizedBox.shrink();
-
-                      final rightShift = radius * (openPct - 2);
-
-                      return Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent, // catch taps only
-                          onTap: () => _menuCtl.reverse(),
-                          child: Stack(
-                            children: [
-                              // wheel area
-                              Positioned(
-                                right: rightShift,
-                                top: midY,
-                                width: diameter,
-                                height: diameter,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onTap: () {}, // consume inner taps
-                                  onVerticalDragUpdate: (d) => setState(() {
-                                    final step = math.pi / (tools.length + 1);
-                                    final maxScroll = step * (tools.length - 1);
-                                    final minScroll = -maxScroll;
-                                    _scrollAngle = (_scrollAngle + d.delta.dy * 0.01)
-                                        .clamp(minScroll, maxScroll);
-                                  }),
-                                  child: CustomPaint(
-                                    size: Size(diameter, diameter),
-                                    painter: _SemiCirclePainter(
-                                      backgroundColor: Colors.black,
-                                      arcColor: Colors.white,
-                                    ),
-                                    child: Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        for (var i = 0; i < tools.length; i++)
-                                          _buildToolItem(
-                                              tools[i], i, tools.length, radius),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                // Toggle drawer FAB
-                if (tools.isNotEmpty)
-                  Positioned(
-                    bottom: 55,
-                    right: 16,
-                    child: FloatingActionButton(
-                      heroTag: 'toggle',
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      onPressed: () {
-                        _menuCtl.isCompleted ? _menuCtl.reverse() : _menuCtl.forward();
-                      },
-                      child: AnimatedIcon(
-                        icon: AnimatedIcons.menu_close,
-                        progress: _menuCtl,
-                      ),
-                    ),
-                  ),
-              ])
+            ? RadialMenu(
+                menuCtl: _menuCtl,
+                scrollAngle: _scrollAngle,
+                onScrollAngleChanged: (v) => setState(() => _scrollAngle = v),
+                radius: radius,
+                diameter: diameter,
+                midY: midY,
+                tools: _buildTools(canCreateEvent),
+              )
             : null,
-        floatingActionButtonLocation:
-            canScanQR ? FloatingActionButtonLocation.centerDocked : null,
+        floatingActionButtonLocation: canScanQR
+            ? FloatingActionButtonLocation.centerDocked
+            : null,
       ),
     );
   }
 
-  Widget _buildToolItem(_ToolButton tool, int idx, int total, double r) {
+  List<Widget> _buildPages(bool canAccessTickets) {
+    return [
+      const HomeFragment(),
+      if (canAccessTickets) const TicketsFragment(),
+      const ProfileFragment(),
+    ];
+  }
+
+  List<BottomNavigationBarItem> _buildNavItems(bool canAccessTickets) {
+    final items = [
+      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
+    ];
+    if (canAccessTickets) {
+      items.add(const BottomNavigationBarItem(
+          icon: Icon(Icons.confirmation_number), label: 'TICKETS'));
+    }
+    items.add(const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'));
+    return items;
+  }
+
+  List<_ToolButton> _buildTools(bool canCreateEvent) {
+    if (!canCreateEvent) return [];
+    return [
+      _ToolButton(
+        icon: Icons.add,
+        label: 'Add Event',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CreateEventView()),
+        ),
+      ),
+      _ToolButton(
+        icon: Icons.settings,
+        label: 'Settings',
+        onTap: () => ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Settings coming soon'))),
+      ),
+      _ToolButton(
+        icon: Icons.people,
+        label: 'Roles',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
+        ),
+      ),
+      _ToolButton(
+        icon: Icons.query_stats,
+        label: 'Reports',
+        onTap: () => ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Reports coming soon'))),
+      ),
+    ];
+  }
+}
+
+/// The radial menu, extracted out of the main build for clarity.
+class RadialMenu extends StatelessWidget {
+  final AnimationController menuCtl;
+  final double scrollAngle;
+  final ValueChanged<double> onScrollAngleChanged;
+  final double radius;
+  final double diameter;
+  final double midY;
+  final List<_ToolButton> tools;
+
+  const RadialMenu({
+    required this.menuCtl,
+    required this.scrollAngle,
+    required this.onScrollAngleChanged,
+    required this.radius,
+    required this.diameter,
+    required this.midY,
+    required this.tools,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(clipBehavior: Clip.none, children: [
+      // QR FAB
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 55),
+          child: FloatingActionButton(
+            heroTag: 'scanQR',
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const QrScanFragment())),
+            child: const Icon(Icons.qr_code_scanner),
+          ),
+        ),
+      ),
+
+      // Radial tools
+      AnimatedBuilder(
+        animation: menuCtl,
+        builder: (_, __) {
+          final openPct = menuCtl.value;
+          if (openPct == 0) return const SizedBox.shrink();
+          final rightShift = radius * (openPct - 2);
+
+          return Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => menuCtl.reverse(),
+              child: Stack(children: [
+                Positioned(
+                  right: rightShift,
+                  top: midY,
+                  width: diameter,
+                  height: diameter,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {}, // consume taps inside wheel
+                    onVerticalDragUpdate: (d) {
+                      final step = math.pi / (tools.length + 1);
+                      final maxScroll = step * (tools.length - 1);
+                      final minScroll = -maxScroll;
+                      final newAngle = (scrollAngle + d.delta.dy * 0.01)
+                          .clamp(minScroll, maxScroll);
+                      onScrollAngleChanged(newAngle);
+                    },
+                    child: CustomPaint(
+                      size: Size(diameter, diameter),
+                      painter: _SemiCirclePainter(
+                          backgroundColor: Colors.black, arcColor: Colors.white),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          for (var i = 0; i < tools.length; i++)
+                            _buildTool(tools[i], i, tools.length)
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              ]),
+            ),
+          );
+        },
+      ),
+
+      // Toggle FAB
+      Positioned(
+        bottom: 55,
+        right: 16,
+        child: FloatingActionButton(
+          heroTag: 'toggle',
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          onPressed: () =>
+              menuCtl.isCompleted ? menuCtl.reverse() : menuCtl.forward(),
+          child: AnimatedIcon(icon: AnimatedIcons.menu_close, progress: menuCtl),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildTool(_ToolButton tool, int idx, int total) {
     final base = math.pi / 2;
     final step = math.pi / (total + 1);
-    final angle = base + (idx + 1) * step + _scrollAngle;
-    final x = r + r * math.cos(angle);
-    final y = r + r * math.sin(angle);
+    final angle = base + (idx + 1) * step + scrollAngle;
+    final x = radius + radius * math.cos(angle);
+    final y = radius + radius * math.sin(angle);
 
     if (!x.isFinite || !y.isFinite) return const SizedBox.shrink();
-
     return Positioned(
       left: x - 24,
       top: y - 24,
@@ -314,14 +326,8 @@ class _DashboardViewState extends State<DashboardView>
             child: Icon(tool.icon, size: 20),
           ),
           const SizedBox(height: 4),
-          Text(
-            tool.label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(tool.label,
+              style: const TextStyle(color: Colors.white, fontSize: 10)),
         ],
       ),
     );
@@ -331,29 +337,22 @@ class _DashboardViewState extends State<DashboardView>
 class _SemiCirclePainter extends CustomPainter {
   final Color backgroundColor;
   final Color arcColor;
-
-  _SemiCirclePainter({
+  const _SemiCirclePainter({
     this.backgroundColor = Colors.black,
     this.arcColor = Colors.white,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final r = size.width / 2;
-    final center = Offset(r, r);
+    final r = size.width / 2, cx = r, cy = r;
+    final bgPaint = Paint()..color = backgroundColor..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), r, bgPaint);
 
-    // draw full‐circle black background
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, r, bgPaint);
-
-    // draw white semi‐circle on top
     final arcPaint = Paint()..color = arcColor;
-    final circleRect = Rect.fromCircle(center: center, radius: r);
+    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r);
     final path = Path()
-      ..moveTo(r, 0)
-      ..arcTo(circleRect, -math.pi / 2, math.pi, false)
+      ..moveTo(cx, 0)
+      ..arcTo(rect, -math.pi/2, math.pi, false)
       ..close();
     canvas.drawPath(path, arcPaint);
   }

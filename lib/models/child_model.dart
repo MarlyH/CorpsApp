@@ -2,7 +2,7 @@ class ChildModel {
   final int childId;
   final String firstName;
   final String lastName;
-  final String dateOfBirth; // Expected format: YYYY-MM-DD
+  final String dateOfBirth; // This is the expected format: YYYY-MM-DD
   final String emergencyContactName;
   final String emergencyContactPhone;
   final int age;
@@ -65,10 +65,8 @@ class ChildModel {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-      emergencyContactName:
-          emergencyContactName ?? this.emergencyContactName,
-      emergencyContactPhone:
-          emergencyContactPhone ?? this.emergencyContactPhone,
+      emergencyContactName: emergencyContactName ?? this.emergencyContactName,
+      emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
       age: age ?? this.age,
       ageGroup: ageGroup ?? this.ageGroup,
       ageGroupLabel: ageGroupLabel ?? this.ageGroupLabel,

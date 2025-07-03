@@ -19,7 +19,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isEventManager => _hasRole('Event Manager');
   bool get isStaff => _hasRole('Staff');
 
-  /// Private helper for role checks
+  // Private helper for role checks
   bool _hasRole(String role) {
     final roles = _userProfile?['roles'];
     if (roles is List<String>) {
@@ -28,7 +28,7 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  /// Loads the authenticated user's profile and extracts roles from the token.
+  // Loads the authenticated user's profile and extracts roles from the token.
   Future<void> loadUser() async {
     final token = await TokenService.getAccessToken();
     if (token == null) return;
@@ -69,7 +69,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Clears user session and tokens
+  // Clears user session and tokens
   Future<void> logout() async {
     _userProfile = null;
     await TokenService.clearTokens();

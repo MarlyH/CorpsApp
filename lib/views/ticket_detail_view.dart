@@ -1,79 +1,35 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
+import '../models/booking_model.dart';
 
-/// A simple model for start/end times from your `/api/events/{id}` endpoint.
+// Helper to pull just the start/end times
 class EventTime {
-  final String startTime;
-  final String endTime;
-
+  final String startTime, endTime;
   EventTime(this.startTime, this.endTime);
-
-  factory EventTime.fromJson(Map<String, dynamic> json) => EventTime(
-        json['startTime'] as String,
-        json['endTime'] as String,
-      );
+  factory EventTime.fromJson(Map<String,dynamic> j) =>
+    EventTime(j['startTime'] as String, j['endTime'] as String);
 }
 
-/// Displays a single booking in a full-screen “ticket” UI.
-class TicketDetailView extends StatefulWidget {
+class TicketDetailView extends StatelessWidget {
   final Booking booking;
+  final bool    allowCancel;
 
-  const TicketDetailView({Key? key, required this.booking}) : super(key: key);
-
-  @override
-  State<TicketDetailView> createState() => _TicketDetailViewState();
-}
-
-class _TicketDetailViewState extends State<TicketDetailView> {
-  late Future<EventTime> _timeFuture;
-  bool _cancelling = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _timeFuture = _fetchEventTime();
-  }
+  const TicketDetailView({
+    Key? key,
+    required this.booking,
+    required this.allowCancel,
+  }) : super(key: key);
 
   Future<EventTime> _fetchEventTime() async {
-    final resp = await AuthHttpClient.get('/api/events/${widget.booking.eventId}');
-    final json = jsonDecode(resp.body) as Map<String, dynamic>;
-    return EventTime.fromJson(json);
-  }
-
-  Future<void> _cancelBooking() async {
-    setState(() => _cancelling = true);
-    try {
-      await AuthHttpClient.delete('/api/Booking/${widget.booking.bookingId}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking cancelled', style: TextStyle(color: Colors.black)),
-            backgroundColor: Colors.white,
-          ),
-        );
-        Navigator.of(context).pop(); // go back
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cancel failed: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _cancelling = false);
-    }
+    final resp = await AuthHttpClient.get('/api/events/${booking.eventId}');
+    return EventTime.fromJson(jsonDecode(resp.body) as Map<String,dynamic>);
   }
 
   @override
   Widget build(BuildContext context) {
-    final b = widget.booking;
-    final dateLabel = DateFormat.yMMMMEEEEd().format(b.eventDate);
+    final dateLabel = DateFormat.yMMMMEEEEd().format(booking.eventDate);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -82,17 +38,31 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         backgroundColor: Colors.black,
       ),
       body: FutureBuilder<EventTime>(
-        future: _timeFuture,
+        future: _fetchEventTime(),
         builder: (ctx, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.white));
           }
           if (snap.hasError) {
             return Center(
-              child: Text('Error loading times', style: const TextStyle(color: Colors.white)),
+              child: Text('Error loading times', style: const TextStyle(color: Colors.white))
             );
           }
+
           final times = snap.data!;
+          // compute full DateTime of event start
+          final parts = times.startTime.split(':');
+          final eventStart = DateTime(
+            booking.eventDate.year,
+            booking.eventDate.month,
+            booking.eventDate.day,
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            parts.length>2 ? int.parse(parts[2]) : 0,
+          );
+          final now = DateTime.now();
+          final canCancelNow = allowCancel && now.isBefore(eventStart);
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -104,33 +74,25 @@ class _TicketDetailViewState extends State<TicketDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: who & what
+                  // header
                   Center(
                     child: Column(
                       children: [
-                        const Text('Booking for',
-                            style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        Text(b.eventName,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(b.status.name,
+                        const Text('Booking for', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text(booking.eventName,
+                            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text(booking.status.toString().split('.').last,
                             style: const TextStyle(color: Colors.white70, fontSize: 14)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Data rows
-                  _DataRow(label: 'Location', value: b.eventName),
-                  _DataRow(label: 'Date', value: dateLabel),
-                  _DataRow(label: 'Time', value: '${times.startTime} – ${times.endTime}'),
-                  _DataRow(
-                      label: 'Seat', value: b.seatNumber.toString().padLeft(2, '0')),
-                  _DataRow(
-                      label: 'Pick Up', value: b.canBeLeftAlone ? 'Yes' : 'No'),
+                  // details rows
+                  _buildRow('Location', booking.eventName),
+                  _buildRow('Date', dateLabel),
+                  _buildRow('Time', '${times.startTime} – ${times.endTime}'),
+                  _buildRow('Seat', booking.seatNumber.toString().padLeft(2,'0')),
+                  _buildRow('Pick Up', booking.canBeLeftAlone ? 'Yes' : 'No'),
                   const Divider(color: Colors.white24, height: 32),
 
                   // QR code
@@ -139,32 +101,32 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                       children: [
                         const Icon(Icons.qr_code, size: 128, color: Colors.white70),
                         const SizedBox(height: 8),
-                        SelectableText(b.qrCodeData,
-                            style: const TextStyle(color: Colors.white70)),
+                        SelectableText(booking.qrCodeData, style: const TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Cancel button
-                  Center(
-                    child: _cancelling
-                        ? const CircularProgressIndicator(color: Colors.redAccent)
-                        : TextButton(
-                            onPressed: _cancelBooking,
-                            child: const Text('Cancel Booking',
-                                style: TextStyle(color: Colors.redAccent)),
-                          ),
-                  ),
-                  const SizedBox(height: 8),
+                  // only show cancel if still allowed
+                  if (canCancelNow)
+                    Center(
+                      child: TextButton(
+                        onPressed: () async {
+                          await AuthHttpClient.delete('/api/Booking/${booking.bookingId}');
+                          // pop with the booking so the parent can mark it cancelled in‐session
+                          Navigator.pop(context, booking);
+                        },
+                        child: const Text('Cancel Booking', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ),
 
-                  // Back
+                  // always offer a back button
                   Center(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black),
+                        backgroundColor: Colors.white, foregroundColor: Colors.black
+                      ),
                       child: const Text('Back to Tickets'),
                     ),
                   ),
@@ -176,28 +138,16 @@ class _TicketDetailViewState extends State<TicketDetailView> {
       ),
     );
   }
-}
 
-/// A little helper widget for label/value rows.
-class _DataRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DataRow({Key? key, required this.label, required this.value})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        Expanded(
-            flex: 2,
-            child: Text(label, style: const TextStyle(color: Colors.white70))),
-        Expanded(
-            flex: 3,
-            child: Text(value, style: const TextStyle(color: Colors.white))),
-      ]),
+      child: Row(
+        children: [
+          Expanded(flex: 2, child: Text(label, style: const TextStyle(color: Colors.white70))),
+          Expanded(flex: 3, child: Text(value, style: const TextStyle(color: Colors.white))),
+        ],
+      ),
     );
   }
 }

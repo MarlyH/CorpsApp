@@ -86,7 +86,7 @@ class EventDetail {
   }
 }
 
-/// --- HomeFragment ---
+// HomeFragment
 
 class HomeFragment extends StatefulWidget {
   const HomeFragment({Key? key}) : super(key: key);
@@ -218,7 +218,7 @@ class _HomeFragmentState extends State<HomeFragment> {
   }
 }
 
-/// --- FilterPanel ---
+// FilterPanel
 
 class FilterPanel extends StatelessWidget {
   final List<String>        locations;
@@ -293,7 +293,7 @@ class FilterPanel extends StatelessWidget {
   }
 }
 
-/// --- EventTile ---
+// EventTile
 
 class EventTile extends StatefulWidget {
   final EventSummary                   summary;
@@ -339,7 +339,7 @@ class _EventTileState extends State<EventTile> {
             s.sessionType.toString().split('.').last,
             style: const TextStyle(color: Colors.white),
           ),
-          // —— UPDATED: show live availableSeats here
+          // UPDATED: show live availableSeats here
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -381,7 +381,7 @@ class _EventTileState extends State<EventTile> {
   }
 }
 
-/// --- DetailContent (with Remaining seats line) ---
+// DetailContent (with Remaining seats line)
 
 class _DetailContent extends StatelessWidget {
   final EventDetail detail;
@@ -411,7 +411,7 @@ class _DetailContent extends StatelessWidget {
           const SizedBox(height: 8),
           Text('Seats: ${detail.totalSeats}', style: const TextStyle(color: Colors.white)),
           const SizedBox(height: 8),
-          // —— NEW: show remaining seats after booking
+          // show remaining seats after booking
           Text(
             'Remaining seats: ${detail.availableSeats.length}',
             style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
@@ -437,7 +437,6 @@ class _DetailContent extends StatelessWidget {
     );
   }
 
-  /// booking dialog now takes (BuildContext, detail, onBooked)
   Future<void> _showBookingDialog(
     BuildContext context,
     EventDetail detail,
@@ -562,7 +561,7 @@ class _DetailContent extends StatelessWidget {
     );
   }
 
-  /// reserve dialog unchanged
+  // reserve dialog unchanged
   Future<void> _showReserveDialog(
     BuildContext context,
     int eventId,

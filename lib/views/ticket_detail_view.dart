@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_http_client.dart';
 import '../models/booking_model.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 // Helper to pull just the start/end times
 class EventTime {
@@ -99,13 +100,17 @@ class TicketDetailView extends StatelessWidget {
                   Center(
                     child: Column(
                       children: [
-                        const Icon(Icons.qr_code, size: 128, color: Colors.white70),
+                        QrImageView(
+                          data: booking.qrCodeData,
+                          version: QrVersions.auto,
+                          size: 200.0,
+                          backgroundColor: Colors.white,
+                        ),
                         const SizedBox(height: 8),
                         SelectableText(booking.qrCodeData, style: const TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
 
                   // only show cancel if still allowed
                   if (canCancelNow)

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import '../services/auth_http_client.dart';
+
 
 class QrScanFragment extends StatefulWidget {
   const QrScanFragment({super.key});
@@ -35,16 +41,28 @@ class _QrScanFragmentState extends State<QrScanFragment> {
     });
   }
 
-  void _handleScannedCode(String? code) {
-    if (code == null) return;
+  void _handleScannedCode(String? code) async {
+    if (code == null || code.isEmpty) return;
 
-    // Placeholder logic — replace with your check-in/check-out validation
+    try {
+      final response = await AuthHttpClient.post(
+        '/api/booking/scan',
+        body: {'qrCodeData': code},
+      );
+
+      _showMessage("Success: Booking status updated.");
+    } catch (e) {
+      _showMessage("Error: $e");
+    }
+  }
+
+  void _showMessage(String message) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
-        title: const Text("QR Code Scanned", style: TextStyle(color: Colors.white)),
-        content: Text("Scanned Code:\n$code", style: const TextStyle(color: Colors.white70)),
+        title: const Text("Scan Result", style: TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
@@ -59,7 +77,7 @@ class _QrScanFragmentState extends State<QrScanFragment> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context); // go back to previous screen
+              Navigator.pop(context);
             },
             child: const Text("Done", style: TextStyle(color: Colors.white)),
           ),
@@ -67,6 +85,7 @@ class _QrScanFragmentState extends State<QrScanFragment> {
       ),
     );
   }
+
 
   @override
   void dispose() {

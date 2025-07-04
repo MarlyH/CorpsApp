@@ -187,7 +187,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                       width: double.infinity,
                                       child: OutlinedButton(
                                         style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.red, width: 4),
+                                          side: const BorderSide(color: Colors.white, width: 4),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
                                           ),
@@ -197,7 +197,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                         child: const Text(
                                           'LOG OUT',
                                           style: TextStyle(
-                                            color: Colors.redAccent,
+                                            color: Colors.white,
                                             letterSpacing: 1.5,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,

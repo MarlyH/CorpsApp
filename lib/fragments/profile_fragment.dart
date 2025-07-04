@@ -345,19 +345,19 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                 const SizedBox(height: 12),
                 fullWidthButton(
                   onPressed: _isLoading ? null : _handleDeleteProfile,
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  icon: const Icon(Icons.delete, color: Colors.white),
                   label: 'DELETE PROFILE',
-                  borderColor: Colors.redAccent,
-                  textColor: Colors.redAccent,
+                  borderColor: Colors.grey,
+                  textColor: Colors.white,
                 ),
               ],
               const SizedBox(height: 12),
               fullWidthButton(
                 onPressed: _isLoading ? null : _handleLogout,
-                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                icon: const Icon(Icons.logout, color: Colors.white),
                 label: 'LOG OUT',
-                borderColor: Colors.redAccent,
-                textColor: Colors.redAccent,
+                borderColor: Colors.grey,
+                textColor: Colors.white,
               ),
 
               

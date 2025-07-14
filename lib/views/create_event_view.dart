@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-
 import '../models/location.dart';
 import '../services/auth_http_client.dart';
 import '../services/token_service.dart';
@@ -50,15 +48,15 @@ class _CreateEventViewState extends State<CreateEventView> {
     try {
       final locs = await AuthHttpClient.fetchLocations();
       setState(() => _locations = locs);
-    } catch (e) {
-      // optionally show error
+    } catch (_) {
+      // Optionally show an error
     }
   }
 
   Future<void> _pickSeatMap() async {
     final res = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (res != null && res.files.single.path != null) {
-      setState(() => _seatMapFile = File(res.files.single.path!));
+    if (res?.files.single.path != null) {
+      setState(() => _seatMapFile = File(res!.files.single.path!));
     }
   }
 
@@ -73,7 +71,7 @@ class _CreateEventViewState extends State<CreateEventView> {
     if (d != null) {
       setState(() {
         if (eventDate) _eventDate = d;
-        else           _availableDate = d;
+        else _availableDate = d;
       });
     }
   }
@@ -84,7 +82,7 @@ class _CreateEventViewState extends State<CreateEventView> {
     if (t != null) {
       setState(() {
         if (start) _startTime = t;
-        else       _endTime   = t;
+        else _endTime = t;
       });
     }
   }
@@ -116,20 +114,24 @@ class _CreateEventViewState extends State<CreateEventView> {
     );
 
   Future<void> _submit() async {
+    // 1) Validate form fields
     if (!_formKey.currentState!.validate()) return;
-    if (_sessionType   == null ||
-        _location      == null ||
-        _eventDate     == null ||
-        _startTime     == null ||
-        _endTime       == null ||
-        _availableDate == null ||
-        _seatMapFile   == null
+
+    // 2) Check all required selections (seat map is now optional)
+    if (_sessionType == null ||
+        _location == null ||
+        _eventDate == null ||
+        _startTime == null ||
+        _endTime == null ||
+        _availableDate == null
     ) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields.'))
+        const SnackBar(content: Text('Please complete all required fields.'))
       );
       return;
     }
+
+    // 3) Business rule: booking date ≤ event date
     if (_availableDate!.isAfter(_eventDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking date must be on or before event date.'))
@@ -139,11 +141,15 @@ class _CreateEventViewState extends State<CreateEventView> {
 
     setState(() => _isLoading = true);
     try {
-      final uri = Uri.parse('${dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133'}/api/events');
-      final req = http.MultipartRequest('POST', uri);
+      final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+      final uri  = Uri.parse('$base/api/events');
+      final req  = http.MultipartRequest('POST', uri);
+
+      // Attach JWT
       final token = await TokenService.getAccessToken();
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
 
+      // Required form fields
       req.fields
         ..['locationId']      = _location!.id.toString()
         ..['sessionType']     = _sessionTypeValues[_sessionType]!.toString()
@@ -155,17 +161,20 @@ class _CreateEventViewState extends State<CreateEventView> {
         ..['address']         = _addressCtl.text.trim()
         ..['description']     = _descCtl.text.trim();
 
-      req.files.add(await http.MultipartFile.fromPath(
-        'seatingMapImage',
-        _seatMapFile!.path,
-        filename: p.basename(_seatMapFile!.path),
-      ));
+      // Optional seat-map image
+      if (_seatMapFile != null) {
+        req.files.add(await http.MultipartFile.fromPath(
+          'seatingMapImage',
+          _seatMapFile!.path,
+          filename: p.basename(_seatMapFile!.path),
+        ));
+      }
 
       final streamed = await req.send();
       final resp     = await http.Response.fromStream(streamed);
       final data     = resp.body.isNotEmpty ? jsonDecode(resp.body) : null;
-      final msg      = data?['message'] ??
-          (resp.statusCode == 200 ? 'Event created!' : 'Error ${resp.statusCode}');
+      final msg      = data?['message']
+          ?? (resp.statusCode == 200 ? 'Event created!' : 'Error ${resp.statusCode}');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -174,7 +183,6 @@ class _CreateEventViewState extends State<CreateEventView> {
         ),
       );
       if (resp.statusCode == 200) Navigator.of(context).pop();
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.redAccent)
@@ -222,7 +230,6 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ]),
 
                 const SizedBox(height: 16),
-
                 // Location
                 const Text('Location', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
@@ -230,19 +237,16 @@ class _CreateEventViewState extends State<CreateEventView> {
                   decoration: _inputDecoration(hintText: 'Select city or town'),
                   dropdownColor: Colors.white,
                   style: const TextStyle(color: Colors.black),
-                  items: _locations.map((loc) {
-                    return DropdownMenuItem<Location>(
-                      value: loc,
-                      child: Text(loc.name, style: const TextStyle(color: Colors.black)),
-                    );
-                  }).toList(),
+                  items: _locations.map((loc) => DropdownMenuItem<Location>(
+                    value: loc,
+                    child: Text(loc.name, style: const TextStyle(color: Colors.black)),
+                  )).toList(),
                   value: _location,
                   onChanged: (v) => setState(() => _location = v),
                   validator: (v) => v == null ? 'Please select a location' : null,
                 ),
 
                 const SizedBox(height: 16),
-
                 // Address
                 const Text('Address', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
@@ -255,7 +259,10 @@ class _CreateEventViewState extends State<CreateEventView> {
 
                 const SizedBox(height: 16),
 
-                // Date & Time
+
+                // Date & Time section
+
+
                 const Text('Date & Time', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
                 // Event Date
@@ -266,12 +273,12 @@ class _CreateEventViewState extends State<CreateEventView> {
                     hintText: 'Select the date the event will take place',
                     suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
                   ),
-                  controller: TextEditingController(text:
+                  controller: TextEditingController( text:
                     _eventDate == null ? '' : _fmtDate(_eventDate!)),
-                  validator: (v) => _eventDate == null ? 'Required' : null,
+                  validator: (_) => _eventDate == null ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                // Time row
+                // Time range
                 Row(children: [
                   Expanded(child: TextFormField(
                     readOnly: true,
@@ -282,7 +289,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                     ),
                     controller: TextEditingController(
                       text: _startTime == null ? '' : _startTime!.format(context)),
-                    validator: (v) => _startTime == null ? 'Req.' : null,
+                    validator: (_) => _startTime == null ? 'Req.' : null,
                   )),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
@@ -297,11 +304,11 @@ class _CreateEventViewState extends State<CreateEventView> {
                     ),
                     controller: TextEditingController(
                       text: _endTime == null ? '' : _endTime!.format(context)),
-                    validator: (v) => _endTime == null ? 'Req.' : null,
+                    validator: (_) => _endTime == null ? 'Req.' : null,
                   )),
                 ]),
                 const SizedBox(height: 12),
-                // Booking Opens
+                // Booking Opens On
                 TextFormField(
                   readOnly: true,
                   onTap: () => _pickDate(eventDate: false),
@@ -309,14 +316,13 @@ class _CreateEventViewState extends State<CreateEventView> {
                     hintText: 'Make booking available on',
                     suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
                   ),
-                  controller: TextEditingController(text:
+                  controller: TextEditingController( text:
                     _availableDate == null ? '' : _fmtDate(_availableDate!)),
-                  validator: (v) => _availableDate == null ? 'Required' : null,
+                  validator: (_) => _availableDate == null ? 'Required' : null,
                 ),
 
                 const SizedBox(height: 16),
-
-                // Seats map
+                // Seats map (optional)
                 const Text('Seats map', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
                 GestureDetector(
@@ -331,7 +337,8 @@ class _CreateEventViewState extends State<CreateEventView> {
                     ),
                     child: Center(
                       child: _seatMapFile == null
-                          ? const Text('Upload Seat Map', style: TextStyle(color: Colors.black38))
+                          ? const Text('Upload Seat Map',
+                              style: TextStyle(color: Colors.black38))
                           : Text(p.basename(_seatMapFile!.path),
                               style: const TextStyle(color: Colors.black)),
                     ),
@@ -339,12 +346,12 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ),
 
                 const SizedBox(height: 16),
-
-                // Total number of seats row
+                // Total seats
                 Row(children: [
                   const Expanded(
                     flex: 2,
-                    child: Text('Total number of seats', style: TextStyle(color: Colors.white70)),
+                    child: Text('Total number of seats',
+                        style: TextStyle(color: Colors.white70)),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -353,7 +360,6 @@ class _CreateEventViewState extends State<CreateEventView> {
                       controller: _seatsCtl,
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration(
-                        hintText: '',
                         suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                       ),
                       style: const TextStyle(color: Colors.black),
@@ -368,7 +374,6 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ]),
 
                 const SizedBox(height: 16),
-
                 // Description
                 const Text('Description', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
@@ -382,8 +387,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ),
 
                 const SizedBox(height: 24),
-
-                // Create button
+                // Create Event Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -391,14 +395,23 @@ class _CreateEventViewState extends State<CreateEventView> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(
-                            width: 24, height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
-                        : const Text('CREATE EVENT', style: TextStyle(fontSize: 16)),
+                        : const Text(
+                            'CREATE EVENT',
+                            style: TextStyle(fontSize: 16),
+                          ),
                   ),
                 ),
               ],

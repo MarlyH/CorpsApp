@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
 import '../../providers/auth_provider.dart';
 import '../fragments/home_fragment.dart';
 import '../fragments/profile_fragment.dart';
@@ -73,12 +72,12 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final isStaff        = _hasRole('Staff');
+    final isStaff = _hasRole('Staff');
     final isEventManager = _hasRole('Event Manager');
-    final isAdmin        = _hasRole('Admin');
+    final isAdmin = _hasRole('Admin');
 
-    final canScanQR       = isStaff || isEventManager || isAdmin;
-    final canPlus         = isEventManager || isAdmin;
+    final canScanQR = isStaff || isEventManager || isAdmin;
+    final canPlus = isEventManager || isAdmin;
     final canAccessTickets = !isEventManager && !isAdmin;
 
     // 1) The pages shown in the PageView
@@ -222,7 +221,6 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 }
-
 class _NavItem {
   final IconData icon;
   final String label;

@@ -159,14 +159,14 @@ class _DashboardViewState extends State<DashboardView> {
                   width: _plusDiameter,
                   height: _plusDiameter,
                   decoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: const Color.fromARGB(255, 255, 255, 255),
                     shape: BoxShape.circle,
                     boxShadow: const [
                       BoxShadow(color: Colors.black45, blurRadius: 4)
                     ],
                   ),
                   child: const Icon(Icons.add,
-                      color: Colors.white, size: 32),
+                      color: Color.fromARGB(255, 0, 0, 0), size: 32),
                 ),
               ),
             ),
@@ -197,7 +197,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget _buildNavButton(_NavItem item) {
     final selected = _selectedIndex == item.pageIndex;
-    final color    = selected ? Colors.blue : Colors.grey;
+    final color    = selected ? const Color.fromARGB(255, 255, 255, 255) : const Color.fromARGB(255, 113, 112, 112);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

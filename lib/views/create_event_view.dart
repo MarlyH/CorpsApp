@@ -114,10 +114,8 @@ class _CreateEventViewState extends State<CreateEventView> {
     );
 
   Future<void> _submit() async {
-    // 1) Validate form fields
     if (!_formKey.currentState!.validate()) return;
 
-    // 2) Check all required selections (seat map is now optional)
     if (_sessionType == null ||
         _location == null ||
         _eventDate == null ||
@@ -131,7 +129,6 @@ class _CreateEventViewState extends State<CreateEventView> {
       return;
     }
 
-    // 3) Business rule: booking date ≤ event date
     if (_availableDate!.isAfter(_eventDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking date must be on or before event date.'))
@@ -145,11 +142,9 @@ class _CreateEventViewState extends State<CreateEventView> {
       final uri  = Uri.parse('$base/api/events');
       final req  = http.MultipartRequest('POST', uri);
 
-      // Attach JWT
       final token = await TokenService.getAccessToken();
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
 
-      // Required form fields
       req.fields
         ..['locationId']      = _location!.id.toString()
         ..['sessionType']     = _sessionTypeValues[_sessionType]!.toString()
@@ -161,7 +156,6 @@ class _CreateEventViewState extends State<CreateEventView> {
         ..['address']         = _addressCtl.text.trim()
         ..['description']     = _descCtl.text.trim();
 
-      // Optional seat-map image
       if (_seatMapFile != null) {
         req.files.add(await http.MultipartFile.fromPath(
           'seatingMapImage',
@@ -197,7 +191,8 @@ class _CreateEventViewState extends State<CreateEventView> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('CREATE AN EVENT'),
+        title: const Text('CREATE AN EVENT' ,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold , fontSize: 28, )),
         centerTitle: true,
         backgroundColor: Colors.black,
       ),
@@ -258,29 +253,29 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ),
 
                 const SizedBox(height: 16),
-
-
                 // Date & Time section
-
-
                 const Text('Date & Time', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
                 // Event Date
                 TextFormField(
+                  style: const TextStyle(color: Colors.black),
                   readOnly: true,
                   onTap: () => _pickDate(eventDate: true),
                   decoration: _inputDecoration(
                     hintText: 'Select the date the event will take place',
                     suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
                   ),
-                  controller: TextEditingController( text:
-                    _eventDate == null ? '' : _fmtDate(_eventDate!)),
+                  controller: TextEditingController(
+                    text: _eventDate == null ? '' : _fmtDate(_eventDate!),
+                  ),
                   validator: (_) => _eventDate == null ? 'Required' : null,
                 ),
+
                 const SizedBox(height: 12),
                 // Time range
                 Row(children: [
                   Expanded(child: TextFormField(
+                    style: const TextStyle(color: Colors.black),
                     readOnly: true,
                     onTap: () => _pickTime(start: true),
                     decoration: _inputDecoration(
@@ -288,7 +283,8 @@ class _CreateEventViewState extends State<CreateEventView> {
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                     ),
                     controller: TextEditingController(
-                      text: _startTime == null ? '' : _startTime!.format(context)),
+                      text: _startTime == null ? '' : _startTime!.format(context),
+                    ),
                     validator: (_) => _startTime == null ? 'Req.' : null,
                   )),
                   const Padding(
@@ -296,6 +292,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                     child: Text('to', style: TextStyle(color: Colors.white70)),
                   ),
                   Expanded(child: TextFormField(
+                    style: const TextStyle(color: Colors.black),
                     readOnly: true,
                     onTap: () => _pickTime(start: false),
                     decoration: _inputDecoration(
@@ -303,21 +300,25 @@ class _CreateEventViewState extends State<CreateEventView> {
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                     ),
                     controller: TextEditingController(
-                      text: _endTime == null ? '' : _endTime!.format(context)),
+                      text: _endTime == null ? '' : _endTime!.format(context),
+                    ),
                     validator: (_) => _endTime == null ? 'Req.' : null,
                   )),
                 ]),
+
                 const SizedBox(height: 12),
                 // Booking Opens On
                 TextFormField(
+                  style: const TextStyle(color: Colors.black),
                   readOnly: true,
                   onTap: () => _pickDate(eventDate: false),
                   decoration: _inputDecoration(
                     hintText: 'Make booking available on',
                     suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
                   ),
-                  controller: TextEditingController( text:
-                    _availableDate == null ? '' : _fmtDate(_availableDate!)),
+                  controller: TextEditingController(
+                    text: _availableDate == null ? '' : _fmtDate(_availableDate!),
+                  ),
                   validator: (_) => _availableDate == null ? 'Required' : null,
                 ),
 
@@ -410,15 +411,18 @@ class _CreateEventViewState extends State<CreateEventView> {
                           )
                         : const Text(
                             'CREATE EVENT',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(fontSize: 16, color: Colors.white
+                            
+
                           ),
                   ),
                 ),
+                ),
               ],
-            ),
           ),
         ),
       ),
+    ),
     );
   }
 }

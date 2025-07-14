@@ -41,6 +41,7 @@ dependencies:
       url: https://github.com/juliuscanute/qr_code_scanner.git
   email_validator: ^2.0.1
   intl: ^0.18.1
+  file_picker: ^10.2.0
   flutter:
     sdk: flutter
 

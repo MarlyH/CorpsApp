@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../models/location.dart';
 
 import 'token_service.dart';
 
@@ -152,6 +153,24 @@ class AuthHttpClient {
 
   static Future<http.Response> deleteChild(int id) =>
       delete('/api/child/$id');
+
+
+
+
+
+
+  // Event-Specific Endpoints
+  
+  /// Returns the list of all locations (requires [Authorize] on server).
+  static Future<List<Location>> fetchLocations() async {
+    final resp = await get('/api/locations');
+    // resp.body is JSON array of { locationId, name }
+    final List<dynamic> data = jsonDecode(resp.body);
+    return data
+        .cast<Map<String, dynamic>>()
+        .map((m) => Location.fromJson(m))
+        .toList();
+  }
 
   // Internal Helpers
 

@@ -49,7 +49,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   Future<List<_BookingWithTime>> _fetchAllWithTimes() async {
     final resp = await AuthHttpClient.get('/api/booking/my');
-    final list = (jsonDecode(resp.body) as List<dynamic>)
+    final list = (jsonDecode(resp.body) as List)
         .cast<Map<String, dynamic>>()
         .map(Booking.fromJson)
         .toList();
@@ -84,77 +84,95 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'MY TICKETS',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: TabBar(
-            controller: _tabs,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey.shade600,
-            indicator: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(32),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'MY TICKETS',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            indicatorPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            tabs: const [
-              Tab(text: 'Upcoming'),
-              Tab(text: 'Completed'),
-              Tab(text: 'Cancelled'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
-        Expanded(
-          child: FutureBuilder<List<_BookingWithTime>>(
-            future: _futureBookings,
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator(color: Colors.white));
-              }
-              if (snap.hasError) {
-                return Center(
-                    child: Text('Error: ${snap.error}',
-                        style: const TextStyle(color: Colors.white)));
-              }
-              final all = snap.data!;
-              return TabBarView(
+            // Pill tabs
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: TabBar(
                 controller: _tabs,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildList(all.where(_isUpcoming).toList(), allowCancel: true),
-                  _buildList(all.where(_isCompleted).toList(), allowCancel: false),
-                  _buildList(all.where(_isCancelled).toList(), allowCancel: false),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.black,
+                indicator: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 6,
+                ),
+                tabs: const [
+                  Tab(text: 'Upcoming'),
+                  Tab(text: 'Completed'),
+                  Tab(text: 'Cancelled'),
                 ],
-              );
-            },
-          ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Content
+            Expanded(
+              child: FutureBuilder<List<_BookingWithTime>>(
+                future: _futureBookings,
+                builder: (ctx, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                        child:
+                            CircularProgressIndicator(color: Colors.white));
+                  }
+                  if (snap.hasError) {
+                    return Center(
+                        child: Text('Error: ${snap.error}',
+                            style: const TextStyle(color: Colors.white)));
+                  }
+                  final all = snap.data!;
+                  return TabBarView(
+                    controller: _tabs,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildList(all.where(_isUpcoming).toList(),
+                          allowCancel: true),
+                      _buildList(all.where(_isCompleted).toList(),
+                          allowCancel: false),
+                      _buildList(all.where(_isCancelled).toList(),
+                          allowCancel: false),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildList(List<_BookingWithTime> list, {required bool allowCancel}) {
+  Widget _buildList(List<_BookingWithTime> list,
+      {required bool allowCancel}) {
     if (list.isEmpty) {
       return const Center(
-          child: Text('No bookings', style: TextStyle(color: Colors.white70)));
+          child:
+              Text('No bookings', style: TextStyle(color: Colors.white)));
     }
 
     final byDate = <String, List<_BookingWithTime>>{};
@@ -172,17 +190,20 @@ class _TicketsFragmentState extends State<TicketsFragment>
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: byDate.entries.expand((entry) sync* {
+          // Full-white date header
           yield Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(entry.key,
-                style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                style:
+                    const TextStyle(color: Colors.white, fontSize: 14)),
           );
           for (var bt in entry.value) {
             yield _BookingCard(
               booking: bt.booking,
-              time:    bt.time,
+              time: bt.time,
               allowCancel: allowCancel,
-              onCancelled: (b) => setState(() => _cancelledIds.add(b.bookingId)),
+              onCancelled: (b) =>
+                  setState(() => _cancelledIds.add(b.bookingId)),
             );
           }
         }).toList(),
@@ -215,7 +236,8 @@ class _BookingCard extends StatelessWidget {
 
     return Card(
       color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -232,40 +254,46 @@ class _BookingCard extends StatelessWidget {
           if (result != null) onCancelled(result);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          child: Column(children: [
-            Text('Booking for',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(
-              booking.attendeeName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            if (isLate)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text('LATE',
-                      style: TextStyle(color: Colors.white, fontSize: 10)),
+          padding:
+              const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          child: Column(
+            children: [
+              Text('Booking for',
+                  style: TextStyle(
+                      color: Colors.grey.shade700, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(
+                booking.attendeeName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            const SizedBox(height: 8),
-            Text(
-              'Starts ${time.startTime}   Ends ${time.endTime}',
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-          ]),
+              if (isLate)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text('LATE',
+                        style:
+                            TextStyle(color: Colors.white, fontSize: 10)),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                'Starts ${time.startTime}   Ends ${time.endTime}',
+                style:
+                    TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
     );

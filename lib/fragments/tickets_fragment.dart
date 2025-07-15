@@ -1,15 +1,17 @@
-// lib/views/tickets_fragment.dart
-
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
 import '../views/ticket_detail_view.dart';
 
-/// Wraps a Booking plus its fetched EventTime and a parsed startDateTime.
+class EventTime {
+  final String startTime, endTime;
+  EventTime(this.startTime, this.endTime);
+  factory EventTime.fromJson(Map<String, dynamic> j) =>
+      EventTime(j['startTime'] as String, j['endTime'] as String);
+}
+
 class _BookingWithTime {
   final Booking booking;
   final EventTime time;
@@ -17,22 +19,21 @@ class _BookingWithTime {
 
   _BookingWithTime(this.booking, this.time) {
     final parts = time.startTime.split(':').map(int.parse).toList();
-    final d = booking.eventDate;
+    final d     = booking.eventDate;
     startDateTime = DateTime(d.year, d.month, d.day, parts[0], parts[1]);
   }
 }
 
 class TicketsFragment extends StatefulWidget {
   const TicketsFragment({Key? key}) : super(key: key);
-
   @override
-  _TicketsFragmentState createState() => _TicketsFragmentState();
+  State<TicketsFragment> createState() => _TicketsFragmentState();
 }
 
 class _TicketsFragmentState extends State<TicketsFragment>
     with SingleTickerProviderStateMixin {
-  late Future<List<_BookingWithTime>> _futureBookings;
   late TabController _tabs;
+  late Future<List<_BookingWithTime>> _futureBookings;
   final Set<int> _cancelledIds = {};
 
   @override
@@ -48,14 +49,14 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   Future<List<_BookingWithTime>> _fetchAllWithTimes() async {
     final resp = await AuthHttpClient.get('/api/booking/my');
-    final list = (jsonDecode(resp.body) as List)
+    final list = (jsonDecode(resp.body) as List<dynamic>)
         .cast<Map<String, dynamic>>()
         .map(Booking.fromJson)
         .toList();
 
     return Future.wait(list.map((b) async {
       final evtResp = await AuthHttpClient.get('/api/events/${b.eventId}');
-      final time = EventTime.fromJson(jsonDecode(evtResp.body));
+      final time    = EventTime.fromJson(jsonDecode(evtResp.body));
       return _BookingWithTime(b, time);
     }));
   }
@@ -87,22 +88,39 @@ class _TicketsFragmentState extends State<TicketsFragment>
       children: [
         const SizedBox(height: 16),
         const Text(
-          'My Bookings',
+          'MY TICKETS',
           style: TextStyle(
-              color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+          ),
+          child: TabBar(
+            controller: _tabs,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.grey.shade600,
+            indicator: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(32),
+            ),
+            indicatorPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            tabs: const [
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Completed'),
+              Tab(text: 'Cancelled'),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
-        TabBar(
-          controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.blue,
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Completed'),
-            Tab(text: 'Cancelled'),
-          ],
-        ),
+
         Expanded(
           child: FutureBuilder<List<_BookingWithTime>>(
             future: _futureBookings,
@@ -121,12 +139,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 controller: _tabs,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _buildList(all.where(_isUpcoming).toList(),
-                      allowCancel: true),
-                  _buildList(all.where(_isCompleted).toList(),
-                      allowCancel: false),
-                  _buildList(all.where(_isCancelled).toList(),
-                      allowCancel: false),
+                  _buildList(all.where(_isUpcoming).toList(), allowCancel: true),
+                  _buildList(all.where(_isCompleted).toList(), allowCancel: false),
+                  _buildList(all.where(_isCancelled).toList(), allowCancel: false),
                 ],
               );
             },
@@ -136,15 +151,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
     );
   }
 
-  Widget _buildList(List<_BookingWithTime> list,
-      {required bool allowCancel}) {
+  Widget _buildList(List<_BookingWithTime> list, {required bool allowCancel}) {
     if (list.isEmpty) {
       return const Center(
-          child:
-              Text('No bookings', style: TextStyle(color: Colors.white70)));
+          child: Text('No bookings', style: TextStyle(color: Colors.white70)));
     }
 
-    // Group by date
     final byDate = <String, List<_BookingWithTime>>{};
     for (var bt in list) {
       final key = DateFormat.yMMMMEEEEd().format(bt.booking.eventDate);
@@ -158,21 +170,19 @@ class _TicketsFragmentState extends State<TicketsFragment>
         await _futureBookings;
       },
       child: ListView(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: byDate.entries.expand((entry) sync* {
           yield Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(entry.key,
-                style: const TextStyle(
-                    color: Colors.white70, fontWeight: FontWeight.w600)),
+                style: const TextStyle(color: Colors.white70, fontSize: 14)),
           );
           for (var bt in entry.value) {
             yield _BookingCard(
               booking: bt.booking,
-              time: bt.time,
+              time:    bt.time,
               allowCancel: allowCancel,
-              onCancelled: (b) =>
-                  setState(() => _cancelledIds.add(b.bookingId)),
+              onCancelled: (b) => setState(() => _cancelledIds.add(b.bookingId)),
             );
           }
         }).toList(),
@@ -198,14 +208,13 @@ class _BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parts = time.startTime.split(':').map(int.parse).toList();
-    final sd = booking.eventDate;
-    final startDT =
-        DateTime(sd.year, sd.month, sd.day, parts[0], parts[1]);
-    final isLate = DateTime.now().isAfter(startDT) &&
-        DateTime.now().isBefore(startDT.add(const Duration(minutes: 15)));
+    final sd    = booking.eventDate;
+    final start = DateTime(sd.year, sd.month, sd.day, parts[0], parts[1]);
+    final isLate = DateTime.now().isAfter(start) &&
+        DateTime.now().isBefore(start.add(const Duration(minutes: 15)));
 
     return Card(
-      color: Colors.grey.shade900,
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
@@ -220,41 +229,43 @@ class _BookingCard extends StatelessWidget {
               ),
             ),
           );
-          if (result != null) {
-            onCancelled(result);
-          }
+          if (result != null) onCancelled(result);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                const Text('Booking for',
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
-                if (isLate)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('LATE',
-                        style: TextStyle(color: Colors.white, fontSize: 10)),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          child: Column(children: [
+            Text('Booking for',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(
+              booking.attendeeName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            if (isLate)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-              ]),
-              Text(booking.eventName,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('Starts ${time.startTime}   Ends ${time.endTime}',
-                  style: const TextStyle(color: Colors.white70)),
-            ],
-          ),
+                  child: const Text('LATE',
+                      style: TextStyle(color: Colors.white, fontSize: 10)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              'Starts ${time.startTime}   Ends ${time.endTime}',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+          ]),
         ),
       ),
     );

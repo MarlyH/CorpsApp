@@ -1,44 +1,81 @@
+import 'package:flutter/foundation.dart';
+
+// Mirrors server‐side enum EventSessionType
+enum SessionType { Kids, Teens, Adults }
+
+SessionType sessionTypeFromRaw(dynamic raw) {
+  if (raw is int && raw >= 0 && raw < SessionType.values.length) {
+    return SessionType.values[raw];
+  }
+  if (raw is String) {
+    return SessionType.values.firstWhere(
+      (e) => describeEnum(e).toLowerCase() == raw.toLowerCase(),
+      orElse: () => SessionType.Kids,
+    );
+  }
+  return SessionType.Kids;
+}
+
+String friendlySession(SessionType s) {
+  switch (s) {
+    case SessionType.Kids:
+      return 'Ages 8 to 11';
+    case SessionType.Teens:
+      return 'Ages 12 to 15';
+    case SessionType.Adults:
+      return 'Ages 16+';
+  }
+}
+
+// Full detail for GET /api/events/{id}
 class EventDetail {
-  final int eventId;
   final String description;
   final String address;
-  final String locationName;
-  final int totalSeats;
+  final String? seatingMapImgSrc;
+  final SessionType sessionType;
+  final DateTime startDate;
+  final String startTime; // "HH:mm:ss"
+  final String endTime; // "HH:mm:ss"
   final List<int> availableSeats;
-  final String seatingMapImgSrc;
 
   EventDetail({
-    required this.eventId,
     required this.description,
     required this.address,
-    required this.locationName,
-    required this.totalSeats,
+    this.seatingMapImgSrc,
+    required this.sessionType,
+    required this.startDate,
+    required this.startTime,
+    required this.endTime,
     required this.availableSeats,
-    required this.seatingMapImgSrc,
   });
 
   factory EventDetail.fromJson(Map<String, dynamic> json) {
+    // parse seats array
+    final seatsJson = (json['availableSeats'] as List<dynamic>?) ?? <dynamic>[];
+    final seats = seatsJson.cast<int>();
+
     return EventDetail(
-      eventId: json['eventId'] as int,
-      description: json['description'] as String? ?? '',
-      address: json['address'] as String? ?? '',
-      locationName: json['locationName'] as String? ?? '',
-      totalSeats: json['totalSeatsCount'] as int? ?? 0,
-      availableSeats: (json['availableSeats'] as List<dynamic>?)
-              ?.cast<int>()
-              .toList() ??
-          [],
-      seatingMapImgSrc: json['seatingMapImgSrc'] as String? ?? '',
+      description : json['description'] as String? ?? '',
+      address : json['address'] as String? ?? '',
+      seatingMapImgSrc : json['seatingMapImgSrc'] as String?,
+      sessionType : sessionTypeFromRaw(json['sessionType']),
+      startDate : DateTime.parse(json['startDate'] as String),
+      startTime : json['startTime'] as String? ?? '',
+      endTime : json['endTime'] as String? ?? '',
+      availableSeats : seats,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'eventId': eventId,
-        'description': description,
-        'address': address,
-        'locationName': locationName,
-        'totalSeatsCount': totalSeats,
-        'availableSeats': availableSeats,
-        'seatingMapImgSrc': seatingMapImgSrc,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'address' : address,
+      if (seatingMapImgSrc != null) 'seatingMapImgSrc': seatingMapImgSrc,
+      'sessionType': SessionType.values.indexOf(sessionType),
+      'startDate': startDate.toIso8601String(),
+      'startTime': startTime,
+      'endTime': endTime,
+      'availableSeats': availableSeats,
+    };
+  }
 }

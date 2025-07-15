@@ -1,13 +1,13 @@
 import 'dart:convert';
+import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:email_validator/email_validator.dart';
-
 import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
+import 'package:corpsapp/views/change_user_role_view.dart';
 
 class ProfileFragment extends StatefulWidget {
-  const ProfileFragment({super.key});
+  const ProfileFragment({Key? key}) : super(key: key);
 
   @override
   State<ProfileFragment> createState() => _ProfileFragmentState();
@@ -17,24 +17,20 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   bool _isLoading = false;
   String? _emailChangeError;
 
-  void _showSnackBar(String message, {Color? backgroundColor}) {
+  void _showSnack(String message, {Color background = Colors.grey}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: backgroundColor ?? Colors.grey[900],
+        backgroundColor: background,
         behavior: SnackBarBehavior.floating,
       ));
   }
 
-  Future<void> _handleEmailChange() async {
-    FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    setState(() => _emailChangeError = null);
-
-    final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
+  Future<void> _changeEmail() async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
@@ -42,7 +38,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Change Email", style: TextStyle(color: Colors.white)),
         content: TextField(
-          controller: controller,
+          controller: ctrl,
           keyboardType: TextInputType.emailAddress,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
@@ -55,24 +51,20 @@ class _ProfileFragmentState extends State<ProfileFragment> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("SUBMIT", style: TextStyle(color: Colors.white)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text("SUBMIT", style: TextStyle(color: Colors.white))),
         ],
       ),
     );
-    if (confirmed != true) return;
+    ctrl.dispose();
+    if (ok != true) return;
 
-    final newEmail = controller.text.trim();
-    if (!EmailValidator.validate(newEmail)) {
-      setState(() => _emailChangeError = "Please enter a valid email address.");
-      _showSnackBar("Please enter a valid email address.",
-          backgroundColor: Colors.redAccent);
+    final email = ctrl.text.trim();
+    if (!EmailValidator.validate(email)) {
+      setState(() => _emailChangeError = "Enter a valid email.");
+      _showSnack("Enter a valid email.", background: Colors.redAccent);
       return;
     }
 
@@ -82,133 +74,109 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     });
 
     try {
-      final resp = await AuthHttpClient.requestEmailChange(newEmail);
-
-      if (resp.statusCode == 200) {
-        _showSnackBar("Check your new email to confirm the change.",
-            backgroundColor: Colors.green);
-      } else if (resp.statusCode == 400) {
-        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+      final res = await AuthHttpClient.requestEmailChange(email);
+      if (res.statusCode == 200) {
+        _showSnack("Check your new email to confirm.", background: Colors.green);
+      } else if (res.statusCode == 400) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
         final msg = (body['message'] as String).toLowerCase();
-        if (msg.contains("email")) {
-          setState(() => _emailChangeError = "That email address is already in use.");
-          _showSnackBar("That email address is already in use.",
-              backgroundColor: Colors.redAccent);
-        } else {
-          setState(() => _emailChangeError = "Error: ${body['message']}");
-          _showSnackBar("Error: ${body['message']}",
-              backgroundColor: Colors.redAccent);
-        }
-      } else if (resp.statusCode == 401) {
-        _showSnackBar("Session expired. Please log in again.",
-            backgroundColor: Colors.orangeAccent);
+        final err = msg.contains("email")
+            ? "That email is already in use."
+            : "Error: ${body['message']}";
+        setState(() => _emailChangeError = err);
+        _showSnack(err, background: Colors.redAccent);
+      } else if (res.statusCode == 401) {
+        _showSnack("Session expired.", background: Colors.orangeAccent);
         await context.read<AuthProvider>().logout();
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/landing');
       } else {
-        setState(() =>
-            _emailChangeError = "Unexpected error (${resp.statusCode}).");
-        _showSnackBar("Unexpected error (${resp.statusCode})",
-            backgroundColor: Colors.redAccent);
+        final err = "Unexpected (${res.statusCode})";
+        setState(() => _emailChangeError = err);
+        _showSnack(err, background: Colors.redAccent);
       }
     } catch (e) {
-      setState(() => _emailChangeError = "Network error: ${e.toString()}");
-      _showSnackBar("Network error: ${e.toString()}",
-          backgroundColor: Colors.redAccent);
+      final err = "Network error: $e";
+      setState(() => _emailChangeError = err);
+      _showSnack(err, background: Colors.redAccent);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleUpdateProfile() async {
-    final usernameCtrl = TextEditingController();
-    final firstNameCtrl = TextEditingController();
-    final lastNameCtrl = TextEditingController();
+  Future<void> _updateProfile() async {
+    final userCtrl = TextEditingController();
+    final firstCtrl = TextEditingController();
+    final lastCtrl = TextEditingController();
 
-    final confirmed = await showDialog<bool>(
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:
-            const Text("Update Profile", style: TextStyle(color: Colors.white)),
+        title: const Text("Update Profile", style: TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             children: [
-              _buildTextField(controller: usernameCtrl, label: "New Username"),
+              _dialogField(userCtrl, "New Username"),
               const SizedBox(height: 8),
-              _buildTextField(
-                  controller: firstNameCtrl, label: "New First Name"),
+              _dialogField(firstCtrl, "New First Name"),
               const SizedBox(height: 8),
-              _buildTextField(controller: lastNameCtrl, label: "New Last Name"),
+              _dialogField(lastCtrl, "New Last Name"),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("UPDATE", style: TextStyle(color: Colors.white)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text("UPDATE", style: TextStyle(color: Colors.white))),
         ],
       ),
     );
-    if (confirmed != true) return;
+    userCtrl.dispose();
+    firstCtrl.dispose();
+    lastCtrl.dispose();
+    if (ok != true) return;
 
     setState(() => _isLoading = true);
     try {
       await AuthHttpClient.updateProfile(
-        newUserName: usernameCtrl.text.trim().isNotEmpty
-            ? usernameCtrl.text.trim()
-            : null,
-        newFirstName: firstNameCtrl.text.trim().isNotEmpty
-            ? firstNameCtrl.text.trim()
-            : null,
-        newLastName: lastNameCtrl.text.trim().isNotEmpty
-            ? lastNameCtrl.text.trim()
-            : null,
+        newUserName: userCtrl.text.trim().isEmpty ? null : userCtrl.text.trim(),
+        newFirstName: firstCtrl.text.trim().isEmpty ? null : firstCtrl.text.trim(),
+        newLastName: lastCtrl.text.trim().isEmpty ? null : lastCtrl.text.trim(),
       );
       await context.read<AuthProvider>().loadUser();
-      _showSnackBar("Profile updated.", backgroundColor: Colors.green);
+      _showSnack("Profile updated.", background: Colors.green);
     } catch (e) {
-      _showSnackBar("Failed: ${e.toString()}",
-          backgroundColor: Colors.redAccent);
+      _showSnack("Failed: $e", background: Colors.redAccent);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleDeleteProfile() async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _confirmDelete() async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Delete Profile",
-            style: TextStyle(color: Colors.white)),
+        title: const Text("Delete Profile", style: TextStyle(color: Colors.white)),
         content: const Text(
-          "Are you sure you want to delete your account? This cannot be undone.",
+          "This cannot be undone.",
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child:
-                const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text("DELETE", style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (ok != true) return;
 
     setState(() => _isLoading = true);
     try {
@@ -217,39 +185,30 @@ class _ProfileFragmentState extends State<ProfileFragment> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/landing');
     } catch (e) {
-      _showSnackBar("Failed: ${e.toString()}",
-          backgroundColor: Colors.redAccent);
+      _showSnack("Failed: $e", background: Colors.redAccent);
     } finally {
       setState(() => _isLoading = false);
     }
   }
-  
-  Future<void> _handleLogout() async {
-    // ask user to confirm
-    final confirm = await showDialog<bool>(
+
+  Future<void> _confirmLogout() async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Log Out?", style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "Are you sure you want to log out?",
-          style: TextStyle(color: Colors.white70),
-        ),
+        content: const Text("Are you sure?", style: TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("LOG OUT", style: TextStyle(color: Colors.redAccent)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text("LOG OUT", style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
-
-    if (confirm != true) return;
+    if (ok != true) return;
 
     setState(() => _isLoading = true);
     await context.read<AuthProvider>().logout();
@@ -257,157 +216,144 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     Navigator.pushReplacementNamed(context, '/landing');
   }
 
-
-  @override
-  Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().userProfile;
-    final isAdmin = context.watch<AuthProvider>().isAdmin;
-
-    // full-width button helper
-    Widget fullWidthButton({
-      required VoidCallback? onPressed,
-      required Widget icon,
-      required String label,
-      required Color borderColor,
-      required Color textColor,
-    }) {
-      return SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: icon,
-          label: Text(
-            label,
-            style: TextStyle(
-              color: textColor,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: borderColor, width: 2),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.person, size: 100, color: Colors.white),
-              const SizedBox(height: 20),
-              Text(user?['userName'] ?? '',
-                  style: const TextStyle(fontSize: 18, color: Colors.white70)),
-              Text('${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-              Text(user?['email'] ?? '',
-                  style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 30),
-              if (user?['age'] != null)
-                Text('Age: ${user!['age']}',
-                    style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 20),
-              const Text(
-                "Manage your profile settings below.",
-                style: TextStyle(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // Action buttons
-              fullWidthButton(
-                onPressed: _isLoading ? null : _handleEmailChange,
-                icon: const Icon(Icons.email, color: Colors.white),
-                label: 'CHANGE EMAIL',
-                borderColor: Colors.grey,
-                textColor: Colors.white,
-              ),
-              const SizedBox(height: 12),
-              fullWidthButton(
-                onPressed: _isLoading ? null : _handleUpdateProfile,
-                icon: const Icon(Icons.edit, color: Colors.white),
-                label: 'UPDATE PROFILE',
-                borderColor: Colors.grey,
-                textColor: Colors.white,
-              ),
-              if (!isAdmin) ...[
-                const SizedBox(height: 12),
-                fullWidthButton(
-                  onPressed: _isLoading ? null : _handleDeleteProfile,
-                  icon: const Icon(Icons.delete, color: Colors.white),
-                  label: 'DELETE PROFILE',
-                  borderColor: Colors.grey,
-                  textColor: Colors.white,
-                ),
-              ],
-              const SizedBox(height: 12),
-              fullWidthButton(
-                onPressed: _isLoading ? null : _handleLogout,
-                icon: const Icon(Icons.logout, color: Colors.white),
-                label: 'LOG OUT',
-                borderColor: Colors.grey,
-                textColor: Colors.white,
-              ),
-
-              
-              if ((user?['age'] ?? 0) >= 16) ...[
-                const SizedBox(height: 12),
-                fullWidthButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          Navigator.pushNamed(context, '/children');
-                        },
-                  icon: const Icon(Icons.child_care, color: Colors.white),
-                  label: 'MANAGE CHILDREN',
-                  borderColor: Colors.grey,
-                  textColor: Colors.white,
-                ),
-              ],
-
-              // Error / Loading indicators
-              if (_emailChangeError != null) ...[
-                const SizedBox(height: 20),
-                Text(_emailChangeError!,
-                    style: const TextStyle(color: Colors.redAccent),
-                    textAlign: TextAlign.center),
-              ],
-              if (_isLoading) const SizedBox(height: 20),
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator(color: Colors.grey)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-  }) {
+  Widget _dialogField(TextEditingController ctrl, String label) {
     return TextField(
-      controller: controller,
+      controller: ctrl,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+        enabledBorder:
+            const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+        focusedBorder:
+            const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth       = context.watch<AuthProvider>();
+    final user       = auth.userProfile;
+    final canManage  = auth.isAdmin || auth.isEventManager;
+    final isUnder16  = (user?['age'] ?? 0) < 16;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.person, size: 100, color: Colors.white),
+          const SizedBox(height: 20),
+          Text(user?['userName'] ?? '',
+              style: const TextStyle(fontSize: 18, color: Colors.white70)),
+          Text('${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(user?['email'] ?? '', style: const TextStyle(color: Colors.grey)),
+          if (user?['age'] != null) ...[
+            const SizedBox(height: 8),
+            Text('Age: ${user!['age']}', style: const TextStyle(color: Colors.grey)),
+          ],
+          const SizedBox(height: 30),
+          const Text(
+            "Manage your profile settings below.",
+            style: TextStyle(color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+
+          _ActionButton(
+            icon: Icons.email,
+            label: "CHANGE EMAIL",
+            onPressed: _isLoading ? null : _changeEmail,
+          ),
+          const SizedBox(height: 12),
+          _ActionButton(
+            icon: Icons.edit,
+            label: "UPDATE PROFILE",
+            onPressed: _isLoading ? null : _updateProfile,
+          ),
+          if (!auth.isAdmin) ...[
+            const SizedBox(height: 12),
+            _ActionButton(
+              icon: Icons.delete,
+              label: "DELETE PROFILE",
+              onPressed: _isLoading ? null : _confirmDelete,
+            ),
+          ],
+          const SizedBox(height: 12),
+          _ActionButton(
+            icon: Icons.logout,
+            label: "LOG OUT",
+            onPressed: _isLoading ? null : _confirmLogout,
+          ),
+          if (!isUnder16) ...[
+            const SizedBox(height: 12),
+            _ActionButton(
+              icon: Icons.child_care,
+              label: "MANAGE CHILDREN",
+              onPressed: () => Navigator.pushNamed(context, '/children'),
+            ),
+          ],
+          if (canManage) ...[
+            const SizedBox(height: 12),
+            _ActionButton(
+              icon: Icons.admin_panel_settings,
+              label: "USER ROLE MANAGEMENT",
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
+              ),
+            ),
+          ],
+
+          if (_emailChangeError != null) ...[
+            const SizedBox(height: 20),
+            Text(_emailChangeError!,
+                style: const TextStyle(color: Colors.redAccent),
+                textAlign: TextAlign.center),
+          ],
+          if (_isLoading) ...[
+            const SizedBox(height: 20),
+            const Center(child: CircularProgressIndicator(color: Colors.grey)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  const _ActionButton({
+    Key? key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext c) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            fontSize: 16,
+          ),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.grey, width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );

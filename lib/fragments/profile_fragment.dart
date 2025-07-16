@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
 import 'package:corpsapp/views/change_user_role_view.dart';
-
+import 'package:corpsapp/views/create_event_view.dart';
 class ProfileFragment extends StatefulWidget {
   const ProfileFragment({Key? key}) : super(key: key);
 
@@ -144,7 +144,8 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     try {
       await AuthHttpClient.updateProfile(
         newUserName: userCtrl.text.trim().isEmpty ? null : userCtrl.text.trim(),
-        newFirstName: firstCtrl.text.trim().isEmpty ? null : firstCtrl.text.trim(),
+        newFirstName:
+            firstCtrl.text.trim().isEmpty ? null : firstCtrl.text.trim(),
         newLastName: lastCtrl.text.trim().isEmpty ? null : lastCtrl.text.trim(),
       );
       await context.read<AuthProvider>().loadUser();
@@ -199,7 +200,8 @@ class _ProfileFragmentState extends State<ProfileFragment> {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Log Out?", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure?", style: TextStyle(color: Colors.white70)),
+        content:
+            const Text("Are you sure?", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false),
               child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
@@ -233,10 +235,10 @@ class _ProfileFragmentState extends State<ProfileFragment> {
 
   @override
   Widget build(BuildContext context) {
-    final auth       = context.watch<AuthProvider>();
-    final user       = auth.userProfile;
-    final canManage  = auth.isAdmin || auth.isEventManager;
-    final isUnder16  = (user?['age'] ?? 0) < 16;
+    final auth = context.watch<AuthProvider>();
+    final user = auth.userProfile;
+    final canManage = auth.isAdmin || auth.isEventManager;
+    final isUnder16 = (user?['age'] ?? 0) < 16;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -248,11 +250,16 @@ class _ProfileFragmentState extends State<ProfileFragment> {
           Text(user?['userName'] ?? '',
               style: const TextStyle(fontSize: 18, color: Colors.white70)),
           Text('${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(user?['email'] ?? '', style: const TextStyle(color: Colors.grey)),
+              style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
+          Text(user?['email'] ?? '',
+              style: const TextStyle(color: Colors.grey)),
           if (user?['age'] != null) ...[
             const SizedBox(height: 8),
-            Text('Age: ${user!['age']}', style: const TextStyle(color: Colors.grey)),
+            Text('Age: ${user!['age']}',
+                style: const TextStyle(color: Colors.grey)),
           ],
           const SizedBox(height: 30),
           const Text(
@@ -262,6 +269,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
           ),
           const SizedBox(height: 20),
 
+          // --- existing action buttons ---
           _ActionButton(
             icon: Icons.email,
             label: "CHANGE EMAIL",
@@ -287,6 +295,8 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             label: "LOG OUT",
             onPressed: _isLoading ? null : _confirmLogout,
           ),
+
+          // Manage Children
           if (!isUnder16) ...[
             const SizedBox(height: 12),
             _ActionButton(
@@ -295,6 +305,8 @@ class _ProfileFragmentState extends State<ProfileFragment> {
               onPressed: () => Navigator.pushNamed(context, '/children'),
             ),
           ],
+
+          // User Role Management (Admin/Event Manager)
           if (canManage) ...[
             const SizedBox(height: 12),
             _ActionButton(
@@ -305,8 +317,20 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                 MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
               ),
             ),
+
+            // ← NEW: Create Event button
+            const SizedBox(height: 12),
+            _ActionButton(
+              icon: Icons.add,
+              label: "CREATE EVENT",
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateEventView()),
+              ),
+            ),
           ],
 
+          // show any email-change error
           if (_emailChangeError != null) ...[
             const SizedBox(height: 20),
             Text(_emailChangeError!,
@@ -322,6 +346,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     );
   }
 }
+
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -352,7 +377,8 @@ class _ActionButton extends StatelessWidget {
         ),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Colors.grey, width: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),

@@ -5,185 +5,478 @@ import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class RegisterView extends StatefulWidget {
-  const RegisterView({super.key});
+/// Full-screen dialog shown when the user is under 13.
+class ParentGuardianRequiredDialog extends StatelessWidget {
+  const ParentGuardianRequiredDialog({Key? key}) : super(key: key);
 
   @override
-  State<RegisterView> createState() => _RegisterViewState();
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: EdgeInsets.zero,
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: SizedBox.expand(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.info_outline, size: 64, color: Colors.white),
+              const SizedBox(height: 24),
+              const Text(
+                'Parent or Guardian Required',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Accounts for users under 13 must be created by a parent or legal guardian. '
+                'Please ask them to register their own account to make bookings for you.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF1877F2),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('OK', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Two-step registration + success flow.
+class RegisterView extends StatefulWidget {
+  const RegisterView({Key? key}) : super(key: key);
+
+  @override
+  _RegisterViewState createState() => _RegisterViewState();
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  final _formKey = GlobalKey<FormState>();
+  int _step = 0; // 0 = form, 1 = success screen
 
-  final userNameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-  final firstNameController = TextEditingController();
-  final lastNameController = TextEditingController();
-  final dobController = TextEditingController();
+  // Form controllers
+  final _formKey      = GlobalKey<FormState>();
+  final firstNameCtrl = TextEditingController();
+  final lastNameCtrl  = TextEditingController();
+  final userNameCtrl  = TextEditingController();
+  final emailCtrl     = TextEditingController();
+  final dobCtrl       = TextEditingController();
+  final passwordCtrl  = TextEditingController();
+  final confirmCtrl   = TextEditingController();
 
-  final Map<String, FocusNode> focusNodes = {};
-
-  bool isLoading = false;
-  String? errorMessage;
-  bool obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    for (var label in [
-      'Username',
-      'Email',
-      'Password',
-      'Confirm Password',
-      'First Name',
-      'Last Name',
-      'Date of Birth',
-    ]) {
-      focusNodes[label] = FocusNode();
-      focusNodes[label]!.addListener(() => setState(() {}));
-    }
-  }
+  bool _obscure = true;
+  bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
-    userNameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    firstNameController.dispose();
-    lastNameController.dispose();
-    dobController.dispose();
-    for (var node in focusNodes.values) {
-      node.dispose();
+    for (var c in [
+      firstNameCtrl,
+      lastNameCtrl,
+      userNameCtrl,
+      emailCtrl,
+      dobCtrl,
+      passwordCtrl,
+      confirmCtrl
+    ]) {
+      c.dispose();
     }
     super.dispose();
   }
 
-  Future<void> register() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (passwordController.text != confirmPasswordController.text) {
-      setState(() => errorMessage = 'Passwords do not match.');
+    // Age check
+    final dob = DateTime.tryParse(dobCtrl.text);
+    if (dob != null) {
+      final now = DateTime.now();
+      final age = now.year -
+          dob.year -
+          ((now.month < dob.month ||
+                  (now.month == dob.month && now.day < dob.day))
+              ? 1
+              : 0);
+      if (age < 13) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const ParentGuardianRequiredDialog(),
+        );
+        return;
+      }
+    }
+
+    // Password match
+    if (passwordCtrl.text != confirmCtrl.text) {
+      setState(() => _error = 'Passwords do not match.');
       return;
     }
 
     setState(() {
-      isLoading = true;
-      errorMessage = null;
+      _loading = true;
+      _error = null;
     });
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url = Uri.parse('$baseUrl/api/auth/register');
     final body = jsonEncode({
-      'userName': userNameController.text.trim(),
-      'email': emailController.text.trim(),
-      'password': passwordController.text,
-      'firstName': firstNameController.text.trim(),
-      'lastName': lastNameController.text.trim(),
-      'dateOfBirth': dobController.text.trim(),
+      'firstName':    firstNameCtrl.text.trim(),
+      'lastName':     lastNameCtrl.text.trim(),
+      'userName':     userNameCtrl.text.trim(),
+      'email':        emailCtrl.text.trim(),
+      'dateOfBirth':  dobCtrl.text.trim(),
+      'password':     passwordCtrl.text,
     });
 
     try {
-      final response = await http.post(
+      final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
+      final data = jsonDecode(resp.body);
 
-      if (!mounted) return;
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Check your email.')),
-        );
-        Navigator.pop(context);
-      } else if (response.statusCode == 400 && data['errors'] != null) {
-        final errors = data['errors'] as Map<String, dynamic>;
-        final errorList = errors.values.expand((e) => List<String>.from(e)).toList();
-        setState(() => errorMessage = errorList.join('\n'));
+      if (resp.statusCode == 200) {
+        setState(() => _step = 1);
       } else {
-        setState(() => errorMessage = data['message']?.toString() ?? 'Registration failed');
+        if (resp.statusCode == 400 && data['errors'] != null) {
+          final errs = (data['errors'] as Map<String, dynamic>)
+              .values
+              .expand((e) => List<String>.from(e))
+              .join('\n');
+          setState(() => _error = errs);
+        } else {
+          setState(() => _error =
+              data['message']?.toString() ?? 'Registration failed');
+        }
       }
     } catch (_) {
-      if (!mounted) return;
-      setState(() => errorMessage = 'Failed to connect to server');
+      setState(() => _error = 'Failed to connect to server');
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      setState(() => _loading = false);
     }
   }
 
-  Future<void> pickDateOfBirth() async {
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2005, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (pickedDate != null && mounted) {
-      dobController.text = pickedDate.toIso8601String().split('T').first;
+  Future<void> _resend() async {
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$baseUrl/api/auth/resend-verification');
+    try {
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': emailCtrl.text.trim()}),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            resp.statusCode == 200
+                ? 'Verification email resent!'
+                : 'Failed to resend verification',
+          ),
+        ),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error')),
+      );
     }
   }
 
-  Widget buildTextField({
+  // Reusable white input box
+  Widget _boxField({
     required String label,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
+    required String hint,
+    required TextEditingController ctrl,
+    TextInputType? keyboard,
+    bool obscure = false,
     bool readOnly = false,
     VoidCallback? onTap,
+    Widget? suffix,
+    String? Function(String?)? validator,
   }) {
-    final node = focusNodes[label]!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: ctrl,
+          keyboardType: keyboard,
+          readOnly: readOnly,
+          obscureText: obscure,
+          onTap: onTap,
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: Colors.white,
+            suffixIcon: suffix,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          validator: validator ??
+              (v) => v == null || v.isEmpty ? 'Required' : null,
+        ),
+      ],
+    );
+  }
 
-    final showHint = node.hasFocus && controller.text.isEmpty;
+  Widget _buildForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Header
+            Row(
+              children: [
+                BackButton(color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('REGISTER',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Create an account to start booking free events!\nAlready have one? Log in',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            focusNode: node,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
-            readOnly: readOnly,
-            onTap: onTap,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: showHint ? 'Enter your $label' : null,
-              hintStyle: const TextStyle(color: Colors.white54),
-              suffixIcon: suffixIcon,
-              enabledBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white),
-              ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            // First + Last Name
+            Row(
+              children: [
+                Expanded(
+                  child: _boxField(
+                      label: 'First Name',
+                      hint: 'Enter your first name',
+                      ctrl: firstNameCtrl),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _boxField(
+                      label: 'Last Name',
+                      hint: 'Enter your last name',
+                      ctrl: lastNameCtrl),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Username
+            _boxField(
+                label: 'Username',
+                hint: 'Enter a unique username',
+                ctrl: userNameCtrl),
+            const SizedBox(height: 16),
+
+            // Email
+            _boxField(
+              label: 'Email',
+              hint: 'Enter your valid email',
+              ctrl: emailCtrl,
+              keyboard: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+
+            // Date of Birth
+            _boxField(
+              label: 'Date of birth',
+              hint: 'YYYY-MM-DD',
+              ctrl: dobCtrl,
+              readOnly: true,
+              onTap: () async {
+                final dt = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime(2005, 1, 1),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (dt != null) {
+                  dobCtrl.text = dt.toIso8601String().split('T').first;
+                }
+              },
+              suffix: const Icon(Icons.calendar_today, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+
+            // Password
+            _boxField(
+              label: 'Password',
+              hint: 'Enter a password',
+              ctrl: passwordCtrl,
+              obscure: _obscure,
+              suffix: IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Confirm Password
+            _boxField(
+              label: 'Confirm Password',
+              hint: 'Confirm the password',
+              ctrl: confirmCtrl,
+              obscure: _obscure,
+            ),
+            const SizedBox(height: 16),
+
+            if (_error != null) ...[
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
+            ],
+
+            // NEXT button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1877F2),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('NEXT', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Terms & Privacy
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                children: [
+                  const TextSpan(text: 'By registering you agree to our '),
+                  TextSpan(
+                    text: 'Terms & Conditions',
+                    style: const TextStyle(decoration: TextDecoration.underline),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        launcher.launchUrl(
+                          Uri.parse(
+                              'https://www.yourcorps.co.nz/terms-and-conditions'),
+                          mode: launcher.LaunchMode.externalApplication,
+                        );
+                      },
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: const TextStyle(decoration: TextDecoration.underline),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        launcher.launchUrl(
+                          Uri.parse(
+                              'https://www.yourcorps.co.nz/privacy-policy'),
+                          mode: launcher.LaunchMode.externalApplication,
+                        );
+                      },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget passwordField(String label, TextEditingController controller) {
-    return buildTextField(
-      label: label,
-      controller: controller,
-      obscureText: obscurePassword,
-      suffixIcon: IconButton(
-        icon: Icon(
-          obscurePassword ? Icons.visibility_off : Icons.visibility,
-          color: Colors.white54,
+  Widget _buildSuccess() {
+    return SizedBox.expand(
+      child: Container(
+        color: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 80),
+            Center(
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4CAF50),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, size: 72, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'A verification link has been sent to your email.\n'
+              'Please check your inbox to activate your account.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),  
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: _resend,
+              child: const Text(
+                "Didn't receive email? Resend",
+                style: TextStyle(
+                  color: Color(0xFF1877F2),
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1877F2),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('DONE', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
         ),
-        onPressed: () => setState(() => obscurePassword = !obscurePassword),
       ),
     );
   }
@@ -192,114 +485,7 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: BackButton(color: Colors.white),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'REGISTER',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 24),
-                buildTextField(label: 'Username', controller: userNameController),
-                buildTextField(label: 'First Name', controller: firstNameController),
-                buildTextField(label: 'Last Name', controller: lastNameController),
-                buildTextField(
-                  label: 'Date of Birth',
-                  controller: dobController,
-                  keyboardType: TextInputType.datetime,
-                  suffixIcon: const Icon(Icons.calendar_today, color: Colors.white54),
-                  readOnly: true,
-                  onTap: pickDateOfBirth,
-                ),
-                buildTextField(
-                  label: 'Email',
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                passwordField('Password', passwordController),
-                passwordField('Confirm Password', confirmPasswordController),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.black)
-                        : const Text('Register'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    children: [
-                      const TextSpan(text: 'By logging in, you agree to the '),
-                      TextSpan(
-                        text: 'Terms and Conditions',
-                        style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () async {
-                            final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions');
-                            if (await launcher.canLaunchUrl(url)) {
-                              await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                            }
-                          },
-                      ),
-                      const TextSpan(text: ' and '),
-                      TextSpan(
-                        text: 'Privacy Policy.',
-                        style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () async {
-                            final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');
-                            if (await launcher.canLaunchUrl(url)) {
-                              await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                            }
-                          },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      body: SafeArea(child: _step == 0 ? _buildForm() : _buildSuccess()),
     );
   }
 }

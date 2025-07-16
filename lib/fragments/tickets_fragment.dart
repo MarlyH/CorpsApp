@@ -5,6 +5,7 @@ import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
 import '../views/ticket_detail_view.dart';
 
+// Simple holder for an event’s start/end times
 class EventTime {
   final String startTime, endTime;
   EventTime(this.startTime, this.endTime);
@@ -12,6 +13,7 @@ class EventTime {
       EventTime(j['startTime'] as String, j['endTime'] as String);
 }
 
+// Couples a Booking with its parsed start DateTime
 class _BookingWithTime {
   final Booking booking;
   final EventTime time;
@@ -19,7 +21,7 @@ class _BookingWithTime {
 
   _BookingWithTime(this.booking, this.time) {
     final parts = time.startTime.split(':').map(int.parse).toList();
-    final d     = booking.eventDate;
+    final d = booking.eventDate;
     startDateTime = DateTime(d.year, d.month, d.day, parts[0], parts[1]);
   }
 }
@@ -34,7 +36,6 @@ class _TicketsFragmentState extends State<TicketsFragment>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
   late Future<List<_BookingWithTime>> _futureBookings;
-  final Set<int> _cancelledIds = {};
 
   @override
   void initState() {
@@ -44,7 +45,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
   }
 
   void _loadAll() {
-    _futureBookings = _fetchAllWithTimes();
+    setState(() {
+      _futureBookings = _fetchAllWithTimes();
+    });
   }
 
   Future<List<_BookingWithTime>> _fetchAllWithTimes() async {
@@ -56,10 +59,22 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
     return Future.wait(list.map((b) async {
       final evtResp = await AuthHttpClient.get('/api/events/${b.eventId}');
-      final time    = EventTime.fromJson(jsonDecode(evtResp.body));
+      final time = EventTime.fromJson(jsonDecode(evtResp.body));
       return _BookingWithTime(b, time);
     }));
   }
+
+  bool _isExpired(_BookingWithTime bt) =>
+      DateTime.now().isAfter(bt.startDateTime.add(const Duration(minutes: 15)));
+
+  bool _isUpcoming(_BookingWithTime bt) =>
+      bt.booking.status == BookingStatus.Booked && !_isExpired(bt);
+
+  bool _isCompleted(_BookingWithTime bt) =>
+      bt.booking.status == BookingStatus.CheckedOut || _isExpired(bt);
+
+  bool _isCancelled(_BookingWithTime bt) =>
+      bt.booking.status == BookingStatus.Cancelled;
 
   @override
   void dispose() {
@@ -67,28 +82,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
     super.dispose();
   }
 
-  bool _isExpired(_BookingWithTime bt) =>
-      DateTime.now().isAfter(bt.startDateTime.add(const Duration(minutes: 15)));
-
-  bool _isUpcoming(_BookingWithTime bt) =>
-      bt.booking.status == BookingStatus.Booked &&
-      !_isExpired(bt) &&
-      !_cancelledIds.contains(bt.booking.bookingId);
-
-  bool _isCompleted(_BookingWithTime bt) =>
-      (bt.booking.status == BookingStatus.CheckedOut || _isExpired(bt)) &&
-      !_cancelledIds.contains(bt.booking.bookingId);
-
-  bool _isCancelled(_BookingWithTime bt) =>
-      _cancelledIds.contains(bt.booking.bookingId);
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(top: 24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
               'MY TICKETS',
@@ -101,6 +100,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
             ),
             const SizedBox(height: 16),
 
+            // Pill‐style TabBar with padded Containers
             // Pill tabs
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -128,17 +128,17 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 ],
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Content
+            // Swipeable pages
             Expanded(
               child: FutureBuilder<List<_BookingWithTime>>(
                 future: _futureBookings,
                 builder: (ctx, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(
-                        child:
-                            CircularProgressIndicator(color: Colors.white));
+                        child: CircularProgressIndicator(color: Colors.white));
                   }
                   if (snap.hasError) {
                     return Center(
@@ -148,7 +148,6 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   final all = snap.data!;
                   return TabBarView(
                     controller: _tabs,
-                    physics: const NeverScrollableScrollPhysics(),
                     children: [
                       _buildList(all.where(_isUpcoming).toList(),
                           allowCancel: true),
@@ -171,8 +170,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
       {required bool allowCancel}) {
     if (list.isEmpty) {
       return const Center(
-          child:
-              Text('No bookings', style: TextStyle(color: Colors.white)));
+          child: Text('No bookings', style: TextStyle(color: Colors.white)));
     }
 
     final byDate = <String, List<_BookingWithTime>>{};
@@ -182,28 +180,23 @@ class _TicketsFragmentState extends State<TicketsFragment>
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        _loadAll();
-        setState(() {});
-        await _futureBookings;
-      },
+      onRefresh: () async => _loadAll(),
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: byDate.entries.expand((entry) sync* {
-          // Full-white date header
           yield Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(entry.key,
-                style:
-                    const TextStyle(color: Colors.white, fontSize: 14)),
+            child: Text(
+              entry.key,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
           );
           for (var bt in entry.value) {
             yield _BookingCard(
               booking: bt.booking,
               time: bt.time,
               allowCancel: allowCancel,
-              onCancelled: (b) =>
-                  setState(() => _cancelledIds.add(b.bookingId)),
+              onCancelled: (_) => _loadAll(),
             );
           }
         }).toList(),
@@ -229,10 +222,12 @@ class _BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parts = time.startTime.split(':').map(int.parse).toList();
-    final sd    = booking.eventDate;
-    final start = DateTime(sd.year, sd.month, sd.day, parts[0], parts[1]);
+    final sd = booking.eventDate;
+    final start =
+        DateTime(sd.year, sd.month, sd.day, parts[0], parts[1]);
     final isLate = DateTime.now().isAfter(start) &&
-        DateTime.now().isBefore(start.add(const Duration(minutes: 15)));
+        DateTime.now().isBefore(
+            start.add(const Duration(minutes: 15)));
 
     return Card(
       color: Colors.white,
@@ -242,7 +237,7 @@ class _BookingCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () async {
-          final result = await Navigator.push<Booking?>(
+          final didCancel = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
               builder: (_) => TicketDetailView(
@@ -251,25 +246,23 @@ class _BookingCard extends StatelessWidget {
               ),
             ),
           );
-          if (result != null) onCancelled(result);
+          if (didCancel == true) onCancelled(booking);
         },
         child: Padding(
           padding:
               const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           child: Column(
             children: [
-              Text('Booking for',
-                  style: TextStyle(
-                      color: Colors.grey.shade700, fontSize: 12)),
+              const Text('Booking for',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
                 booking.attendeeName,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: 18,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold),
               ),
               if (isLate)
                 Padding(
@@ -278,9 +271,8 @@ class _BookingCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(4)),
                     child: const Text('LATE',
                         style:
                             TextStyle(color: Colors.white, fontSize: 10)),

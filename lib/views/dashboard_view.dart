@@ -6,7 +6,6 @@ import '../fragments/home_fragment.dart';
 import '../fragments/profile_fragment.dart';
 import '../fragments/tickets_fragment.dart';
 import '../fragments/qr_scan_fragment.dart';
-import '../views/create_event_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({Key? key}) : super(key: key);
@@ -19,7 +18,6 @@ class _DashboardViewState extends State<DashboardView> {
   late final PageController _pageController;
 
   static const double _scanDiameter = 56.0;
-  static const double _plusDiameter = 48.0;
 
   @override
   void initState() {
@@ -38,13 +36,15 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('EXIT APP',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text('Do you want to exit the app?',
-            style: TextStyle(color: Colors.white70)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'EXIT APP',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Do you want to exit the app?',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -52,8 +52,7 @@ class _DashboardViewState extends State<DashboardView> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('EXIT',
-                style: TextStyle(color: Colors.redAccent)),
+            child: const Text('EXIT', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -63,10 +62,9 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   bool _hasRole(String role) {
-    final roles = context
-            .read<AuthProvider>()
-            .userProfile?['roles'] as List<dynamic>? ??
-        [];
+    final roles =
+        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ??
+            [];
     return roles.contains(role);
   }
 
@@ -77,7 +75,6 @@ class _DashboardViewState extends State<DashboardView> {
     final isAdmin = _hasRole('Admin');
 
     final canScanQR = isStaff || isEventManager || isAdmin;
-    final canPlus = isEventManager || isAdmin;
     final canAccessTickets = !isEventManager && !isAdmin;
 
     // 1) The pages shown in the PageView
@@ -87,7 +84,7 @@ class _DashboardViewState extends State<DashboardView> {
       const ProfileFragment(),
     ];
 
-    // 2) The three nav icons (Home, maybe Tickets, Profile)
+    // 2) The nav items
     final navItems = <_NavItem>[
       _NavItem(Icons.home, 'Home', 0),
       if (canAccessTickets)
@@ -95,14 +92,13 @@ class _DashboardViewState extends State<DashboardView> {
       _NavItem(Icons.person, 'Profile', pages.length - 1),
     ];
 
-    // 3) Figure where the scan slot goes
-    final totalSlots    = navItems.length + (canScanQR ? 1 : 0);
+    // 3) Scan slot index
+    final totalSlots = navItems.length + (canScanQR ? 1 : 0);
     final scanSlotIndex = (navItems.length / 2).floor();
 
-    // 4) Measurement
-    final w     = MediaQuery.of(context).size.width;
+    final w = MediaQuery.of(context).size.width;
     final inset = MediaQuery.of(context).padding.bottom;
-    final barH  = kBottomNavigationBarHeight;
+    final barH = kBottomNavigationBarHeight;
     final halfS = _scanDiameter / 2;
 
     return WillPopScope(
@@ -115,6 +111,7 @@ class _DashboardViewState extends State<DashboardView> {
         body: Stack(children: [
           PageView(
             controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(), // no swipe
             onPageChanged: (i) => setState(() => _selectedIndex = i),
             children: pages,
           ),
@@ -122,12 +119,11 @@ class _DashboardViewState extends State<DashboardView> {
           // red “Scan” circle
           if (canScanQR)
             Positioned(
-              bottom: inset + barH/2 - halfS,
+              bottom: inset + barH / 2 - halfS,
               left: w * (scanSlotIndex + 0.5) / totalSlots - halfS,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const QrScanFragment()),
+                  MaterialPageRoute(builder: (_) => const QrScanFragment()),
                 ),
                 child: Container(
                   width: _scanDiameter,
@@ -144,32 +140,6 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
               ),
             ),
-
-          // blue “+” circle
-          if (canPlus)
-            Positioned(
-              bottom: inset + barH + 100, // 8px above nav bar
-              right: 16,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const CreateEventView()),
-                ),
-                child: Container(
-                  width: _plusDiameter,
-                  height: _plusDiameter,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black45, blurRadius: 4)
-                    ],
-                  ),
-                  child: const Icon(Icons.add,
-                      color: Color.fromARGB(255, 0, 0, 0), size: 32),
-                ),
-              ),
-            ),
         ]),
 
         // BOTTOM NAV BAR
@@ -181,10 +151,8 @@ class _DashboardViewState extends State<DashboardView> {
             child: Row(
               children: [
                 for (int i = 0; i < navItems.length; i++) ...[
-                  // reserve scan slot width
                   if (i == scanSlotIndex && canScanQR)
                     SizedBox(width: _scanDiameter),
-                  // evenly expand each button
                   Expanded(child: _buildNavButton(navItems[i])),
                 ]
               ],
@@ -197,7 +165,8 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget _buildNavButton(_NavItem item) {
     final selected = _selectedIndex == item.pageIndex;
-    final color    = selected ? const Color.fromARGB(255, 255, 255, 255) : const Color.fromARGB(255, 113, 112, 112);
+    final color =
+        selected ? Colors.white : const Color.fromARGB(255, 113, 112, 112);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -214,13 +183,13 @@ class _DashboardViewState extends State<DashboardView> {
         children: [
           Icon(item.icon, color: color),
           const SizedBox(height: 2),
-          Text(item.label,
-              style: TextStyle(color: color, fontSize: 12)),
+          Text(item.label, style: TextStyle(color: color, fontSize: 12)),
         ],
       ),
     );
   }
 }
+
 class _NavItem {
   final IconData icon;
   final String label;

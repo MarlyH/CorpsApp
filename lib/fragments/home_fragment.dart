@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../views/booking_flow.dart';
-import '../models/event_summary.dart';
+import '../views/create_event_view.dart';
+import '../models/event_summary.dart' as event_summary;
 
-// Local model for /api/events/{id>
+/// Local model for /api/events/{id}
 class EventDetail {
   final String description;
   final String address;
@@ -15,8 +16,8 @@ class EventDetail {
         address = json['address'] as String? ?? '';
 }
 
-// Extension to detect if an event’s end time has already passed.
-extension EventSummaryX on EventSummary {
+/// Extension to detect if an event’s end time has already passed.
+extension EventSummaryX on event_summary.EventSummary {
   bool get hasConcluded {
     final now = DateTime.now();
     final parts = endTime.split(':').map(int.parse).toList();
@@ -31,19 +32,19 @@ extension EventSummaryX on EventSummary {
   }
 }
 
-// Helper for formatting session types.
-String friendlySession(SessionType type) {
+/// Helper for formatting session types.
+String friendlySession(event_summary.SessionType type) {
   switch (type) {
-    case SessionType.Ages8to11:
+    case event_summary.SessionType.Ages8to11:
       return 'Ages 8 to 11';
-    case SessionType.Ages12to15:
+    case event_summary.SessionType.Ages12to15:
       return 'Ages 12 to 15';
     default:
       return 'Ages 16+';
   }
 }
 
-// Date formatter for the summary tiles.
+/// Date formatter for the summary tiles.
 String _formatDate(DateTime d) {
   const week = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const mon  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -58,10 +59,10 @@ class HomeFragment extends StatefulWidget {
 }
 
 class _HomeFragmentState extends State<HomeFragment> {
-  late Future<List<EventSummary>> _futureSummaries;
+  late Future<List<event_summary.EventSummary>> _futureSummaries;
 
   String? _filterLocation;
-  SessionType? _filterSessionType;
+  event_summary.SessionType? _filterSessionType;
   bool _dateAsc  = true;
   bool _seatsAsc = true;
 
@@ -71,12 +72,12 @@ class _HomeFragmentState extends State<HomeFragment> {
     _futureSummaries = _loadSummaries();
   }
 
-  Future<List<EventSummary>> _loadSummaries() async {
+  Future<List<event_summary.EventSummary>> _loadSummaries() async {
     final resp = await AuthHttpClient.get('/api/events');
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list
         .cast<Map<String, dynamic>>()
-        .map(EventSummary.fromJson)
+        .map(event_summary.EventSummary.fromJson)
         .toList();
   }
 
@@ -115,24 +116,42 @@ class _HomeFragmentState extends State<HomeFragment> {
 
   @override
   Widget build(BuildContext context) {
-    final auth      = context.watch<AuthProvider>();
-    final canManage = auth.isAdmin || auth.isEventManager;
-    final isUser    = auth.isUser   || auth.isStaff;
+    final auth       = context.watch<AuthProvider>();
+    final canManage  = auth.isAdmin || auth.isEventManager;
+    final isUser     = auth.isUser   || auth.isStaff;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: Colors.black,
+
+      // ——— Floating “+” FAB for event creation ———
+      floatingActionButton: canManage
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 200.0, right: 5.0),
+              child: FloatingActionButton(
+                backgroundColor: Colors.white,
+                child: const Icon(Icons.add, color: Colors.black),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CreateEventView()),
+                  );
+                },
+              ),
+            )
+          : null,
+
       body: SafeArea(
         bottom: false,
-        child: FutureBuilder<List<EventSummary>>(
+        child: FutureBuilder<List<event_summary.EventSummary>>(
           future: _futureSummaries,
           builder: (ctx, snap) {
             final loading = snap.connectionState == ConnectionState.waiting;
             final hasError = snap.hasError;
             final all      = snap.data ?? [];
 
+            // Apply filters & sorting
             final events = all.where((e) {
-              if (e.status != EventStatus.Available) return false;
+              if (e.status != event_summary.EventStatus.Available) return false;
               if (e.hasConcluded) return false;
               if (_filterLocation    != null && e.locationName != _filterLocation)    return false;
               if (_filterSessionType != null && e.sessionType   != _filterSessionType) return false;
@@ -150,8 +169,11 @@ class _HomeFragmentState extends State<HomeFragment> {
                 return dateComp;
               });
 
-            final allLocations =
-                all.map((e) => e.locationName).toSet().toList()..sort();
+            final allLocations = all
+                .map((e) => e.locationName)
+                .toSet()
+                .toList()
+                  ..sort();
 
             return RefreshIndicator(
               color: Colors.white,
@@ -161,13 +183,11 @@ class _HomeFragmentState extends State<HomeFragment> {
                   // LOCATION HEADER
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String?>(
                           value: _filterLocation,
-                          icon: const Icon(Icons.keyboard_arrow_down,
-                              color: Colors.white),
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
                           dropdownColor: Colors.grey[900],
                           isExpanded: true,
                           hint: const Text(
@@ -190,18 +210,17 @@ class _HomeFragmentState extends State<HomeFragment> {
                                 ),
                               ),
                             ),
-                            ...allLocations.map((loc) =>
-                                DropdownMenuItem<String?>(
-                                  value: loc,
-                                  child: Text(
-                                    loc.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                )),
+                            ...allLocations.map((loc) => DropdownMenuItem<String?>(
+                              value: loc,
+                              child: Text(
+                                loc.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )),
                           ],
                           onChanged: (v) => setState(() {
                             _filterLocation = v;
@@ -214,8 +233,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                   // SESSIONS PILL
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: GestureDetector(
                         onTap: _showFilters,
                         child: Container(
@@ -223,25 +241,20 @@ class _HomeFragmentState extends State<HomeFragment> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.filter_list,
-                                  color: Colors.black54),
+                              const Icon(Icons.filter_list, color: Colors.black54),
                               const SizedBox(width: 8),
                               Text(
                                 _filterSessionType == null
                                     ? 'All Sessions'
-                                    : friendlySession(
-                                        _filterSessionType!),
-                                style:
-                                    const TextStyle(color: Colors.black54),
+                                    : friendlySession(_filterSessionType!),
+                                style: const TextStyle(color: Colors.black54),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(Icons.keyboard_arrow_down,
-                                  color: Colors.black54),
+                              const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
                             ],
                           ),
                         ),
@@ -254,23 +267,19 @@ class _HomeFragmentState extends State<HomeFragment> {
                   // LOADING / ERROR / EMPTY
                   if (loading)
                     SliverFillRemaining(
-                      child: const Center(
-                          child:
-                              CircularProgressIndicator(color: Colors.white)),
+                      child: const Center(child: CircularProgressIndicator(color: Colors.white)),
                     )
                   else if (hasError)
                     SliverFillRemaining(
                       child: Center(
-                          child: Text('Error: ${snap.error}',
-                              style:
-                                  const TextStyle(color: Colors.white))),
+                        child: Text('Error: ${snap.error}', style: const TextStyle(color: Colors.white)),
+                      ),
                     )
                   else if (events.isEmpty)
                     SliverFillRemaining(
                       child: const Center(
-                          child: Text('No sessions found',
-                              style:
-                                  TextStyle(color: Colors.white70))),
+                        child: Text('No sessions found', style: TextStyle(color: Colors.white70)),
+                      ),
                     )
                   // SESSION LIST
                   else
@@ -282,15 +291,14 @@ class _HomeFragmentState extends State<HomeFragment> {
                           canManage:  canManage,
                           loadDetail: (id) => AuthHttpClient
                               .get('/api/events/$id')
-                              .then((r) => EventDetail.fromJson(
-                                  jsonDecode(r.body))),
+                              .then((r) => EventDetail.fromJson(jsonDecode(r.body))),
                           onAction: _refresh,
                         ),
                         childCount: events.length,
                       ),
                     ),
 
-                  // Extra bottom padding so last card never clips under nav bar
+                  // bottom padding so last card isn’t hidden
                   SliverToBoxAdapter(
                     child: SizedBox(height: bottomInset + 32),
                   ),
@@ -306,10 +314,10 @@ class _HomeFragmentState extends State<HomeFragment> {
 
 // FILTER SHEET
 class _FilterSheet extends StatelessWidget {
-  final SessionType? initialSession;
+  final event_summary.SessionType? initialSession;
   final bool initialDateAsc;
   final bool initialSeatsAsc;
-  final void Function(SessionType?, bool, bool) onApply;
+  final void Function(event_summary.SessionType?, bool, bool) onApply;
 
   const _FilterSheet({
     Key? key,
@@ -339,14 +347,13 @@ class _FilterSheet extends StatelessWidget {
         ListTile(
           title:
               const Text('Session Type', style: TextStyle(color: Colors.white70)),
-          trailing: DropdownButton<SessionType?>(
-
+          trailing: DropdownButton<event_summary.SessionType?>(
             dropdownColor: Colors.grey[800],
             value: _session,
             hint: const Text('All', style: TextStyle(color: Colors.white)),
             items: [
               const DropdownMenuItem(value: null, child: Text('All', style: TextStyle(color: Colors.white))),
-              ...SessionType.values.map((st) => DropdownMenuItem(
+              ...event_summary.SessionType.values.map((st) => DropdownMenuItem(
                     value: st,
                     child: Text(friendlySession(st), style: const TextStyle(color: Colors.white)),
                   )),
@@ -371,8 +378,7 @@ class _FilterSheet extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           ),
           onPressed: () => onApply(_session, _dateAsc, _seatsAsc),
           child: const Text('Apply'),
@@ -385,7 +391,7 @@ class _FilterSheet extends StatelessWidget {
 
 // EVENT TILE
 class EventTile extends StatefulWidget {
-  final EventSummary                    summary;
+  final event_summary.EventSummary       summary;
   final bool                            isUser, canManage;
   final Future<EventDetail> Function(int) loadDetail;
   final VoidCallback                    onAction;
@@ -406,11 +412,6 @@ class EventTile extends StatefulWidget {
 class _EventTileState extends State<EventTile> {
   bool _expanded = false;
   late Future<EventDetail> _detailFut;
-
-  String _weekdayFull(DateTime d) {
-    const week = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    return week[d.weekday - 1];
-  }
 
   static const double _pillSize   = 48.0;
   static const double _halfPill   = _pillSize / 2;
@@ -460,10 +461,9 @@ class _EventTileState extends State<EventTile> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // ── Card container ─────────────────────
+          // ── Card container
           Container(
             decoration: BoxDecoration(
-              // only show the outline when expanded
               border: _expanded
                   ? Border.all(color: Colors.white, width: 4)
                   : null,
@@ -472,21 +472,18 @@ class _EventTileState extends State<EventTile> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── SUMMARY STACK ─────────────────────
+                // SUMMARY STACK
                 Padding(
                   padding: EdgeInsets.only(bottom: _halfPill),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      // summary content
                       Container(
                         decoration: const BoxDecoration(
                           color: Colors.white,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(14)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 24),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                         child: Row(
                           children: [
                             Expanded(
@@ -495,8 +492,7 @@ class _EventTileState extends State<EventTile> {
                                 children: [
                                   Text(
                                     s.locationName,
-                                    style: const TextStyle(
-                                        color: Colors.black54, fontSize: 12),
+                                    style: const TextStyle(color: Colors.black54, fontSize: 12),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 8),
@@ -510,8 +506,7 @@ class _EventTileState extends State<EventTile> {
                                   ),
                                   Text(
                                     _formatDate(s.startDate),
-                                    style:
-                                        const TextStyle(color: Colors.black54),
+                                    style: const TextStyle(color: Colors.black54),
                                   ),
                                 ],
                               ),
@@ -522,24 +517,18 @@ class _EventTileState extends State<EventTile> {
                                 children: [
                                   Text(
                                     friendlySession(s.sessionType),
-                                    style: const TextStyle(
-                                        color: Colors.black54, fontSize: 12),
+                                    style: const TextStyle(color: Colors.black54, fontSize: 12),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text('Starts ${s.startTime}',
-                                      style: const TextStyle(
-                                          color: Colors.black54)),
-                                  Text('Ends   ${s.endTime}',
-                                      style: const TextStyle(
-                                          color: Colors.black54)),
+                                  Text('Starts ${s.startTime}', style: const TextStyle(color: Colors.black54)),
+                                  Text('Ends   ${s.endTime}',   style: const TextStyle(color: Colors.black54)),
                                 ],
                               ),
                             ),
                           ],
                         ),
                       ),
-
-                      // pill floats at bottom-center
+                      // pill button
                       Positioned(
                         bottom: -_halfPill,
                         left: 0,
@@ -558,8 +547,7 @@ class _EventTileState extends State<EventTile> {
                               alignment: Alignment.center,
                               child: Text(
                                 _expanded ? 'Less' : 'More',
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 14),
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
                               ),
                             ),
                           ),
@@ -568,54 +556,41 @@ class _EventTileState extends State<EventTile> {
                     ],
                   ),
                 ),
-
-                // ── DETAILS PANEL ────────────────────
+                // DETAILS PANEL
                 if (_expanded)
                   Container(
                     decoration: const BoxDecoration(
                       color: Colors.black,
-                      borderRadius:
-                          BorderRadius.vertical(bottom: Radius.circular(14)),
+                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
                     ),
-                    padding: EdgeInsets.fromLTRB(
-                        24, 24, 24, 24 + _halfAction),
+                    padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + _halfAction),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(children: [
-                          const Icon(Icons.event_seat,
-                              color: Colors.white, size: 16),
+                          const Icon(Icons.event_seat, color: Colors.white, size: 16),
                           const SizedBox(width: 8),
-                          Text('${s.availableSeats} Seats Available',
-                              style: const TextStyle(color: Colors.white)),
+                          Text('${s.availableSeats} Seats Available', style: const TextStyle(color: Colors.white)),
                         ]),
                         const SizedBox(height: 16),
                         FutureBuilder<EventDetail>(
                           future: _detailFut,
                           builder: (ctx, snap) {
                             final addr = snap.data?.address ?? '';
-                            return Text(addr,
-                                style: const TextStyle(color: Colors.white));
+                            return Text(addr, style: const TextStyle(color: Colors.white));
                           },
                         ),
                         const SizedBox(height: 16),
                         FutureBuilder<EventDetail>(
                           future: _detailFut,
                           builder: (ctx, snap) {
-                            if (snap.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2));
+                            if (snap.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2));
                             }
                             if (snap.hasError) {
-                              return const Text('Error loading details',
-                                  style:
-                                      TextStyle(color: Colors.redAccent));
+                              return const Text('Error loading details', style: TextStyle(color: Colors.redAccent));
                             }
-                            return Text(snap.data!.description,
-                                style: const TextStyle(
-                                    color: Colors.white70));
+                            return Text(snap.data!.description, style: const TextStyle(color: Colors.white70));
                           },
                         ),
                       ],
@@ -625,7 +600,7 @@ class _EventTileState extends State<EventTile> {
             ),
           ),
 
-          // ── ACTION BUTTON(S) ──────────────────
+          // ACTION BUTTON(S)
           if (_expanded)
             Positioned(
               bottom: -_halfAction,
@@ -636,46 +611,37 @@ class _EventTileState extends State<EventTile> {
                     ? ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 40, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                         ),
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    BookingFlow(event: widget.summary)),
+                            MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)),
                           );
                         },
-                        child: const Text('BOOK NOW',
-                            style: TextStyle(color: Colors.white)),
+                        child: const Text('BOOK NOW', style: TextStyle(color: Colors.white)),
                       )
                     : Row(mainAxisSize: MainAxisSize.min, children: [
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.grey[800],
                             side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: _cancelEvent,
-                          child: const Text('CANCEL',
-                              style: TextStyle(color: Colors.white70)),
+                          child: const Text('CANCEL', style: TextStyle(color: Colors.white70)),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () {},
-                          child: const Text('RESERVE',
-                              style: TextStyle(color: Colors.black)),
+                          child: const Text('RESERVE', style: TextStyle(color: Colors.black)),
                         ),
                       ]),
               ),
@@ -683,6 +649,11 @@ class _EventTileState extends State<EventTile> {
         ],
       ),
     );
+  }
+
+  String _weekdayFull(DateTime d) {
+    const week = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    return week[d.weekday - 1];
   }
 }
 
@@ -725,7 +696,8 @@ class _CancellationDialog extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'Explain the cancellation (sent to attendees).',
               hintStyle: const TextStyle(color: Colors.white38),
-              filled: true, fillColor: Colors.white12,
+              filled: true,
+              fillColor: Colors.white12,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,

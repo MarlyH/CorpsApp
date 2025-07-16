@@ -42,8 +42,8 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       ..initialize().then((_) {
         if (mounted) {
           setState(() => _isVideoReady = true);
-          _controller
-            ?..setLooping(true)
+          _controller!
+            ..setLooping(true)
             ..setVolume(0)
             ..play();
         }
@@ -91,18 +91,14 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   String maskEmail(String email) {
     final parts = email.split('@');
     if (parts.length != 2) return email;
-
     final name = parts[0];
     final domain = parts[1];
-
     if (name.length <= 2) {
       return '*' * name.length + '@' + domain;
     }
-
     final visibleStart = name.substring(0, 2);
     final visibleEnd = name.length > 4 ? name.substring(name.length - 2) : '';
     final masked = '*' * (name.length - visibleStart.length - visibleEnd.length);
-
     return '$visibleStart$masked$visibleEnd@$domain';
   }
 
@@ -127,7 +123,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
             )
           else
             Container(color: Colors.black),
-
           Container(color: Colors.black.withOpacity(0.5)),
 
           SafeArea(
@@ -155,109 +150,103 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             key: ValueKey(_hasToken ? 'loggedIn' : 'loggedOut'),
                             children: _hasToken
                                 ? [
-                                    // Continue to Dashboard
+                                    // CONTINUE AS XXX@XX   
                                     SizedBox(
                                       width: double.infinity,
-                                      child: OutlinedButton(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(
-                                              color: Colors.white, width: 4),
+                                      height: 48,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF4A90E2),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
                                         onPressed: () => _navigateSafely('/dashboard'),
                                         child: Text(
                                           'CONTINUE AS ${maskEmail(email)}',
-                                          textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             color: Colors.white,
-                                            letterSpacing: 1.5,
-                                            fontWeight: FontWeight.bold,
                                             fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // Log Out
+                                    // LOG OUT
                                     SizedBox(
                                       width: double.infinity,
-                                      child: OutlinedButton(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.white, width: 4),
+                                      height: 48,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
                                         onPressed: _logout,
                                         child: const Text(
                                           'LOG OUT',
                                           style: TextStyle(
-                                            color: Colors.white,
-                                            letterSpacing: 1.5,
-                                            fontWeight: FontWeight.bold,
+                                            color: Color.fromARGB(255, 0, 0, 0),
                                             fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
                                   ]
                                 : [
-                                    // Login
+                                    // LOGIN (blue)
                                     SizedBox(
                                       width: double.infinity,
-                                      child: OutlinedButton(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.white, width: 4),
+                                      height: 48,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF4A90E2),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
                                         onPressed: () => _navigateSafely('/login'),
                                         child: const Text(
                                           'LOGIN',
                                           style: TextStyle(
                                             color: Colors.white,
-                                            letterSpacing: 1.5,
-                                            fontWeight: FontWeight.bold,
                                             fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // Register
+                                    // REGISTER (white)
                                     SizedBox(
                                       width: double.infinity,
-                                      child: OutlinedButton(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.white, width: 4),
+                                      height: 48,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
                                         ),
                                         onPressed: () => _navigateSafely('/register'),
                                         child: const Text(
                                           'REGISTER',
                                           style: TextStyle(
-                                            color: Colors.white,
-                                            letterSpacing: 1.5,
-                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
                                             fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 24),
 
-                                    // Guest Mode
+                                    // CONTINUE AS GUEST
                                     GestureDetector(
                                       onTap: () {
                                         ScaffoldMessenger.of(context).showSnackBar(

@@ -12,176 +12,201 @@ class ForgotPasswordView extends StatefulWidget {
 }
 
 class _ForgotPasswordViewState extends State<ForgotPasswordView> {
-  final TextEditingController emailController = TextEditingController();
-  bool isLoading = false;
-  String? successMessage;
-  String? errorMessage;
+  final _emailCtrl = TextEditingController();
+  bool _isLoading = false;
+  String? _error;
 
   Future<void> sendResetEmail() async {
     setState(() {
-      isLoading = true;
-      successMessage = null;
-      errorMessage = null;
+      _isLoading = true;
+      _error     = null;
     });
 
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/password/forgot-password');
-    final body = jsonEncode({'email': emailController.text.trim()});
+    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url  = Uri.parse('$base/api/password/forgot-password');
+    final body = jsonEncode({'email': _emailCtrl.text.trim()});
 
     try {
-      final response = await http.post(
+      final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type':'application/json'},
         body: body,
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final resetToken = data['resetPswdToken'];
-
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => VerifyOtpView(
-                email: emailController.text.trim(),
-                resetToken: resetToken,
-              ),
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final token = data['resetPswdToken'] as String?;
+        if (!mounted || token == null) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerifyOtpView(
+              email: _emailCtrl.text.trim(),
+              resetToken: token,
             ),
-          );
-        }
+          ),
+        );
       } else {
-        final data = jsonDecode(response.body);
-        setState(() {
-          errorMessage = data['message'] ?? 'Failed to send reset email.';
-        });
+        final msg = jsonDecode(res.body)['message'] as String?;
+        setState(() => _error = msg ?? 'Failed to send reset email.');
       }
     } catch (_) {
-      setState(() {
-        errorMessage = 'Failed to connect to server.';
-      });
+      setState(() => _error = 'Failed to connect to server.');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Widget _boxField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('EMAIL',
+          style: TextStyle(
+            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600
+          ),
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            hintText: 'Enter your email',
+            hintStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // allow body to resize when keyboard appears:
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
+        top: true,
+        bottom: false,
         child: LayoutBuilder(
-          builder: (context, constraints) {
+          builder: (ctx, constraints) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 52),
-              reverse: true,
+              // ensure scrolls up and adds padding for keyboard:
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
                 child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      // Back Arrow
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 16.0),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          ),
+                  child: Stack(children: [
+                    // back arrow
+                    Positioned(
+                      top: 8,
+                      left: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+
+                    Column(
+                      children: [
+                        const Spacer(), // push graphic & form down
+
+                        // graphic
+                        Image.asset(
+                          'assets/forgot_password.png',
+                          height: 240,
                         ),
-                      ),
+                        const SizedBox(height: 32),
 
-                      const Spacer(),
-
-                      Image.asset(
-                        'assets/forgot_password.png',
-                        height: 240,
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'FORGOT PASSWORD?',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "Don't worry! We can help you reset it in a few steps.\nSimply follow the instructions.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 32),
-
-                      TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'EMAIL',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          hintText: 'Enter your email',
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white, width: 1.5),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.blue, width: 2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 36),
-
-                      if (errorMessage != null)
-                        Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.red),
+                        // heading
+                        const Text(
+                          'FORGOT PASSWORD?',
                           textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      if (successMessage != null)
-                        Text(
-                          successMessage!,
-                          style: const TextStyle(color: Colors.green),
+                        const SizedBox(height: 12),
+
+                        // subtext
+                        const Text(
+                          "Don't worry! We can help you reset it in a few steps.\n"
+                          "Simply follow the instructions.",
                           textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
+                        const SizedBox(height: 32),
 
-                      const SizedBox(height: 24),
+                        // email input
+                        _boxField(),
+                        const SizedBox(height: 24),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: isLoading ? null : sendResetEmail,
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white, width: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        // error
+                        if (_error != null) ...[
+                          Text(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // send code button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : sendResetEmail,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4A90E2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'SEND CODE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                )
-                              : const Text(
-                                  'SEND CODE',
-                                  style: TextStyle(color: Colors.white),
-                                ),
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 20), // Spacer for keyboard padding
-                    ],
-                  ),
+                        const Spacer(), // bottom space
+                      ],
+                    ),
+                  ]),
                 ),
               ),
             );
@@ -190,5 +215,4 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       ),
     );
   }
-
 }

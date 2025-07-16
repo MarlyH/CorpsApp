@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:corpsapp/views/reset_success_view.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'reset_success_view.dart';
 
 class ResetPasswordView extends StatefulWidget {
   final String email;
@@ -19,270 +19,238 @@ class ResetPasswordView extends StatefulWidget {
 }
 
 class _ResetPasswordViewState extends State<ResetPasswordView> {
-  final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _newPassCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _loading = false;
+  String? _error;
 
-  bool isLoading = false;
-  bool obscurePassword = true;
-  bool obscureConfirmPassword = true;
+  @override
+  void dispose() {
+    _newPassCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
 
-  String? errorMessage;
-  String? successMessage;
-
-  Future<void> resetPassword() async {
-    final newPassword = newPasswordController.text.trim();
-    final confirmPassword = confirmPasswordController.text.trim();
-
-    if (newPassword != confirmPassword) {
-      setState(() {
-        errorMessage = 'Passwords do not match';
-        successMessage = null;
-      });
+  Future<void> _finish() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_newPassCtrl.text != _confirmCtrl.text) {
+      setState(() => _error = 'Passwords do not match');
       return;
     }
 
     setState(() {
-      isLoading = true;
-      errorMessage = null;
-      successMessage = null;
+      _loading = true;
+      _error = null;
     });
 
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/password/reset-password');
+    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url = Uri.parse('$base/api/password/reset-password');
     final body = jsonEncode({
       'email': widget.email,
       'resetPasswordToken': widget.resetToken,
-      'newPassword': newPassword,
+      'newPassword': _newPassCtrl.text.trim(),
     });
 
     try {
-      final response = await http.post(
+      final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        setState(() {
-          successMessage = 'Password successfully reset!';
-        });
-
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const ResetSuccessView()),
-          );
-        }
+      final data = jsonDecode(resp.body);
+      if (resp.statusCode == 200) {
+        // success: navigate to success screen
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ResetSuccessView()),
+        );
       } else {
-        setState(() {
-          errorMessage = data['message'] ?? 'Password reset failed';
-        });
+        setState(() => _error = data['message'] ?? 'Reset failed');
       }
     } catch (_) {
-      setState(() {
-        errorMessage = 'Server error';
-      });
+      setState(() => _error = 'Server error, please try again');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ensure we avoid bottom overflow when keyboard appears
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
       backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              reverse: true,
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 16.0),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ),
+        child: LayoutBuilder(builder: (ctx, constraints) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              bottom: bottomInset + 24,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // back arrow
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      const Spacer(),
+                    ),
 
-                      Image.asset(
-                        'assets/change_password.jpg',
-                        height: 240,
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'RESET PASSWORD',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Now you can enter a new password and use it from now on.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 32),
+                    const Spacer(),
 
-                      TextField(
-                        controller: newPasswordController,
-                        obscureText: obscurePassword,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'NEW PASSWORD',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          hintText: 'Enter your new password',
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                    // lock image
+                    Image.asset('assets/change_password.jpg', height: 240),
+                    const SizedBox(height: 32),
+
+                    // title
+                    const Text(
+                      'RESET PASSWORD',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // subtitle
+                    const Text(
+                      'Now you can enter a new password and use it from now on.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // form
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // New password
+                          _buildField(
+                            label: 'NEW PASSWORD',
+                            controller: _newPassCtrl,
+                            obscure: _obscureNew,
+                            toggle: () => setState(() => _obscureNew = !_obscureNew),
                           ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.blue),
+                          const SizedBox(height: 16),
+
+                          // Confirm password
+                          _buildField(
+                            label: 'CONFIRM PASSWORD',
+                            controller: _confirmCtrl,
+                            obscure: _obscureConfirm,
+                            toggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
                           ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              obscurePassword ? Icons.visibility_off : Icons.visibility,
-                              color: Colors.white,
+
+                          if (_error != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.redAccent),
                             ),
-                            onPressed: () {
-                              setState(() => obscurePassword = !obscurePassword);
-                            },
-                          ),
-                        ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 32),
 
-                      TextField(
-                        controller: confirmPasswordController,
-                        obscureText: obscureConfirmPassword,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'CONFIRM PASSWORD',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          hintText: 'Re-enter password',
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.blue),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                              color: Colors.white,
-                            ),
-                            onPressed: () {
-                              setState(() => obscureConfirmPassword = !obscureConfirmPassword);
-                            },
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      if (errorMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade100,
+                    // FINISH button
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _finish,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A90E2),
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  errorMessage!,
-                                  style: const TextStyle(color: Colors.red),
+                        ),
+                        child: _loading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'FINISH',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-
-                      if (successMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle_outline, color: Colors.green),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  successMessage!,
-                                  style: const TextStyle(color: Colors.green),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 24),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: isLoading ? null : resetPassword,
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white, width: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'FINISH',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                        ),
                       ),
+                    ),
 
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                    const Spacer(),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
 
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    required bool obscure,
+    required VoidCallback toggle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(color: Colors.black),
+          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+          decoration: InputDecoration(
+            hintText: 'Enter your password',
+            hintStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscure ? Icons.visibility_off : Icons.visibility,
+                color: Colors.grey,
+              ),
+              onPressed: toggle,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

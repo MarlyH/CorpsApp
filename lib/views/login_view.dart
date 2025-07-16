@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/gestures.dart';
-import 'package:url_launcher/url_launcher.dart' as launcher;
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../services/token_service.dart';
 import '../providers/auth_provider.dart';
@@ -16,299 +15,295 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final _formKey   = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _pwCtrl    = TextEditingController();
 
-  bool isLoading = false;
-  bool canResend = false;
-  bool obscurePassword = true;
-  String? errorMessage;
+  bool _isLoading = false;
+  bool _canResend = false;
+  bool _obscure   = true;
+  String? _error;
 
   @override
   void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
+    _emailCtrl.dispose();
+    _pwCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> login() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
-      isLoading = true;
-      errorMessage = null;
-      canResend = false;
+      _isLoading = true;
+      _error     = null;
+      _canResend = false;
     });
 
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/auth/login');
-    final body = jsonEncode({
-      'Email': emailController.text.trim(),
-      'Password': passwordController.text,
-    });
+    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final res = await http.post(
+      Uri.parse('$base/api/auth/login'),
+      headers: {'Content-Type':'application/json'},
+      body: jsonEncode({
+        'Email':    _emailCtrl.text.trim(),
+        'Password': _pwCtrl.text,
+      }),
+    );
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: body,
-      );
-
+    final data = jsonDecode(res.body);
+    if (res.statusCode == 200) {
+      await TokenService.saveTokens(
+        data['accessToken'], data['refreshToken']);
+      await context.read<AuthProvider>().loadUser();
       if (!mounted) return;
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        final accessToken = data['accessToken'];
-        final refreshToken = data['refreshToken'];
-
-        if (accessToken != null && refreshToken != null) {
-          await TokenService.saveTokens(accessToken, refreshToken);
-          await context.read<AuthProvider>().loadUser(); // Update global state
-        }
-
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      } else {
-        setState(() {
-          errorMessage = data['message'] ?? 'Unexpected error';
-          canResend = response.statusCode == 401 ? (data['canResend'] ?? false) : false;
-        });
-      }
-    } catch (_) {
-      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else {
       setState(() {
-        errorMessage = 'Failed to connect to server';
+        _error     = data['message'] ?? 'Login failed';
+        _canResend = res.statusCode == 401 && (data['canResend'] == true);
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _resendEmail() async {
+    setState(() => _isLoading = true);
+    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final res = await http.post(
+      Uri.parse('$base/api/auth/resend-confirmation-email'),
+      headers: {'Content-Type':'application/json'},
+      body: jsonEncode({'email': _emailCtrl.text.trim()}),
+    );
+    final msg = jsonDecode(res.body)['message'] ?? 'Check your inbox';
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
+      setState(() {
+        _canResend = false;
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> resendConfirmationEmail() async {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final resendUrl = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
-    final resendBody = jsonEncode({'email': emailController.text.trim()});
-
-    try {
-      final resendResponse = await http.post(
-        resendUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: resendBody,
-      );
-
-      if (!mounted) return;
-      final data = jsonDecode(resendResponse.body);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'] ?? 'Email resent')),
-      );
-
-      if (resendResponse.statusCode == 200) {
-        setState(() => canResend = false);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Server error, try again later.')),
-      );
-    }
-  }
-
-  Widget buildTextField({
+  Widget _boxField({
     required String label,
-    required TextEditingController controller,
-    bool obscureText = false,
-    Widget? suffixIcon,
+    required TextEditingController ctrl,
+    bool obscure = false,
+    Widget? suffix,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      validator: validator,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white),
-        hintText: 'Enter your $label',
-        hintStyle: const TextStyle(color: Colors.grey),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white, width: 1.5),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue, width: 2),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: ctrl,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          validator: validator,
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            hintText: 'Enter your ${label.toLowerCase()}',
+            hintStyle: const TextStyle(color: Colors.grey),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 14),
+            suffixIcon: suffix,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
-        suffixIcon: suffixIcon,
-      ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // default resizeToAvoidBottomInset = true
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Positioned(
-              top: 16,
-              left: 8,
+            // ——— fixed top bar ———
+            Align(
+              alignment: Alignment.topLeft,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
+
+            // ——— scrollable form area ———
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'WELCOME BACK',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
                   Form(
                     key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'WELCOME BACK',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        buildTextField(
+                        _boxField(
                           label: 'EMAIL',
-                          controller: emailController,
+                          ctrl: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Email is required' : null,
+                          validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
-                        buildTextField(
+
+                        _boxField(
                           label: 'PASSWORD',
-                          controller: passwordController,
-                          obscureText: obscurePassword,
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Password is required' : null,
-                          suffixIcon: IconButton(
+                          ctrl: _pwCtrl,
+                          obscure: _obscure,
+                          suffix: IconButton(
                             icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.white,
+                              _obscure
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                              color: Colors.grey,
                             ),
-                            onPressed: () => setState(() => obscurePassword = !obscurePassword),
+                            onPressed: () =>
+                              setState(() => _obscure = !_obscure),
                           ),
+                          validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Required' : null,
                         ),
+                        const SizedBox(height: 4),
+
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
-                            child: const Text('Forgot password?', style: TextStyle(color: Colors.white)),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero),
+                            onPressed: () =>
+                              Navigator.pushNamed(context, '/forgot-password'),
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(
+                                color: Colors.white, fontSize: 12),
+                            ),
                           ),
                         ),
-                        if (errorMessage != null)
+
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(top: 16),
                             decoration: BoxDecoration(
                               color: Colors.red.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, color: Colors.red),
+                                const Icon(Icons.error, color: Colors.red),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    errorMessage!,
+                                    _error!,
                                     style: const TextStyle(color: Colors.red),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        if (canResend)
-                          TextButton(
-                            onPressed: resendConfirmationEmail,
-                            child: const Text('Resend Confirmation Email'),
-                          ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: isLoading ? null : login,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white, width: 4),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                        ],
+
+                        if (_canResend) ...[
+                          const SizedBox(height: 8),
+                          Center(
+                            child: TextButton(
+                              onPressed: _resendEmail,
+                              child: const Text(
+                                'Resend Confirmation Email',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 4.65,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'LOGIN',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
                           ),
-                        ),
+                        ],
+
                         const SizedBox(height: 24),
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            children: [
-                              const TextSpan(text: 'By logging in, you agree to the '),
-                              TextSpan(
-                                text: 'Terms and Conditions',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () async {
-                                    final url = Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions');
-                                    if (await launcher.canLaunchUrl(url)) {
-                                      await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                                    }
-                                  },
+
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4A90E2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const TextSpan(text: ' and '),
-                              TextSpan(
-                                text: 'Privacy Policy.',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
+                            ),
+                            child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () async {
-                                    final url = Uri.parse('https://www.yourcorps.co.nz/privacy-policy');
-                                    if (await launcher.canLaunchUrl(url)) {
-                                      await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                                    }
-                                  },
-                              ),
-                            ],
                           ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        Center(
+                          child: RichText(
+                            text: TextSpan(
+                              text: "Don't have an account? ",
+                              style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                              children: [
+                                TextSpan(
+                                  text: 'Register',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.pushNamed(context, '/register');
+                                    },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),

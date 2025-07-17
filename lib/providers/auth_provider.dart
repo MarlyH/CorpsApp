@@ -34,7 +34,7 @@ class AuthProvider extends ChangeNotifier {
     if (token == null) return;
 
     try {
-      final response = await AuthHttpClient.get('/api/profile/profile');
+      final response = await AuthHttpClient.get('/api/profile');
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
 

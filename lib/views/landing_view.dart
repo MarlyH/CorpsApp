@@ -15,7 +15,6 @@ class LandingView extends StatefulWidget {
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   bool _isVideoReady = false;
-  bool _hasToken = false;
   bool _loading = true;
 
   @override
@@ -30,11 +29,19 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     final token = await TokenService.getAccessToken();
     if (token != null) {
       await context.read<AuthProvider>().loadUser();
+
+      if (mounted) {
+        // if logged in, immediately take user to the dashboard.
+        Navigator.pushReplacementNamed(context, '/dashboard');
+        return;
+      }
     }
-    setState(() {
-      _hasToken = token != null;
-      _loading = false;
-    });
+
+    if (mounted) {
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   void _initializeVideo() {
@@ -83,12 +90,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     _checkForToken();
   }
 
-  Future<void> _logout() async {
-    await context.read<AuthProvider>().logout();
-    setState(() => _hasToken = false);
-  }
-
-  String maskEmail(String email) {
+  /*String maskEmail(String email) {
     final parts = email.split('@');
     if (parts.length != 2) return email;
     final name = parts[0];
@@ -100,13 +102,10 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     final visibleEnd = name.length > 4 ? name.substring(name.length - 2) : '';
     final masked = '*' * (name.length - visibleStart.length - visibleEnd.length);
     return '$visibleStart$masked$visibleEnd@$domain';
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().userProfile;
-    final email = user?['email'] ?? 'USER';
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -147,57 +146,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             key: ValueKey('loading'),
                           )
                         : Column(
-                            key: ValueKey(_hasToken ? 'loggedIn' : 'loggedOut'),
-                            children: _hasToken
-                                ? [
-                                    // CONTINUE AS XXX@XX   
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF4A90E2),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                        onPressed: () => _navigateSafely('/dashboard'),
-                                        child: Text(
-                                          'CONTINUE AS ${maskEmail(email)}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // LOG OUT
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                        onPressed: _logout,
-                                        child: const Text(
-                                          'LOG OUT',
-                                          style: TextStyle(
-                                            color: Color.fromARGB(255, 0, 0, 0),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ]
-                                : [
+                            children: [
                                     // LOGIN (blue)
                                     SizedBox(
                                       width: double.infinity,

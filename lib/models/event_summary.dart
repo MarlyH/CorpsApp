@@ -71,22 +71,22 @@ class EventSummary {
   });
 
   factory EventSummary.fromJson(Map<String, dynamic> json) {
-    int _intOrZero(dynamic v) {
+    int intOrZero(dynamic v) {
       if (v is int) return v;
       if (v is num) return v.toInt();
       return 0;
     }
 
     return EventSummary(
-      eventId: _intOrZero(json['eventId']),
+      eventId: intOrZero(json['eventId']),
       sessionType: sessionTypeFromRaw(json['sessionType']),
       startDate: DateTime.parse(json['startDate'] as String),
       startTime: json['startTime'] as String? ?? '',
       endTime: json['endTime'] as String? ?? '',
       locationName: json['locationName'] as String? ?? '',
-      totalSeats: _intOrZero(json['totalSeatsCount'] ?? json['totalSeats']),
-      availableSeats: _intOrZero(json['availbleSeatsCount']),
-      status: statusFromRaw(_intOrZero(json['status'])),
+      totalSeats: intOrZero(json['totalSeatsCount'] ?? json['totalSeats']),
+      availableSeats: intOrZero(json['availbleSeatsCount']),
+      status: statusFromRaw(intOrZero(json['status'])),
       seatingMapImgSrc:
         (json['seatingMapImgSrc'] as String?)
           ?.takeIf((s) => s.isNotEmpty),

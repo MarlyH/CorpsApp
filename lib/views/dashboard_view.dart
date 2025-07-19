@@ -8,7 +8,7 @@ import '../fragments/tickets_fragment.dart';
 import '../fragments/qr_scan_fragment.dart';
 
 class DashboardView extends StatefulWidget {
-  const DashboardView({Key? key}) : super(key: key);
+  const DashboardView({super.key});
   @override
   State<DashboardView> createState() => _DashboardViewState();
 }

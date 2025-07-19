@@ -53,7 +53,7 @@ String _formatDate(DateTime d) {
 }
 
 class HomeFragment extends StatefulWidget {
-  const HomeFragment({Key? key}) : super(key: key);
+  const HomeFragment({super.key});
   @override
   _HomeFragmentState createState() => _HomeFragmentState();
 }
@@ -320,18 +320,18 @@ class _FilterSheet extends StatelessWidget {
   final void Function(event_summary.SessionType?, bool, bool) onApply;
 
   const _FilterSheet({
-    Key? key,
+    super.key,
     this.initialSession,
     required this.initialDateAsc,
     required this.initialSeatsAsc,
     required this.onApply,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext c) {
-    var _session  = initialSession;
-    var _dateAsc  = initialDateAsc;
-    var _seatsAsc = initialSeatsAsc;
+    var session  = initialSession;
+    var dateAsc  = initialDateAsc;
+    var seatsAsc = initialSeatsAsc;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -349,7 +349,7 @@ class _FilterSheet extends StatelessWidget {
               const Text('Session Type', style: TextStyle(color: Colors.white70)),
           trailing: DropdownButton<event_summary.SessionType?>(
             dropdownColor: Colors.grey[800],
-            value: _session,
+            value: session,
             hint: const Text('All', style: TextStyle(color: Colors.white)),
             items: [
               const DropdownMenuItem(value: null, child: Text('All', style: TextStyle(color: Colors.white))),
@@ -358,20 +358,20 @@ class _FilterSheet extends StatelessWidget {
                     child: Text(friendlySession(st), style: const TextStyle(color: Colors.white)),
                   )),
             ],
-            onChanged: (v) => _session = v,
+            onChanged: (v) => session = v,
           ),
         ),
         SwitchListTile(
           activeColor: Colors.blue,
           title: const Text('Date ↑', style: TextStyle(color: Colors.white70)),
-          value: _dateAsc,
-          onChanged: (v) => _dateAsc = v,
+          value: dateAsc,
+          onChanged: (v) => dateAsc = v,
         ),
         SwitchListTile(
           activeColor: Colors.blue,
           title: const Text('Seats ↑', style: TextStyle(color: Colors.white70)),
-          value: _seatsAsc,
-          onChanged: (v) => _seatsAsc = v,
+          value: seatsAsc,
+          onChanged: (v) => seatsAsc = v,
         ),
         const SizedBox(height: 12),
         ElevatedButton(
@@ -380,7 +380,7 @@ class _FilterSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           ),
-          onPressed: () => onApply(_session, _dateAsc, _seatsAsc),
+          onPressed: () => onApply(session, dateAsc, seatsAsc),
           child: const Text('Apply'),
         ),
         const SizedBox(height: 16),
@@ -397,13 +397,13 @@ class EventTile extends StatefulWidget {
   final VoidCallback                    onAction;
 
   const EventTile({
-    Key? key,
+    super.key,
     required this.summary,
     required this.isUser,
     required this.canManage,
     required this.loadDetail,
     required this.onAction,
-  }) : super(key: key);
+  });
 
   @override
   _EventTileState createState() => _EventTileState();

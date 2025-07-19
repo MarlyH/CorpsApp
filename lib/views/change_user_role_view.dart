@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/auth_http_client.dart';
 
 class ChangeUserRoleView extends StatefulWidget {
-  const ChangeUserRoleView({Key? key}) : super(key: key);
+  const ChangeUserRoleView({super.key});
 
   @override
   State<ChangeUserRoleView> createState() => _ChangeUserRoleViewState();

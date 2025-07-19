@@ -16,7 +16,7 @@ const _sessionTypeValues = {
 };
 
 class CreateEventView extends StatefulWidget {
-  const CreateEventView({Key? key}) : super(key: key);
+  const CreateEventView({super.key});
   @override
   State<CreateEventView> createState() => _CreateEventViewState();
 }
@@ -70,8 +70,11 @@ class _CreateEventViewState extends State<CreateEventView> {
     );
     if (d != null) {
       setState(() {
-        if (eventDate) _eventDate = d;
-        else _availableDate = d;
+        if (eventDate) {
+          _eventDate = d;
+        } else {
+          _availableDate = d;
+        }
       });
     }
   }
@@ -81,8 +84,11 @@ class _CreateEventViewState extends State<CreateEventView> {
     final t = await showTimePicker(context: context, initialTime: now);
     if (t != null) {
       setState(() {
-        if (start) _startTime = t;
-        else _endTime = t;
+        if (start) {
+          _startTime = t;
+        } else {
+          _endTime = t;
+        }
       });
     }
   }

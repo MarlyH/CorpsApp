@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 
 /// Full-screen dialog shown when the user is under 13.
 class ParentGuardianRequiredDialog extends StatelessWidget {
-  const ParentGuardianRequiredDialog({Key? key}) : super(key: key);
+  const ParentGuardianRequiredDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class ParentGuardianRequiredDialog extends StatelessWidget {
 
 /// Two-step registration + success flow.
 class RegisterView extends StatefulWidget {
-  const RegisterView({Key? key}) : super(key: key);
+  const RegisterView({super.key});
 
   @override
   _RegisterViewState createState() => _RegisterViewState();

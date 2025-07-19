@@ -10,7 +10,7 @@ import '../models/child_model.dart';
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
 
-  const BookingFlow({Key? key, required this.event}) : super(key: key);
+  const BookingFlow({super.key, required this.event});
 
   @override
   _BookingFlowState createState() => _BookingFlowState();

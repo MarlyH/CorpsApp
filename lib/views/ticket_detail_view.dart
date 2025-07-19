@@ -65,10 +65,10 @@ class TicketDetailView extends StatefulWidget {
   final bool allowCancel;
 
   const TicketDetailView({
-    Key? key,
+    super.key,
     required this.booking,
     required this.allowCancel,
-  }) : super(key: key);
+  });
 
   @override
   State<TicketDetailView> createState() => _TicketDetailViewState();

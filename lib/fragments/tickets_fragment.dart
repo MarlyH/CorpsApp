@@ -27,7 +27,7 @@ class _BookingWithTime {
 }
 
 class TicketsFragment extends StatefulWidget {
-  const TicketsFragment({Key? key}) : super(key: key);
+  const TicketsFragment({super.key});
   @override
   State<TicketsFragment> createState() => _TicketsFragmentState();
 }
@@ -212,12 +212,12 @@ class _BookingCard extends StatelessWidget {
   final void Function(Booking) onCancelled;
 
   const _BookingCard({
-    Key? key,
+    super.key,
     required this.booking,
     required this.time,
     required this.allowCancel,
     required this.onCancelled,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

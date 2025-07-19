@@ -9,7 +9,7 @@ import '../services/auth_http_client.dart';
 import 'package:corpsapp/views/change_user_role_view.dart';
 
 class ProfileFragment extends StatefulWidget {
-  const ProfileFragment({Key? key}) : super(key: key);
+  const ProfileFragment({super.key});
 
   @override
   State<ProfileFragment> createState() => _ProfileFragmentState();
@@ -374,11 +374,11 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const _ActionButton({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext c) {

@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 
 import '../services/token_service.dart';
 import '../providers/auth_provider.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class LandingView extends StatefulWidget {
   const LandingView({super.key});
@@ -26,9 +27,12 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   }
 
   Future<void> _checkForToken() async {
-    final token = await TokenService.getAccessToken();
-    if (token != null) {
-      await context.read<AuthProvider>().loadUser();
+    final token = await TokenService.getRefreshToken();
+
+    if (token != null && !JwtDecoder.isExpired(token)) {
+      // the refresh token exists and is valid, try to load profile
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.loadUser();
 
       if (mounted) {
         // if logged in, immediately take user to the dashboard.
@@ -37,6 +41,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       }
     }
 
+    // token is bad, show landing view
     if (mounted) {
       setState(() {
         _loading = false;

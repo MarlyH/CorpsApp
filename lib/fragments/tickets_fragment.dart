@@ -5,7 +5,7 @@ import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
 import '../views/ticket_detail_view.dart';
 
-// Simple holder for an event’s start/end times
+/// Simple holder for an event’s start/end times
 class EventTime {
   final String startTime, endTime;
   EventTime(this.startTime, this.endTime);
@@ -13,13 +13,14 @@ class EventTime {
       EventTime(j['startTime'] as String, j['endTime'] as String);
 }
 
-// Couples a Booking with its parsed start DateTime
+/// Couples a Booking with its parsed start DateTime
 class _BookingWithTime {
   final Booking booking;
   final EventTime time;
   late final DateTime startDateTime;
 
   _BookingWithTime(this.booking, this.time) {
+    // parse safely—stubbed '00:00' will parse without error
     final parts = time.startTime.split(':').map(int.parse).toList();
     final d = booking.eventDate;
     startDateTime = DateTime(d.year, d.month, d.day, parts[0], parts[1]);
@@ -58,8 +59,22 @@ class _TicketsFragmentState extends State<TicketsFragment>
         .toList();
 
     return Future.wait(list.map((b) async {
-      final evtResp = await AuthHttpClient.get('/api/events/${b.eventId}');
-      final time = EventTime.fromJson(jsonDecode(evtResp.body));
+      EventTime time;
+
+      // 1) If the booking is already cancelled, stub valid zeros
+      if (b.status == BookingStatus.Cancelled) {
+        time = EventTime('00:00', '00:00');
+      } else {
+        // 2) Otherwise attempt network fetch, fallback to zeros on error
+        try {
+          final evtResp =
+              await AuthHttpClient.get('/api/events/${b.eventId}');
+          time = EventTime.fromJson(jsonDecode(evtResp.body));
+        } catch (_) {
+          time = EventTime('00:00', '00:00');
+        }
+      }
+
       return _BookingWithTime(b, time);
     }));
   }
@@ -100,8 +115,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
             ),
             const SizedBox(height: 16),
 
-            // Pill‐style TabBar with padded Containers
-            // Pill tabs
+            // Pill‐style TabBar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -138,22 +152,29 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 builder: (ctx, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(
-                        child: CircularProgressIndicator(color: Colors.white));
+                      child:
+                          CircularProgressIndicator(color: Colors.white),
+                    );
                   }
                   if (snap.hasError) {
                     return Center(
-                        child: Text('Error: ${snap.error}',
-                            style: const TextStyle(color: Colors.white)));
+                      child: Text('Error: ${snap.error}',
+                          style:
+                              const TextStyle(color: Colors.white)),
+                    );
                   }
                   final all = snap.data!;
                   return TabBarView(
                     controller: _tabs,
                     children: [
-                      _buildList(all.where(_isUpcoming).toList(),
+                      _buildList(
+                          all.where(_isUpcoming).toList(),
                           allowCancel: true),
-                      _buildList(all.where(_isCompleted).toList(),
+                      _buildList(
+                          all.where(_isCompleted).toList(),
                           allowCancel: false),
-                      _buildList(all.where(_isCancelled).toList(),
+                      _buildList(
+                          all.where(_isCancelled).toList(),
                           allowCancel: false),
                     ],
                   );
@@ -170,25 +191,30 @@ class _TicketsFragmentState extends State<TicketsFragment>
       {required bool allowCancel}) {
     if (list.isEmpty) {
       return const Center(
-          child: Text('No bookings', style: TextStyle(color: Colors.white)));
+          child:
+              Text('No bookings', style: TextStyle(color: Colors.white)));
     }
 
     final byDate = <String, List<_BookingWithTime>>{};
     for (var bt in list) {
-      final key = DateFormat.yMMMMEEEEd().format(bt.booking.eventDate);
+      final key = DateFormat.yMMMMEEEEd()
+          .format(bt.booking.eventDate);
       byDate.putIfAbsent(key, () => []).add(bt);
     }
 
     return RefreshIndicator(
       onRefresh: () async => _loadAll(),
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: byDate.entries.expand((entry) sync* {
           yield Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               entry.key,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style:
+                  const TextStyle(color: Colors.white, fontSize: 14),
             ),
           );
           for (var bt in entry.value) {
@@ -205,6 +231,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
   }
 }
 
+/// Booking card now shows “CANCELLED” for cancelled tickets
 class _BookingCard extends StatelessWidget {
   final Booking booking;
   final EventTime time;
@@ -221,13 +248,21 @@ class _BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parts = time.startTime.split(':').map(int.parse).toList();
-    final sd = booking.eventDate;
-    final start =
-        DateTime(sd.year, sd.month, sd.day, parts[0], parts[1]);
-    final isLate = DateTime.now().isAfter(start) &&
-        DateTime.now().isBefore(
-            start.add(const Duration(minutes: 15)));
+    final isCancelled =
+        booking.status == BookingStatus.Cancelled;
+
+    // compute “late” only if not cancelled
+    bool isLate = false;
+    if (!isCancelled) {
+      final parts =
+          time.startTime.split(':').map(int.parse).toList();
+      final sd = booking.eventDate;
+      final start = DateTime(
+          sd.year, sd.month, sd.day, parts[0], parts[1]);
+      isLate = DateTime.now().isAfter(start) &&
+          DateTime.now().isBefore(
+              start.add(const Duration(minutes: 15)));
+    }
 
     return Card(
       color: Colors.white,
@@ -249,12 +284,13 @@ class _BookingCard extends StatelessWidget {
           if (didCancel == true) onCancelled(booking);
         },
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          padding: const EdgeInsets.symmetric(
+              vertical: 16, horizontal: 12),
           child: Column(
             children: [
               const Text('Booking for',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  style: TextStyle(
+                      color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
                 booking.attendeeName,
@@ -264,26 +300,44 @@ class _BookingCard extends StatelessWidget {
                     color: Colors.black87,
                     fontWeight: FontWeight.bold),
               ),
+
+              // “Late” pill, only for non-cancelled
               if (isLate)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                         color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(4)),
+                        borderRadius:
+                            BorderRadius.circular(4)),
                     child: const Text('LATE',
-                        style:
-                            TextStyle(color: Colors.white, fontSize: 10)),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10)),
                   ),
                 ),
+
               const SizedBox(height: 8),
-              Text(
-                'Starts ${time.startTime}   Ends ${time.endTime}',
-                style:
-                    TextStyle(color: Colors.grey.shade700, fontSize: 14),
-              ),
+
+              // Show CANCELLED badge _or_ times
+              if (isCancelled)
+                Text(
+                  'CANCELLED',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              else
+                Text(
+                  'Starts ${time.startTime}   Ends ${time.endTime}',
+                  style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 14),
+                ),
             ],
           ),
         ),

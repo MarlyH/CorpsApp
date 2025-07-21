@@ -636,43 +636,62 @@ class _EventTileState extends State<EventTile> {
               left: 0,
               right: 0,
               child: Center(
-                child: widget.isUser
-                    ? ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)),
-                          );
-                        },
-                        child: const Text('BOOK NOW', style: TextStyle(color: Colors.white)),
-                      )
-                    : Row(mainAxisSize: MainAxisSize.min, children: [
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.grey[800],
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: _cancelEvent,
-                          child: const Text('CANCEL', style: TextStyle(color: Colors.white70)),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: widget.isUser
+                      // single “BOOK NOW” button
+                      ? ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: Color(0xFF4C85D0),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                           ),
-                          onPressed: () {},
-                          child: const Text('RESERVE', style: TextStyle(color: Colors.black)),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BookingFlow(event: widget.summary),
+                              ),
+                            );
+                          },
+                          child: const Text('BOOK NOW', style: TextStyle(color: Colors.white)),
+                        )
+                      // two-button row for non-users/staff
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(48),
+                                  backgroundColor: Colors.grey[800],
+                                  side: const BorderSide(color: Colors.grey),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                                onPressed: _cancelEvent,
+                                child: const Text('CANCEL', style: TextStyle(color: Colors.white70)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(48),
+                                  backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                                onPressed: () {},
+                                child: const Text('RESERVE', style: TextStyle(color: Colors.black)),
+                              ),
+                            ),
+                          ],
                         ),
-                      ]),
+                ),
               ),
             ),
         ],

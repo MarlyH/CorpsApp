@@ -124,21 +124,26 @@ class _HomeFragmentState extends State<HomeFragment> {
     return Scaffold(
       backgroundColor: Colors.black,
 
-      // ——— Floating “+” FAB for event creation ———
+      //  FAB for event creation
       floatingActionButton: canManage
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 200.0, right: 5.0),
-              child: FloatingActionButton(
-                backgroundColor: Colors.white,
-                child: const Icon(Icons.add, color: Colors.black),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CreateEventView()),
-                  );
-                },
-              ),
-            )
-          : null,
+    ? Padding(
+        padding: const EdgeInsets.only(bottom: 200.0, right: 5.0),
+        child: SizedBox(
+          width: 56,
+          height: 56,
+          child: FloatingActionButton(
+            shape: const CircleBorder(),
+            backgroundColor: const Color(0xFF4C85D0),
+            child: const Icon(Icons.add, color: Colors.black),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CreateEventView()),
+              );
+            },
+          ),
+        ),
+      )
+    : null,
 
       body: SafeArea(
         bottom: false,
@@ -300,7 +305,7 @@ class _HomeFragmentState extends State<HomeFragment> {
 
                   // bottom padding so last card isn’t hidden
                   SliverToBoxAdapter(
-                    child: SizedBox(height: bottomInset + 32),
+                    child: SizedBox(height: 16),
                   ),
                 ],
               ),

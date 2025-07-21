@@ -17,7 +17,11 @@ class _DashboardViewState extends State<DashboardView> {
   int _selectedIndex = 0;
   late final PageController _pageController;
 
-  static const double _scanDiameter = 56.0;
+  // Sizes
+  static const double _fabDiameter = 64.0;
+  static const double _fabBorder   = 8.0;   // black border around FAB
+  static const double _bottomPad   = 8.0;   // extra bottom padding
+  static const double _sideGap     = 16.0;  // extra horizontal gap around FAB
 
   @override
   void initState() {
@@ -36,24 +40,20 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'EXIT APP',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Do you want to exit the app?',
-          style: TextStyle(color: Colors.white70),
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('EXIT APP',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text('Do you want to exit the app?',
+            style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('EXIT', style: TextStyle(color: Colors.redAccent)),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('EXIT',
+                  style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
@@ -62,137 +62,185 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   bool _hasRole(String role) {
-    final roles =
-        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ??
-            [];
+    final roles = context
+            .read<AuthProvider>()
+            .userProfile?['roles'] as List<dynamic>? ??
+        [];
     return roles.contains(role);
+  }
+
+  void _goTo(int page) {
+    setState(() => _selectedIndex = page);
+    _pageController.jumpToPage(page);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isStaff = _hasRole('Staff');
-    final isEventManager = _hasRole('Event Manager');
-    final isAdmin = _hasRole('Admin');
+    final isManagerOrAdmin =
+        _hasRole('Event Manager') || _hasRole('Admin');
+    final showScanFAB    = isManagerOrAdmin;
+    final showTicketsTab = !showScanFAB;
 
-    final canScanQR = isStaff || isEventManager || isAdmin;
-    final canAccessTickets = !isEventManager && !isAdmin;
-
-    // 1) The pages shown in the PageView
+    // Build pages array
     final pages = <Widget>[
       const HomeFragment(),
-      if (canAccessTickets) const TicketsFragment(),
+      if (showTicketsTab) const TicketsFragment(),
       const ProfileFragment(),
     ];
 
-    // 2) The nav items
-    final navItems = <_NavItem>[
-      _NavItem(Icons.home, 'Home', 0),
-      if (canAccessTickets)
-        _NavItem(Icons.confirmation_number, 'Tickets', 1),
-      _NavItem(Icons.person, 'Profile', pages.length - 1),
-    ];
-
-    // 3) Scan slot index
-    final totalSlots = navItems.length + (canScanQR ? 1 : 0);
-    final scanSlotIndex = (navItems.length / 2).floor();
-
-    final w = MediaQuery.of(context).size.width;
     final inset = MediaQuery.of(context).padding.bottom;
-    final barH = kBottomNavigationBarHeight;
-    final halfS = _scanDiameter / 2;
+    final barH  = kBottomNavigationBarHeight + _bottomPad;
 
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        extendBody: true,
         backgroundColor: Colors.black,
+        extendBody: true,
 
-        // BODY: pages + overlay circles
-        body: Stack(children: [
-          PageView(
+        // BODY: padded so content stops above notch
+        body: Padding(
+          padding: EdgeInsets.only(
+            bottom: barH + inset + (_fabDiameter / 2),
+          ),
+          child: PageView(
             controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(), // no swipe
-            onPageChanged: (i) => setState(() => _selectedIndex = i),
+            physics: const NeverScrollableScrollPhysics(),
             children: pages,
           ),
+        ),
 
-          // red “Scan” circle
-          if (canScanQR)
-            Positioned(
-              bottom: inset + barH / 2 - halfS,
-              left: w * (scanSlotIndex + 0.5) / totalSlots - halfS,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const QrScanFragment()),
-                ),
-                child: Container(
-                  width: _scanDiameter,
-                  height: _scanDiameter,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black45, blurRadius: 4)
-                    ],
+        // CENTER-DOCKED SCAN FAB
+        floatingActionButton: showScanFAB
+            ? SizedBox(
+                width: _fabDiameter + _fabBorder * 2,
+                height: _fabDiameter + _fabBorder * 2,
+                child: FloatingActionButton(
+                  backgroundColor: Colors.red,
+                  elevation: 4,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const QrScanFragment()),
                   ),
-                  child: const Icon(Icons.qr_code_scanner,
-                      color: Colors.white, size: 32),
+                  shape: CircleBorder(
+                    side: BorderSide(color: Colors.black, width: _fabBorder),
+                  ),
+                  child: const Icon(Icons.qr_code_scanner, size: 32),
                 ),
-              ),
-            ),
-        ]),
+              )
+            : null,
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.centerDocked,
 
         // BOTTOM NAV BAR
-        bottomNavigationBar: SafeArea(
-          top: false,
-          bottom: true,
+        bottomNavigationBar: BottomAppBar(
+          color: Colors.black,
+          shape: showScanFAB ? const CircularNotchedRectangle() : null,
+          notchMargin: showScanFAB ? _fabBorder : 0,
           child: SizedBox(
             height: barH + inset,
-            child: Row(
-              children: [
-                for (int i = 0; i < navItems.length; i++) ...[
-                  if (i == scanSlotIndex && canScanQR)
-                    SizedBox(width: _scanDiameter),
-                  Expanded(child: _buildNavButton(navItems[i])),
-                ]
-              ],
-            ),
+            child: showScanFAB
+                // Two-item layout with extra gap around center FAB
+                ? Row(
+                    children: [
+                      // HOME
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _goTo(0),
+                          behavior: HitTestBehavior.opaque,
+                          child: _buildIconLabel(
+                            icon: Icons.home,
+                            label: 'HOME',
+                            isSelected: _selectedIndex == 0,
+                          ),
+                        ),
+                      ),
+
+                      // Spacer: FAB diameter + double border + sideGap
+                      SizedBox(
+                        width: _fabDiameter + _fabBorder * 2 + _sideGap,
+                      ),
+
+                      // PROFILE (page index = 1)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _goTo(1),
+                          behavior: HitTestBehavior.opaque,
+                          child: _buildIconLabel(
+                            icon: Icons.person,
+                            label: 'PROFILE',
+                            isSelected: _selectedIndex == 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                // Three-item layout (Home, Tickets, Profile)
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // HOME
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _goTo(0),
+                          behavior: HitTestBehavior.opaque,
+                          child: _buildIconLabel(
+                            icon: Icons.home,
+                            label: 'HOME',
+                            isSelected: _selectedIndex == 0,
+                          ),
+                        ),
+                      ),
+                      // TICKETS (page index = 1)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _goTo(1),
+                          behavior: HitTestBehavior.opaque,
+                          child: _buildIconLabel(
+                            icon: Icons.confirmation_number,
+                            label: 'TICKETS',
+                            isSelected: _selectedIndex == 1,
+                          ),
+                        ),
+                      ),
+                      // PROFILE (page index = 2)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _goTo(2),
+                          behavior: HitTestBehavior.opaque,
+                          child: _buildIconLabel(
+                            icon: Icons.person,
+                            label: 'PROFILE',
+                            isSelected: _selectedIndex == 2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavButton(_NavItem item) {
-    final selected = _selectedIndex == item.pageIndex;
-    final color =
-        selected ? Colors.white : const Color.fromARGB(255, 113, 112, 112);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() => _selectedIndex = item.pageIndex);
-        _pageController.animateToPage(
-          item.pageIndex,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(item.icon, color: color),
-          const SizedBox(height: 2),
-          Text(item.label, style: TextStyle(color: color, fontSize: 12)),
-        ],
-      ),
+  Widget _buildIconLabel({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+  }) {
+    final color = isSelected ? Colors.white : Colors.grey[600];
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 24, color: color),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
-}
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  final int pageIndex;
-  const _NavItem(this.icon, this.label, this.pageIndex);
 }

@@ -8,8 +8,135 @@ import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
 import 'package:corpsapp/views/change_user_role_view.dart';
 
+/// Dialog to change the user’s email.
+class _ChangeEmailDialog extends StatefulWidget {
+  const _ChangeEmailDialog({Key? key}) : super(key: key);
+
+  @override
+  __ChangeEmailDialogState createState() => __ChangeEmailDialogState();
+}
+
+class __ChangeEmailDialogState extends State<_ChangeEmailDialog> {
+  final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text("Change Email", style: TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: _ctrl,
+        keyboardType: TextInputType.emailAddress,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          labelText: "New Email",
+          labelStyle: TextStyle(color: Colors.grey),
+          enabledBorder:
+              UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+          focusedBorder:
+              UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text("SUBMIT", style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog to update username, first name, and last name.
+class _UpdateProfileDialog extends StatefulWidget {
+  const _UpdateProfileDialog({Key? key}) : super(key: key);
+
+  @override
+  __UpdateProfileDialogState createState() => __UpdateProfileDialogState();
+}
+
+class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
+  final TextEditingController _userCtrl  = TextEditingController();
+  final TextEditingController _firstCtrl = TextEditingController();
+  final TextEditingController _lastCtrl  = TextEditingController();
+
+  @override
+  void dispose() {
+    _userCtrl.dispose();
+    _firstCtrl.dispose();
+    _lastCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    InputDecoration _dec(String label) => InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.grey),
+      enabledBorder:
+          const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+      focusedBorder:
+          const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+    );
+
+    return AlertDialog(
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text("Update Profile", style: TextStyle(color: Colors.white)),
+      content: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextField(
+              controller: _userCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec("New Username"),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _firstCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec("New First Name"),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _lastCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec("New Last Name"),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, {
+            'userName': _userCtrl.text.trim(),
+            'firstName': _firstCtrl.text.trim(),
+            'lastName': _lastCtrl.text.trim(),
+          }),
+          child: const Text("UPDATE", style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
 class ProfileFragment extends StatefulWidget {
-  const ProfileFragment({super.key});
+  const ProfileFragment({Key? key}) : super(key: key);
 
   @override
   State<ProfileFragment> createState() => _ProfileFragmentState();
@@ -32,45 +159,13 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   Future<void> _changeEmail() async {
-    final ctrl = TextEditingController();
-    final ok = await showDialog<bool>(
+    final newEmail = await showDialog<String?>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:
-            const Text("Change Email", style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            labelText: "New Email",
-            labelStyle: TextStyle(color: Colors.grey),
-            enabledBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("SUBMIT", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      builder: (_) => const _ChangeEmailDialog(),
     );
-    ctrl.dispose();
-    if (ok != true) return;
+    if (newEmail == null) return;
 
-    final email = ctrl.text.trim();
-    if (!EmailValidator.validate(email)) {
+    if (!EmailValidator.validate(newEmail)) {
       setState(() => _emailChangeError = "Enter a valid email.");
       _showSnack("Enter a valid email.", background: Colors.redAccent);
       return;
@@ -83,7 +178,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     });
 
     try {
-      final res = await AuthHttpClient.requestEmailChange(email);
+      final res = await AuthHttpClient.requestEmailChange(newEmail);
       if (res.statusCode == 200) {
         _showSnack("Check your new email to confirm.", background: Colors.green);
       } else {
@@ -104,45 +199,15 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   Future<void> _updateProfile() async {
-    final userCtrl  = TextEditingController();
-    final firstCtrl = TextEditingController();
-    final lastCtrl  = TextEditingController();
-
-    final ok = await showDialog<bool>(
+    final result = await showDialog<Map<String, String>?>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:
-            const Text("Update Profile", style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              _dialogField(userCtrl, "New Username"),
-              const SizedBox(height: 8),
-              _dialogField(firstCtrl, "New First Name"),
-              const SizedBox(height: 8),
-              _dialogField(lastCtrl, "New Last Name"),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("UPDATE", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      builder: (_) => const _UpdateProfileDialog(),
     );
-    userCtrl.dispose();
-    firstCtrl.dispose();
-    lastCtrl.dispose();
-    if (ok != true) return;
+    if (result == null) return;
+
+    final userName  = result['userName'] !.trim();
+    final firstName = result['firstName']!.trim();
+    final lastName  = result['lastName'] !.trim();
 
     setState(() {
       _isLoading = true;
@@ -151,9 +216,9 @@ class _ProfileFragmentState extends State<ProfileFragment> {
 
     try {
       await AuthHttpClient.updateProfile(
-        newUserName:  userCtrl.text.trim().isEmpty ? null : userCtrl.text.trim(),
-        newFirstName: firstCtrl.text.trim().isEmpty ? null : firstCtrl.text.trim(),
-        newLastName:  lastCtrl.text.trim().isEmpty ? null : lastCtrl.text.trim(),
+        newUserName:  userName .isEmpty ? null : userName,
+        newFirstName: firstName.isEmpty ? null : firstName,
+        newLastName:  lastName .isEmpty ? null : lastName,
       );
       await context.read<AuthProvider>().loadUser();
       _showSnack("Profile updated.", background: Colors.green);
@@ -173,7 +238,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title:
-            const Text("Delete Profile", style: TextStyle(color: Colors.white)),
+            const Text("Delete Account", style: TextStyle(color: Colors.white)),
         content: const Text(
           "This cannot be undone.",
           style: TextStyle(color: Colors.white70),
@@ -198,7 +263,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     });
 
     try {
-      await AuthHttpClient.deleteProfile(); // DELETE /api/profile/me
+      await AuthHttpClient.deleteProfile();
       await context.read<AuthProvider>().logout();
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/landing');
@@ -240,21 +305,6 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     Navigator.pushReplacementNamed(context, '/landing');
   }
 
-  Widget _dialogField(TextEditingController ctrl, String label) {
-    return TextField(
-      controller: ctrl,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white24)),
-        focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white)),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth      = context.watch<AuthProvider>();
@@ -262,31 +312,58 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     final canManage = auth.isAdmin || auth.isEventManager;
     final isUnder16 = (user?['age'] ?? 0) < 16;
 
-    return SingleChildScrollView(
+     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        // center the content horizontally
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // avatar
           const Icon(Icons.person, size: 100, color: Colors.white),
           const SizedBox(height: 20),
-          Text(user?['userName'] ?? '',
-              style: const TextStyle(fontSize: 18, color: Colors.white70)),
+
+          // username
+          Text(
+            user?['userName'] ?? '',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, color: Colors.white70),
+          ),
+
+          // full name
           Text(
             '${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
+            textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-          Text(user?['email'] ?? '',
-              style: const TextStyle(color: Colors.grey)),
+
+          // email
+          Text(
+            user?['email'] ?? '',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
+
+          // age, if present
           if (user?['age'] != null) ...[
             const SizedBox(height: 8),
-            Text('Age: ${user!['age']}', style: const TextStyle(color: Colors.grey)),
+            Text(
+              'Age: ${user!['age']}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
+
           const SizedBox(height: 30),
+
+          // subtitle
           const Text(
             "Manage your profile settings below.",
-            style: TextStyle(color: Colors.white70),
             textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 20),
 
@@ -303,16 +380,15 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             onPressed: _isLoading ? null : _updateProfile,
           ),
 
-          // Only show if user is under 16
           if (!auth.isAdmin) ...[
             const SizedBox(height: 12),
             _ActionButton(
               icon: Icons.delete,
-              label: "DELETE PROFILE",
+              label: "DELETE ACCOUNT",
               onPressed: _isLoading ? null : _confirmDelete,
             ),
           ],
-            
+
           const SizedBox(height: 12),
           _ActionButton(
             icon: Icons.logout,
@@ -320,7 +396,6 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             onPressed: _isLoading ? null : _confirmLogout,
           ),
 
-          // Children management (for >=16)
           if (!isUnder16) ...[
             const SizedBox(height: 12),
             _ActionButton(
@@ -330,7 +405,6 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             ),
           ],
 
-          // Role management (admin/eventManager only)
           if (canManage) ...[
             const SizedBox(height: 12),
             _ActionButton(
@@ -343,7 +417,6 @@ class _ProfileFragmentState extends State<ProfileFragment> {
             ),
           ],
 
-          // Error displays
           if (_emailChangeError != null) ...[
             const SizedBox(height: 20),
             Text(_emailChangeError!,
@@ -357,7 +430,6 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                 textAlign: TextAlign.center),
           ],
 
-          // Loading spinner
           if (_isLoading) ...[
             const SizedBox(height: 20),
             const Center(child: CircularProgressIndicator(color: Colors.grey)),
@@ -374,11 +446,11 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const _ActionButton({
-    super.key,
+    Key? key,
     required this.icon,
     required this.label,
     required this.onPressed,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext c) {

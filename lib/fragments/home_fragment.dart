@@ -107,7 +107,7 @@ class _HomeFragmentState extends State<HomeFragment> {
               _dateAsc           = dateAsc;
               _seatsAsc          = seatsAsc;
             });
-            Navigator.pop(context);
+            // Navigator.pop(context); this is handled in _FilterSheet
           },
         ),
       ),
@@ -318,7 +318,7 @@ class _HomeFragmentState extends State<HomeFragment> {
 }
 
 // FILTER SHEET
-class _FilterSheet extends StatelessWidget {
+class _FilterSheet extends StatefulWidget {
   final event_summary.SessionType? initialSession;
   final bool initialDateAsc;
   final bool initialSeatsAsc;
@@ -333,11 +333,24 @@ class _FilterSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext c) {
-    var session  = initialSession;
-    var dateAsc  = initialDateAsc;
-    var seatsAsc = initialSeatsAsc;
+  __FilterSheetState createState() => __FilterSheetState();
+}
 
+class __FilterSheetState extends State<_FilterSheet> {
+  late event_summary.SessionType? _session;
+  late bool _dateAsc;
+  late bool _seatsAsc;
+
+  @override
+  void initState() {
+    super.initState();
+    _session  = widget.initialSession;
+    _dateAsc  = widget.initialDateAsc;
+    _seatsAsc = widget.initialSeatsAsc;
+  }
+
+  @override
+  Widget build(BuildContext c) {
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -349,35 +362,41 @@ class _FilterSheet extends StatelessWidget {
         const Text('Filter & Sort',
             style: TextStyle(color: Colors.white, fontSize: 18)),
         const Divider(color: Colors.white54),
+
+        // Session Dropdown
         ListTile(
-          title:
-              const Text('Session Type', style: TextStyle(color: Colors.white70)),
+          title: const Text('Session Type', style: TextStyle(color: Colors.white70)),
           trailing: DropdownButton<event_summary.SessionType?>(
             dropdownColor: Colors.grey[800],
-            value: session,
+            value: _session,
             hint: const Text('All', style: TextStyle(color: Colors.white)),
             items: [
               const DropdownMenuItem(value: null, child: Text('All', style: TextStyle(color: Colors.white))),
               ...event_summary.SessionType.values.map((st) => DropdownMenuItem(
-                    value: st,
-                    child: Text(friendlySession(st), style: const TextStyle(color: Colors.white)),
-                  )),
+                value: st,
+                child: Text(friendlySession(st), style: const TextStyle(color: Colors.white)),
+              )),
             ],
-            onChanged: (v) => session = v,
+            onChanged: (v) => setState(() => _session = v),
           ),
         ),
+
+        // Date switch
         SwitchListTile(
           activeColor: Colors.blue,
-          title: const Text('Date ↑', style: TextStyle(color: Colors.white70)),
-          value: dateAsc,
-          onChanged: (v) => dateAsc = v,
+          title: Text('Date ${_dateAsc ? "↑" : "↓"}', style: const TextStyle(color: Colors.white70)),
+          value: _dateAsc,
+          onChanged: (v) => setState(() => _dateAsc = v),
         ),
+
+        // Seats switch
         SwitchListTile(
           activeColor: Colors.blue,
-          title: const Text('Seats ↑', style: TextStyle(color: Colors.white70)),
-          value: seatsAsc,
-          onChanged: (v) => seatsAsc = v,
+          title: Text('Seats ${_seatsAsc ? "↑" : "↓"}', style: const TextStyle(color: Colors.white70)),
+          value: _seatsAsc,
+          onChanged: (v) => setState(() => _seatsAsc = v),
         ),
+
         const SizedBox(height: 12),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -385,7 +404,11 @@ class _FilterSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           ),
-          onPressed: () => onApply(session, dateAsc, seatsAsc),
+          onPressed: () {
+            widget.onApply(_session, _dateAsc, _seatsAsc);
+            Navigator.of(context).pop(); // Close the filter sheet only if apply is pressed
+            // Navigator.pop(context);
+          },
           child: const Text('Apply'),
         ),
         const SizedBox(height: 16),
@@ -393,6 +416,7 @@ class _FilterSheet extends StatelessWidget {
     );
   }
 }
+
 
 // EVENT TILE
 class EventTile extends StatefulWidget {

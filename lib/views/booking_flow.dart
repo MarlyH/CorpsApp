@@ -150,7 +150,13 @@ class _BookingFlowState extends State<BookingFlow> {
             // Shared BACK/NEXT row—hidden on Terms step
             if (showNav)
               Padding(
-                padding: const EdgeInsets.all(16),
+                // add the system bottom inset (nav-bar, gesture area) + your own margin
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  MediaQuery.of(context).padding.bottom + 16,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -159,39 +165,27 @@ class _BookingFlowState extends State<BookingFlow> {
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.grey[800],
                           side: const BorderSide(color: Colors.grey),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'BACK',
-                          style: TextStyle(color: Colors.white70),
-                        ),
+                        child: const Text('BACK', style: TextStyle(color: Colors.white70)),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed:
-                            (_step == 1 && _selectedSeat == null)
-                                ? null
-                                : _next,
+                        onPressed: (_step == 1 && _selectedSeat == null) ? null : _next,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         child: Text(
-                          (_step == totalSteps - 1)
-                              ? 'COMPLETE'
-                              : (_needsFullFlow && _step == 0
-                                  ? 'AGREE & CONTINUE'
-                                  : 'NEXT'),
+                          (_step == totalSteps - 1) ? 'COMPLETE' : 'NEXT',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -199,6 +193,7 @@ class _BookingFlowState extends State<BookingFlow> {
                   ],
                 ),
               ),
+
           ],
         ),
       ),

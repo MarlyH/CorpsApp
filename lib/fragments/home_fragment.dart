@@ -605,15 +605,15 @@ Widget _buildContentPanels() {
                 alignment: Alignment.center,
                 children: [
                   // small, faint background logo, safe against missing asset
-                  Opacity(
-                    opacity: 0.5,
-                    child: Image.asset(
-                      s.locationAssetPath,
-                      width: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (ctx, error, stack) => const SizedBox.shrink(),
-                    ),
-                  ),
+                  // Opacity(
+                  //   opacity: 0.5,
+                  //   child: Image.asset(
+                  //     s.locationAssetPath,
+                  //     width: 100,
+                  //     fit: BoxFit.cover,
+                  //     errorBuilder: (ctx, error, stack) => const SizedBox.shrink(),
+                  //   ),
+                  // ),
 
                   // summary text
                   Row(

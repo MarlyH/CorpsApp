@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'package:corpsapp/views/login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../views/booking_flow.dart';
+import 'package:http/http.dart' as http;
 import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 /// Local model for /api/events/{id}
 class EventDetail {
@@ -61,7 +65,11 @@ class _HomeFragmentState extends State<HomeFragment> {
   }
 
   Future<List<event_summary.EventSummary>> _loadSummaries() async {
-    final resp = await AuthHttpClient.get('/api/events');
+    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final resp = await http.get(
+      Uri.parse('$base/api/events'),
+      headers: {'Content-Type':'application/json'},
+    );
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list
         .cast<Map<String, dynamic>>()
@@ -116,6 +124,7 @@ class _HomeFragmentState extends State<HomeFragment> {
     final auth      = context.watch<AuthProvider>();
     final canManage = auth.isAdmin || auth.isEventManager;
     final isUser    = auth.isUser  || auth.isStaff;
+    final isGuest = !isUser || !canManage;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -291,6 +300,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                           summary:    events[i],
                           isUser:     isUser,
                           canManage:  canManage,
+                          //isGuest: isGuest,
                           loadDetail: (id) => AuthHttpClient
                               .get('/api/events/$id')
                               .then((r) => EventDetail.fromJson(jsonDecode(r.body))),
@@ -299,7 +309,6 @@ class _HomeFragmentState extends State<HomeFragment> {
                         childCount: events.length,
                       ),
                     ),
-
                   // bottom padding so last card isn’t hidden
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                 ],
@@ -474,6 +483,7 @@ class EventTile extends StatefulWidget {
     required this.summary,
     required this.isUser,
     required this.canManage,
+    // required this.isGuest,
     required this.loadDetail,
     required this.onAction,
   });
@@ -756,7 +766,8 @@ Widget _buildContentPanels() {
       child: Center(
         child: SizedBox(
           width: MediaQuery.of(context).size.width * 0.8,
-          child: widget.isUser ? _buildBookNowButton() : _buildCancelReserveRow(),
+          //display book now button for any users that do not have managing permissions
+          child: widget.canManage ? _buildCancelReserveRow() : _buildBookNowButton() ,
         ),
       ),
     );
@@ -769,11 +780,15 @@ Widget _buildContentPanels() {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         onPressed: () {
-          Navigator.push(
+          if (widget.isUser) {
+            Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => BookingFlow(event: widget.summary)),
-          );
+            );
+          } else {
+              _showRequireLoginModal(context); 
+          }
         },
         child: const Text('BOOK NOW', style: TextStyle(color: Colors.white)),
       );
@@ -816,6 +831,35 @@ Widget _buildContentPanels() {
     ];
     return week[d.weekday - 1];
   }
+}
+
+void _showRequireLoginModal(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (BuildContext context) {
+      return SizedBox(
+        height: 300,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text('Login Required'),
+              const Text('Please sign in to start booking events.'),
+              ElevatedButton(
+                child: const Text('Sign In'),
+                onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LoginView()),
+                    );
+                  },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 // Dialog for event cancellation reason

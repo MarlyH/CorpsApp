@@ -14,11 +14,11 @@ class AuthHttpClient {
       dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
 
   // ─────────────────────────────────────────────────────────────── Generic ───
-
   static Future<http.Response> get(String endpoint,
-      {Map<String, String>? extraHeaders}) async {
-    await _ensureValidToken();
-    final token = await TokenService.getAccessToken();
+    {Map<String, String>? extraHeaders}) async {
+        await _ensureValidToken();
+        final token = await TokenService.getAccessToken();
+
     final resp = await _client.get(
       Uri.parse('$_baseUrl$endpoint'),
       headers: _buildHeaders(token, extraHeaders),

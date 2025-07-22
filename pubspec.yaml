@@ -64,23 +64,25 @@ dev_dependencies:
   flutter_native_splash: ^2.4.6
 
 flutter_native_splash:
-  color: "#000000"
+  color: "#121212"
   image: assets/yourcorps_logo_vertical.png
+  android_gravity: center
+  ios_content_mode: center
   android: true
   ios: true
   web: false
   fullscreen: true
   android_12:
-    color: "#000000"
-    image: assets/yourcorps_logo_vertical.png
+    color: "#121212"
+    image: assets/logo.png
     
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/yourcorps_logo_vertical_app_icon.png"
-  background_color: "#000000"
-  adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/yourcorps_logo_vertical_app_icon.png"
+  image_path: "assets/logo_black.png"
+  background_color: "#121212"
+  adaptive_icon_background: "#121212"
+  adaptive_icon_foreground: "assets/logo.png"
 
 
 # For information on the generic Dart part of this file, see the
@@ -107,7 +109,6 @@ flutter:
     - assets/change_password.jpg
     - assets/success.jpg
 
-    - assets/videos/landingvid1.mp4
     
     - assets/location_assets/ASH_CORPS_FINAL.PNG
     - assets/location_assets/BLEN_CORPS_FINAL.PNG

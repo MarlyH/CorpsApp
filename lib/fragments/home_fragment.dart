@@ -13,24 +13,7 @@ class EventDetail {
   final String address;
   EventDetail.fromJson(Map<String, dynamic> json)
       : description = json['description'] as String? ?? '',
-        address = json['address'] as String? ?? '';
-}
-
-/// Extension to detect if an event’s end time has already passed,
-/// with a 2-hour buffer after its endTime.
-extension EventSummaryX on event_summary.EventSummary {
-  bool get hasConcluded {
-    final now = DateTime.now();
-    final parts = endTime.split(':').map(int.parse).toList();
-    final endDt = DateTime(
-      startDate.year,
-      startDate.month,
-      startDate.day,
-      parts[0],
-      parts[1],
-    ).add(const Duration(hours: 2));
-    return now.isAfter(endDt);
-  }
+        address     = json['address']     as String? ?? '';
 }
 
 /// Helper for formatting session types.
@@ -138,7 +121,7 @@ class _HomeFragmentState extends State<HomeFragment> {
       backgroundColor: Colors.black,
       floatingActionButton: canManage
           ? Padding(
-              padding: const EdgeInsets.only(bottom: 5.0, ),
+              padding: const EdgeInsets.only(bottom: 5.0),
               child: SizedBox(
                 width: 70,
                 height: 70,
@@ -164,15 +147,14 @@ class _HomeFragmentState extends State<HomeFragment> {
             final hasError = snap.hasError;
             final all      = snap.data ?? [];
 
-            // Apply filters
+            // APPLY FILTERS (rely solely on status from backend)
             final events = all.where((e) {
               if (e.status != event_summary.EventStatus.Available) return false;
-              if (e.hasConcluded) return false;
               if (_filterLocation    != null && e.locationName != _filterLocation)    return false;
               if (_filterSessionType != null && e.sessionType   != _filterSessionType) return false;
               return true;
             }).toList()
-              // Apply chosen sorts
+              // APPLY SORTS
               ..sort((a, b) {
                 if (_dateAsc) {
                   final c = a.startDate.compareTo(b.startDate);
@@ -323,7 +305,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                 ],
               ),
             );
-          },
+          },  
         ),
       ),
     );

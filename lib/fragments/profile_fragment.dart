@@ -231,31 +231,70 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool>(
+    final TextEditingController _confirmController = TextEditingController();
+
+    bool ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:
-            const Text("Delete Account", style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "This cannot be undone.",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
+      barrierDismissible: false,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final isValid = _confirmController.text.trim().toLowerCase() == 'delete';
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                "Delete Account",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Type “delete” below to permanently remove your account.\nThis action cannot be undone.",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _confirmController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'delete',
+                      hintStyle: TextStyle(color: Colors.white38),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white24),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255)),
+                      ),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: isValid ? () => Navigator.pop(context, true) : null,
+                  child: Text(
+                    "DELETE",
+                    style: TextStyle(
+                      color: isValid ? Colors.redAccent : Colors.redAccent.withOpacity(0.4),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ) ?? false;
+
+    if (!ok) return;
 
     setState(() {
       _isLoading = true;
@@ -274,6 +313,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   Future<void> _confirmLogout() async {
     final ok = await showDialog<bool>(

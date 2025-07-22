@@ -519,7 +519,7 @@ class _EventTileState extends State<EventTile> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Event cancelled'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color.fromARGB(255, 255, 255, 255),
           ),
         );
         widget.onAction();
@@ -536,152 +536,175 @@ class _EventTileState extends State<EventTile> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final s = widget.summary;
+Widget build(BuildContext context) {
+  final s = widget.summary;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        _outerPadH, _outerPadH, _outerPadH, _outerPadB),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // The one single outer border around everything
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: _borderWidth),
-                borderRadius: BorderRadius.circular(_outerRadius),
-              ),
-            ),
-          ),
-
-          // 2) The summary + pill + (optional) details panels, all inset by borderWidth
-          Padding(
-            padding: const EdgeInsets.all(_borderWidth),
-            child: _buildContentPanels(),
-          ),
-
-          // 3) The action buttons poking out underneath
-          _buildActionButtons(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContentPanels() {
-    final s = widget.summary;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(_outerPadH, _outerPadH, _outerPadH, _outerPadB),
+    child: Stack(
+      clipBehavior: Clip.none,
       children: [
-        // ── SUMMARY + PILL
-        Padding(
-          padding: const EdgeInsets.only(bottom: _halfPill),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // white summary card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: _expanded
-                      ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
-                      : BorderRadius.circular(_innerRadius),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: _innerPad,
-                  vertical: _innerPad,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(child: _summaryLeft(s)),
-                    Expanded(child: _summaryRight(s)),
-                  ],
-                ),
-              ),
-
-              // “More” / “Less” pill notch
-              Positioned(
-                bottom: -_halfPill,
-                left: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () => setState(() => _expanded = !_expanded),
-                  child: Container(
-                    width: _pillSize,
-                    height: _pillSize,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                      border:
-                          Border.all(color: Colors.white, width: _borderWidth),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _expanded ? 'Less' : 'More',
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        // Outer border
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.white, width: _borderWidth),
+              borderRadius: BorderRadius.circular(_outerRadius),
+            ),
           ),
         ),
 
-        // ── DETAILS PANEL (only when expanded)
-        if (_expanded)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius:
-                  BorderRadius.vertical(bottom: Radius.circular(_innerRadius)),
-            ),
-            padding: EdgeInsets.only(
-              top: _innerPad,
-              bottom: _innerPad + _halfAction,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _padded(child: _buildSeatsRow(s)),
-                const SizedBox(height: 16),
-                _padded(child: _buildAddress()),
-                const SizedBox(height: 16),
-                _padded(child: _buildDescription()),
-              ],
-            ),
-          ),
+        // Content panels inset by borderWidth
+        Padding(
+          padding: const EdgeInsets.all(_borderWidth),
+          child: _buildContentPanels(),
+        ),
+
+        // Action buttons when expanded
+        _buildActionButtons(),
       ],
-    );
-  }
+    ),
+  );
+}
+
+Widget _buildContentPanels() {
+  final s = widget.summary;
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      // SUMMARY and PILL Section
+      Padding(
+        padding: const EdgeInsets.only(bottom: _halfPill),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Summary card with small centered image
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: _expanded
+                    ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
+                    : BorderRadius.circular(_innerRadius),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: _innerPad,
+                vertical: _innerPad,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // small, faint background logo, safe against missing asset
+                  Opacity(
+                    opacity: 0.5,
+                    child: Image.asset(
+                      s.locationAssetPath,
+                      width: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, error, stack) => const SizedBox.shrink(),
+                    ),
+                  ),
+
+                  // summary text
+                  Row(
+                    children: [
+                      Expanded(child: _summaryLeft(s)),
+                      Expanded(child: _summaryRight(s)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // “More” / “Less” pill notch
+            Positioned(
+              bottom: -_halfPill,
+              left: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Container(
+                  width: _pillSize,
+                  height: _pillSize,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: _borderWidth),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _expanded ? 'Less' : 'More',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // DETAILS PANEL (only when expanded)
+      if (_expanded)
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius:
+                BorderRadius.vertical(bottom: Radius.circular(_innerRadius)),
+          ),
+          padding: EdgeInsets.only(
+            top: _innerPad,
+            bottom: _innerPad + _halfAction,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _padded(child: _buildSeatsRow(s)),
+              const SizedBox(height: 16),
+              _padded(child: _buildAddress()),
+              const SizedBox(height: 16),
+              _padded(child: _buildDescription()),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
 
   Widget _summaryLeft(event_summary.EventSummary s) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(s.locationName,
-              style: const TextStyle(color: Colors.black54, fontSize: 12),
-              overflow: TextOverflow.ellipsis),
+          Text(
+            s.locationName,
+            style: const TextStyle(color: Colors.black54, fontSize: 12),
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 8),
-          Text(_weekdayFull(s.startDate),
-              style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          Text(_formatDate(s.startDate),
-              style: const TextStyle(color: Colors.black54)),
+          Text(
+            _weekdayFull(s.startDate),
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            _formatDate(s.startDate),
+            style: const TextStyle(color: Colors.black54),
+          ),
         ],
       );
 
   Widget _summaryRight(event_summary.EventSummary s) => Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(friendlySession(s.sessionType),
-              style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          Text(
+            friendlySession(s.sessionType),
+            style: const TextStyle(color: Colors.black54, fontSize: 12),
+          ),
           const SizedBox(height: 8),
-          Text('Starts ${s.startTime}',
-              style: const TextStyle(color: Colors.black54)),
-          Text('Ends   ${s.endTime}',
-              style: const TextStyle(color: Colors.black54)),
+          Text('Starts ${s.startTime}', style: const TextStyle(color: Colors.black54)),
+          Text('Ends   ${s.endTime}', style: const TextStyle(color: Colors.black54)),
         ],
       );
 
@@ -719,8 +742,10 @@ class _EventTileState extends State<EventTile> {
         },
       );
 
-  Padding _padded({required Widget child}) =>
-      Padding(padding: const EdgeInsets.symmetric(horizontal: _innerPad), child: child);
+  Padding _padded({required Widget child}) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _innerPad),
+        child: child,
+      );
 
   Widget _buildActionButtons() {
     if (!_expanded) return const SizedBox.shrink();
@@ -741,8 +766,7 @@ class _EventTileState extends State<EventTile> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF4C85D0),
           minimumSize: const Size.fromHeight(48),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         onPressed: () {
           Navigator.push(
@@ -760,14 +784,13 @@ class _EventTileState extends State<EventTile> {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: Colors.grey[800],
+                backgroundColor: const Color(0xFF9E9E9E),
                 side: const BorderSide(color: Colors.grey),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24)),
               ),
               onPressed: _cancelEvent,
-              child: const Text('CANCEL',
-                  style: TextStyle(color: Colors.white70)),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
             ),
           ),
           const SizedBox(width: 8),
@@ -775,20 +798,22 @@ class _EventTileState extends State<EventTile> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: Colors.white,
+                backgroundColor: const Color(0xFF4C85D0),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24)),
               ),
-              onPressed: () {}, // Reserve action
-              child: const Text('RESERVE',
-                  style: TextStyle(color: Colors.black)),
+              onPressed: () {},
+              child: const Text('RESERVE', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
       );
 
   String _weekdayFull(DateTime d) {
-    const week = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const week = [
+      'Monday','Tuesday','Wednesday',
+      'Thursday','Friday','Saturday','Sunday'
+    ];
     return week[d.weekday - 1];
   }
 }
@@ -803,26 +828,35 @@ class _CancellationDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(16),
+        ),
         padding: const EdgeInsets.all(16),
-        child: Column(mainAxisSize: MainAxisSize.min, children:[
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
           Align(
             alignment: Alignment.topRight,
             child: GestureDetector(
               onTap: () => Navigator.of(c).pop(),
-              child: const Text('Close', style: TextStyle(color: Colors.white70)),
+              child: const Text('Close', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
             ),
           ),
           const SizedBox(height: 8),
           const Icon(Icons.warning, color: Colors.red, size: 48),
           const SizedBox(height: 8),
-          const Text('Event Cancellation',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Event Cancellation',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Are you sure you want to cancel?\nThis cannot be undone.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -830,29 +864,36 @@ class _CancellationDialog extends StatelessWidget {
             maxLines: 4,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Explain the cancellation (sent to attendees).',
-              hintStyle: const TextStyle(color: Colors.white38),
+              hintText: 'Add explanation. This message will be sent to people with an active booking.',
+              hintStyle: const TextStyle(color: Color.fromARGB(100, 0, 0, 0)),
               filled: true,
-              fillColor: Colors.white12,
+              fillColor: const Color.fromARGB(255, 255, 255, 255),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal:12, vertical:14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
           ),
-          const SizedBox(height:16),
-          ElevatedButton(
-            onPressed: () => Navigator.of(c).pop(controller.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(horizontal:32, vertical:12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(c).pop(controller.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              ),
+              child: const Text(
+                'CANCEL EVENT',
+                style: TextStyle(color: Colors.white, letterSpacing: 1.2),
+              ),
             ),
-            child: const Text('CANCEL EVENT', style: TextStyle(color: Colors.white, letterSpacing: 1.2)),
           ),
         ]),
       ),
     );
   }
 }
+

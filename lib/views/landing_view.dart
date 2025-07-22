@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:video_player/video_player.dart';
-
 import '../services/token_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -45,13 +43,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       });
     }
   }
-
-  // Future<void> _navigateSafely(String route) async {
-  //   //_disposeVideo();
-  //   await Navigator.pushNamed(context, route);
-  //   //_initializeVideo();
-  //   _checkForToken();
-  // }
 
   /*String maskEmail(String email) {
     final parts = email.split('@');

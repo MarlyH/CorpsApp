@@ -1,16 +1,17 @@
 import 'package:flutter/foundation.dart';
+import '../utils/location_assets.dart';  // ← import your asset map
+
 extension TakeIfExtension<T> on T {
   T? takeIf(bool Function(T) test) => test(this) ? this : null;
 }
 
 enum SessionType { Ages8to11, Ages12to15, Adults }
 
-/// Turn a raw (int or String) into our enum.  
+/// Turn a raw (int or String) into our enum.
 SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is int && raw >= 0 && raw < SessionType.values.length) {
     return SessionType.values[raw];
   } else if (raw is String) {
-
     // fallback if ever you get the literal name
     return SessionType.values.firstWhere(
       (e) => describeEnum(e).toLowerCase() == raw.toLowerCase(),
@@ -24,13 +25,17 @@ SessionType sessionTypeFromRaw(dynamic raw) {
 /// Make a human label out of it:
 String friendlySession(SessionType s) {
   switch (s) {
-    case SessionType.Ages8to11:return 'Ages 8 to 11';
-    case SessionType.Ages12to15:return 'Ages 12 to 15';
-    case SessionType.Adults: return 'Ages 16+';
+    case SessionType.Ages8to11:
+      return 'Ages 8 to 11';
+    case SessionType.Ages12to15:
+      return 'Ages 12 to 15';
+    case SessionType.Adults:
+      return 'Ages 16+';
   }
 }
 
 enum EventStatus { Available, Unavailable, Cancelled, Concluded }
+
 EventStatus statusFromRaw(int raw) {
   switch (raw) {
     case 1:
@@ -70,6 +75,10 @@ class EventSummary {
     this.seatingMapImgSrc,
   });
 
+  /// The Flutter‐asset path for this summary’s location icon
+  String get locationAssetPath =>
+      locationAssetMap[locationName] ?? defaultLocationAsset;
+
   factory EventSummary.fromJson(Map<String, dynamic> json) {
     int intOrZero(dynamic v) {
       if (v is int) return v;
@@ -88,8 +97,7 @@ class EventSummary {
       availableSeats: intOrZero(json['availbleSeatsCount']),
       status: statusFromRaw(intOrZero(json['status'])),
       seatingMapImgSrc:
-        (json['seatingMapImgSrc'] as String?)
-          ?.takeIf((s) => s.isNotEmpty),
+          (json['seatingMapImgSrc'] as String?)?.takeIf((s) => s.isNotEmpty),
     );
   }
 

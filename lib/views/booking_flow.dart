@@ -91,7 +91,7 @@ class _BookingFlowState extends State<BookingFlow> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Booking successful'),
-          backgroundColor: Colors.green,
+          backgroundColor: Color.fromARGB(255, 255, 255, 255),
         ),
       );
       Navigator.pop(context, true);
@@ -163,14 +163,14 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: OutlinedButton(
                         onPressed: _back,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.grey[800],
+                          backgroundColor: Color(0xFF9E9E9E),
                           side: const BorderSide(color: Colors.grey),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text('BACK', style: TextStyle(color: Colors.white70)),
+                        child: const Text('BACK', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -178,7 +178,7 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: ElevatedButton(
                         onPressed: (_step == 1 && _selectedSeat == null) ? null : _next,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Color(0xFF4C85D0),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -205,7 +205,7 @@ class _BookingFlowState extends State<BookingFlow> {
     required VoidCallback onAgree,
   }) {
     return Container(
-      color: Colors.black87,
+      color: const Color.fromARGB(255, 0, 0, 0),
       child: SafeArea(
         child: Padding(
           padding:
@@ -239,14 +239,14 @@ class _BookingFlowState extends State<BookingFlow> {
                       ),
                       SizedBox(height: 12),
                       Text(
-                        '• Kids Aged 8–11 years will only be allowed to play G and PG rated Games. We are unable to provide tailored experiences for individual kids if you do not approve of your child playing “Recommended Classifications” such as PG rated games, as it will mean your children will not be able to participate in the same experience as everyone else in the room. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
+                        '• Kids Aged 8 to 11 years will only be allowed to play G and PG rated Games. We are unable to provide tailored experiences for individual kids if you do not approve of your child playing “Recommended Classifications” such as PG rated games, as it will mean your children will not be able to participate in the same experience as everyone else in the room. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
                         style: TextStyle(
                             color: Colors.white70,
                             height: 1.4),
                       ),
                       SizedBox(height: 12),
                       Text(
-                        '• Teens Ages 12–15 years will be allowed to play M rated games, which is an Unrestricted Rated Classification, and is not enforced by law. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
+                        '• Teens Ages 12 to 15 years will be allowed to play M rated games, which is an Unrestricted Rated Classification, and is not enforced by law. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
                         style: TextStyle(
                             color: Colors.white70,
                             height: 1.4),
@@ -273,7 +273,7 @@ class _BookingFlowState extends State<BookingFlow> {
                       onPressed: onCancel,
                       style: OutlinedButton.styleFrom(
                         backgroundColor:
-                            Colors.grey.shade700,
+                            Color(0xFF9E9E9E),
                         side: BorderSide(
                             color: Colors.grey.shade700),
                         shape: RoundedRectangleBorder(
@@ -297,7 +297,7 @@ class _BookingFlowState extends State<BookingFlow> {
                     child: ElevatedButton(
                       onPressed: onAgree,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Color(0xFF4C85D0),
                         shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(8),
@@ -468,7 +468,7 @@ class _BookingFlowState extends State<BookingFlow> {
                 Radio<bool>(
                   value: true,
                   groupValue: _allowAlone,
-                  activeColor: Colors.blue,
+                  activeColor: Colors.white,
                   onChanged: (v) =>
                       setState(() => _allowAlone = v!),
                 ),
@@ -479,7 +479,7 @@ class _BookingFlowState extends State<BookingFlow> {
                 Radio<bool>(
                   value: false,
                   groupValue: _allowAlone,
-                  activeColor: Colors.blue,
+                  activeColor: Colors.white,
                   onChanged: (v) =>
                       setState(() => _allowAlone = v!),
                 ),

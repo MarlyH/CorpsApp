@@ -100,8 +100,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false,
       child: Padding(
         padding: const EdgeInsets.only(top: 24),
+        
         child: Column(
           children: [
             const Text(

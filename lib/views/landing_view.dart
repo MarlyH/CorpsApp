@@ -14,8 +14,6 @@ class LandingView extends StatefulWidget {
 }
 
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
-  VideoPlayerController? _controller;
-  bool _isVideoReady = false;
   bool _loading = true;
 
   @override
@@ -23,7 +21,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkForToken();
-    _initializeVideo();
   }
 
   Future<void> _checkForToken() async {
@@ -49,51 +46,12 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     }
   }
 
-  void _initializeVideo() {
-    _controller = VideoPlayerController.asset("assets/videos/landingvid1.mp4")
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _isVideoReady = true);
-          _controller!
-            ..setLooping(true)
-            ..setVolume(0)
-            ..play();
-        }
-      });
-  }
-
-  void _disposeVideo() {
-    if (_controller?.value.isInitialized ?? false) {
-      _controller?.pause();
-    }
-    _controller?.dispose();
-    _controller = null;
-    _isVideoReady = false;
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _disposeVideo();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!(_controller?.value.isInitialized ?? false)) return;
-    if (state == AppLifecycleState.paused) {
-      _controller?.pause();
-    } else if (state == AppLifecycleState.resumed) {
-      _controller?.play();
-    }
-  }
-
-  Future<void> _navigateSafely(String route) async {
-    _disposeVideo();
-    await Navigator.pushNamed(context, route);
-    _initializeVideo();
-    _checkForToken();
-  }
+  // Future<void> _navigateSafely(String route) async {
+  //   //_disposeVideo();
+  //   await Navigator.pushNamed(context, route);
+  //   //_initializeVideo();
+  //   _checkForToken();
+  // }
 
   /*String maskEmail(String email) {
     final parts = email.split('@');
@@ -116,17 +74,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (_isVideoReady && _controller != null)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller!.value.size.width,
-                height: _controller!.value.size.height,
-                child: VideoPlayer(_controller!),
-              ),
-            )
-          else
-            Container(color: Colors.black),
+          Container(color: Colors.black),
           Container(color: Colors.black.withOpacity(0.5)),
 
           SafeArea(
@@ -163,7 +111,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                         ),
-                                        onPressed: () => _navigateSafely('/login'),
+                                        onPressed: () => Navigator.pushNamed(context, '/login'),
                                         child: const Text(
                                           'LOGIN',
                                           style: TextStyle(
@@ -187,7 +135,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                         ),
-                                        onPressed: () => _navigateSafely('/register'),
+                                        onPressed: () => Navigator.pushNamed(context, '/register'),
                                         child: const Text(
                                           'REGISTER',
                                           style: TextStyle(
@@ -202,13 +150,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
 
                                     // CONTINUE AS GUEST
                                     GestureDetector(
-                                      onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Guest mode coming soon'),
-                                          ),
-                                        );
-                                      },
+                                      onTap: () => Navigator.pushNamed(context, '/dashboard'),
                                       child: const Text(
                                         'CONTINUE AS GUEST',
                                         style: TextStyle(

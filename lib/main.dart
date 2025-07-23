@@ -43,6 +43,11 @@ class MyApp extends StatelessWidget {
             bodyMedium: TextStyle(color: Colors.white),
             displayLarge: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: Colors.black,           // Caret
+            selectionColor: Colors.black26,      // Highlighted text
+            selectionHandleColor: Colors.black,  // The little grab‑handles
+          ),
         ),
         home: const LandingView(),
         routes: {

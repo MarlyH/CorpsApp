@@ -1,3 +1,5 @@
+// lib/views/profile_fragment.dart
+
 import 'dart:convert';
 
 import 'package:email_validator/email_validator.dart';
@@ -10,7 +12,7 @@ import 'package:corpsapp/views/change_user_role_view.dart';
 
 /// Dialog to change the user’s email.
 class _ChangeEmailDialog extends StatefulWidget {
-  const _ChangeEmailDialog({super.key});
+  const _ChangeEmailDialog({Key? key}) : super(key: key);
 
   @override
   __ChangeEmailDialogState createState() => __ChangeEmailDialogState();
@@ -31,18 +33,30 @@ class __ChangeEmailDialogState extends State<_ChangeEmailDialog> {
       backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text("Change Email", style: TextStyle(color: Colors.white)),
-      content: TextField(
-        controller: _ctrl,
-        keyboardType: TextInputType.emailAddress,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          labelText: "New Email",
-          labelStyle: TextStyle(color: Colors.grey),
-          enabledBorder:
-              UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-          focusedBorder:
-              UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("New Email",
+              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _ctrl,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              hintText: "you@example.com",
+              hintStyle: const TextStyle(color: Colors.black54),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              border: OutlineInputBorder(
+                borderSide: BorderSide.none,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(
@@ -60,7 +74,7 @@ class __ChangeEmailDialogState extends State<_ChangeEmailDialog> {
 
 /// Dialog to update username, first name, and last name.
 class _UpdateProfileDialog extends StatefulWidget {
-  const _UpdateProfileDialog({super.key});
+  const _UpdateProfileDialog({Key? key}) : super(key: key);
 
   @override
   __UpdateProfileDialogState createState() => __UpdateProfileDialogState();
@@ -79,17 +93,34 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
     super.dispose();
   }
 
+  Widget _buildField(String label, TextEditingController ctrl, String hint) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        TextField(
+          controller: ctrl,
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.black54),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    InputDecoration dec(String label) => InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.grey),
-      enabledBorder:
-          const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-      focusedBorder:
-          const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-    );
-
     return AlertDialog(
       backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -97,23 +128,11 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
       content: SingleChildScrollView(
         child: Column(
           children: [
-            TextField(
-              controller: _userCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: dec("New Username"),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _firstCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: dec("New First Name"),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _lastCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: dec("New Last Name"),
-            ),
+            _buildField("New Username", _userCtrl, "username"),
+            const SizedBox(height: 12),
+            _buildField("New First Name", _firstCtrl, "first name"),
+            const SizedBox(height: 12),
+            _buildField("New Last Name", _lastCtrl, "last name"),
           ],
         ),
       ),
@@ -124,9 +143,9 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, {
-            'userName': _userCtrl.text.trim(),
+            'userName':  _userCtrl.text.trim(),
             'firstName': _firstCtrl.text.trim(),
-            'lastName': _lastCtrl.text.trim(),
+            'lastName':  _lastCtrl.text.trim(),
           }),
           child: const Text("UPDATE", style: TextStyle(color: Colors.white)),
         ),
@@ -136,7 +155,7 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
 }
 
 class ProfileFragment extends StatefulWidget {
-  const ProfileFragment({super.key});
+  const ProfileFragment({Key? key}) : super(key: key);
 
   @override
   State<ProfileFragment> createState() => _ProfileFragmentState();
@@ -205,9 +224,9 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     );
     if (result == null) return;
 
-    final userName  = result['userName'] !.trim();
+    final userName  = result['userName']!.trim();
     final firstName = result['firstName']!.trim();
-    final lastName  = result['lastName'] !.trim();
+    final lastName  = result['lastName']!.trim();
 
     setState(() {
       _isLoading = true;
@@ -216,9 +235,9 @@ class _ProfileFragmentState extends State<ProfileFragment> {
 
     try {
       await AuthHttpClient.updateProfile(
-        newUserName:  userName .isEmpty ? null : userName,
+        newUserName:  userName.isEmpty  ? null : userName,
         newFirstName: firstName.isEmpty ? null : firstName,
-        newLastName:  lastName .isEmpty ? null : lastName,
+        newLastName:  lastName.isEmpty  ? null : lastName,
       );
       await context.read<AuthProvider>().loadUser();
       _showSnack("Profile updated.", background: Colors.green);
@@ -231,15 +250,14 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   Future<void> _confirmDelete() async {
-    final TextEditingController confirmController = TextEditingController();
-
+    final TextEditingController _confirmController = TextEditingController();
     bool ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setState) {
-            final isValid = confirmController.text.trim().toLowerCase() == 'delete';
+            final isValid = _confirmController.text.trim().toLowerCase() == 'delete';
             return AlertDialog(
               backgroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -256,17 +274,19 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                     style: TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 12),
+                  // Styled textfield
                   TextField(
-                    controller: confirmController,
-                    style: const TextStyle(color: Colors.white),
+                    controller: _confirmController,
+                    style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'delete',
-                      hintStyle: TextStyle(color: Colors.white38),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white24),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: const Color.fromARGB(255, 255, 255, 255)),
+                      hintStyle: const TextStyle(color: Colors.black54),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -293,14 +313,12 @@ class _ProfileFragmentState extends State<ProfileFragment> {
         );
       },
     ) ?? false;
-
     if (!ok) return;
 
     setState(() {
       _isLoading = true;
       _generalError = null;
     });
-
     try {
       await AuthHttpClient.deleteProfile();
       await context.read<AuthProvider>().logout();
@@ -314,17 +332,14 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     }
   }
 
-
   Future<void> _confirmLogout() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Log Out?", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure?",
-            style: TextStyle(color: Colors.white70)),
+        content: const Text("Are you sure?", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -336,8 +351,8 @@ class _ProfileFragmentState extends State<ProfileFragment> {
           ),
         ],
       ),
-    );
-    if (ok != true) return;
+    ) ?? false;
+    if (!ok) return;
 
     setState(() => _isLoading = true);
     await context.read<AuthProvider>().logout();
@@ -352,124 +367,62 @@ class _ProfileFragmentState extends State<ProfileFragment> {
     final canManage = auth.isAdmin || auth.isEventManager;
     final isUnder16 = (user?['age'] ?? 0) < 16;
 
-     return SingleChildScrollView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
-        // center the content horizontally
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // avatar
           const Icon(Icons.person, size: 100, color: Colors.white),
           const SizedBox(height: 20),
-
-          // username
-          Text(
-            user?['userName'] ?? '',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, color: Colors.white70),
-          ),
-
-          // full name
+          Text(user?['userName'] ?? '',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, color: Colors.white70)),
           Text(
             '${user?['firstName'] ?? ''} ${user?['lastName'] ?? ''}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-
-          // email
-          Text(
-            user?['email'] ?? '',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
-          ),
-
-          // age, if present
+          Text(user?['email'] ?? '',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey)),
           if (user?['age'] != null) ...[
             const SizedBox(height: 8),
-            Text(
-              'Age: ${user!['age']}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text('Age: ${user!['age']}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey)),
           ],
-
           const SizedBox(height: 30),
-
-          // subtitle
           const Text(
             "Manage your profile settings below.",
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 20),
-
-          // Actions
-          _ActionButton(
-            icon: Icons.email,
-            label: "CHANGE EMAIL",
-            onPressed: _isLoading ? null : _changeEmail,
-          ),
+          _ActionButton(icon: Icons.email,    label: "CHANGE EMAIL",         onPressed: _isLoading ? null : _changeEmail),
           const SizedBox(height: 12),
-          _ActionButton(
-            icon: Icons.edit,
-            label: "UPDATE PROFILE",
-            onPressed: _isLoading ? null : _updateProfile,
-          ),
-
+          _ActionButton(icon: Icons.edit,     label: "UPDATE PROFILE",       onPressed: _isLoading ? null : _updateProfile),
           if (!auth.isAdmin) ...[
             const SizedBox(height: 12),
-            _ActionButton(
-              icon: Icons.delete,
-              label: "DELETE ACCOUNT",
-              onPressed: _isLoading ? null : _confirmDelete,
-            ),
+            _ActionButton(icon: Icons.delete,   label: "DELETE ACCOUNT",       onPressed: _isLoading ? null : _confirmDelete),
           ],
-
           const SizedBox(height: 12),
-          _ActionButton(
-            icon: Icons.logout,
-            label: "LOG OUT",
-            onPressed: _isLoading ? null : _confirmLogout,
-          ),
-
+          _ActionButton(icon: Icons.logout,   label: "LOG OUT",              onPressed: _isLoading ? null : _confirmLogout),
           if (!isUnder16) ...[
             const SizedBox(height: 12),
-            _ActionButton(
-              icon: Icons.child_care,
-              label: "MANAGE CHILDREN",
-              onPressed: () => Navigator.pushNamed(context, '/children'),
-            ),
+            _ActionButton(icon: Icons.child_care,label: "MANAGE CHILDREN",      onPressed: () => Navigator.pushNamed(context, '/children')),
           ],
-
           if (canManage) ...[
             const SizedBox(height: 12),
-            _ActionButton(
-              icon: Icons.admin_panel_settings,
-              label: "USER ROLE MANAGEMENT",
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
-              ),
-            ),
+            _ActionButton(icon: Icons.admin_panel_settings,label: "USER ROLE MANAGEMENT",onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangeUserRoleView()))),
           ],
-
           if (_emailChangeError != null) ...[
             const SizedBox(height: 20),
-            Text(_emailChangeError!,
-                style: const TextStyle(color: Colors.redAccent),
-                textAlign: TextAlign.center),
-          ],
+            Text(_emailChangeError!, style: const TextStyle(color: Colors.redAccent), textAlign: TextAlign.center),
+          ],  
           if (_generalError != null) ...[
             const SizedBox(height: 20),
-            Text(_generalError!,
-                style: const TextStyle(color: Colors.redAccent),
-                textAlign: TextAlign.center),
-          ],
-
+            Text(_generalError!,    style: const TextStyle(color: Colors.redAccent), textAlign: TextAlign.center),
+          ],  
           if (_isLoading) ...[
             const SizedBox(height: 20),
             const Center(child: CircularProgressIndicator(color: Colors.grey)),
@@ -485,29 +438,19 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
-  const _ActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
+  const _ActionButton({Key? key, required this.icon, required this.label, required this.onPressed}) : super(key: key);
 
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, color: Colors.white),
-        label: Text(
-          label,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
+        label: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Colors.grey, width: 2),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),

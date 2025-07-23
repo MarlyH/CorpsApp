@@ -69,12 +69,13 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
   android: true
+  image_android: 'assets/logo/black_android.png'
   ios: true
   web: false
   fullscreen: true
   android_12:
     color: "#121212"
-    image: assets/logo/logo_transparent_162px.png
+    image: assets/logo/black_android.png
 
 
 # For information on the generic Dart part of this file, see the
@@ -94,9 +95,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/logo/logo_transparent_1024px.png
-    - assets/logo/logo_black_android.png
+    - assets/logo/black_android.png
     - assets/logo/logo_black_ios.png
-    - assets/logo/transparent_48.png
     - assets/welcome_back.jpg
     - .env
     - assets/forgot_password.png

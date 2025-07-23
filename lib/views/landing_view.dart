@@ -75,7 +75,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Image.asset(
-                    'assets/yourcorps_logo_vertical.png',
+                    'assets/logo/logo_transparent_162px.png',
                     height: 220,
                   ),
                   const SizedBox(height: 120),

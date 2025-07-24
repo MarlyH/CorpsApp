@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
-/// Full-screen dialog shown when the user is under 13.
+/// Dialog shown when the user is under 13.
 class ParentGuardianRequiredDialog extends StatelessWidget {
   const ParentGuardianRequiredDialog({super.key});
 
@@ -51,7 +53,8 @@ class ParentGuardianRequiredDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('OK', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: const Text('OK',
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
             ],
@@ -62,7 +65,7 @@ class ParentGuardianRequiredDialog extends StatelessWidget {
   }
 }
 
-/// Two-step registration + success flow.
+/// Two-step registration + success flow with resend countdown.
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
 
@@ -71,23 +74,28 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  int _step = 0; // 0 = form, 1 = success screen
+  int _step = 0; // 0 = form, 1 = success
 
-  final _formKey       = GlobalKey<FormState>();
-  final firstNameCtrl  = TextEditingController();
-  final lastNameCtrl   = TextEditingController();
-  final userNameCtrl   = TextEditingController();
-  final emailCtrl      = TextEditingController();
-  final dobCtrl        = TextEditingController();
-  final passwordCtrl   = TextEditingController();
-  final confirmCtrl    = TextEditingController();
+  final _formKey      = GlobalKey<FormState>();
+  final firstNameCtrl = TextEditingController();
+  final lastNameCtrl  = TextEditingController();
+  final userNameCtrl  = TextEditingController();
+  final emailCtrl     = TextEditingController();
+  final dobCtrl       = TextEditingController();
+  final passwordCtrl  = TextEditingController();
+  final confirmCtrl   = TextEditingController();
 
   bool _obscure = true;
   bool _loading = false;
   String? _error;
 
+  // Resend‐confirmation cooldown
+  Timer? _resendTimer;
+  Duration _cooldown = Duration.zero;
+
   @override
   void dispose() {
+    _resendTimer?.cancel();
     for (var c in [
       firstNameCtrl,
       lastNameCtrl,
@@ -100,6 +108,27 @@ class _RegisterViewState extends State<RegisterView> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final m = two(d.inMinutes.remainder(60));
+    final s = two(d.inSeconds.remainder(60));
+    return '$m:$s';
+  }
+
+  void _startCooldown() {
+    setState(() => _cooldown = Duration(minutes: 5));
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      final secs = _cooldown.inSeconds - 1;
+      if (secs > 0) {
+        setState(() => _cooldown = Duration(seconds: secs));
+      } else {
+        t.cancel();
+        setState(() => _cooldown = Duration.zero);
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -139,12 +168,12 @@ class _RegisterViewState extends State<RegisterView> {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url     = Uri.parse('$baseUrl/api/auth/register');
     final body    = jsonEncode({
-      'firstName':    firstNameCtrl.text.trim(),
-      'lastName':     lastNameCtrl.text.trim(),
-      'userName':     userNameCtrl.text.trim(),
-      'email':        emailCtrl.text.trim(),
-      'dateOfBirth':  dobCtrl.text.trim(),
-      'password':     passwordCtrl.text,
+      'firstName':   firstNameCtrl.text.trim(),
+      'lastName':    lastNameCtrl.text.trim(),
+      'userName':    userNameCtrl.text.trim(),
+      'email':       emailCtrl.text.trim(),
+      'dateOfBirth': dobCtrl.text.trim(),
+      'password':    passwordCtrl.text,
     });
 
     try {
@@ -156,7 +185,11 @@ class _RegisterViewState extends State<RegisterView> {
       final data = jsonDecode(resp.body);
 
       if (resp.statusCode == 200) {
-        setState(() => _step = 1);
+        // go straight to success without starting cooldown
+        setState(() {
+          _step = 1;
+          _cooldown = Duration.zero;
+        });
       } else {
         if (resp.statusCode == 400 && data['errors'] != null) {
           final errs = (data['errors'] as Map<String, dynamic>)
@@ -177,8 +210,10 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _resend() async {
+    if (_cooldown > Duration.zero) return;
+
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final url = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
+    final url     = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
     try {
       final resp = await http.post(
         url,
@@ -191,6 +226,7 @@ class _RegisterViewState extends State<RegisterView> {
               ? 'Verification email resent'
               : 'Failed to resend');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      _startCooldown();
     } catch (_) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Network error')));
@@ -233,8 +269,7 @@ class _RegisterViewState extends State<RegisterView> {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          validator: validator ??
-              (v) => v == null || v.isEmpty ? 'Required' : null,
+          validator: validator ?? (v) => v == null || v.isEmpty ? 'Required' : null,
         ),
       ],
     );
@@ -246,285 +281,223 @@ class _RegisterViewState extends State<RegisterView> {
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 32),
-              // ← Back + Heading
-              Row(children: [
-                BackButton(color: Colors.white),
-                const SizedBox(width: 8),
-                const Text('REGISTER',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold)),
-              ]),
-              const SizedBox(height: 8),
-              // subtitle
-              RichText(
-                text: TextSpan(
-                  style:
-                      const TextStyle(color: Colors.white, fontSize: 14),
-                  children: [
-                    const TextSpan(
-                        text:
-                            'Create an account to start booking free events!\n'),
-                    TextSpan(
-                      text: 'Already have one? Log in',
-                      style: const TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Colors.white),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          Navigator.pushNamed(context, '/login');
-                        },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // First+Last
-              Row(children: [
-                Expanded(
-                  child: _boxedField(
-                      label: 'First Name',
-                      hint: 'Your first name',
-                      ctrl: firstNameCtrl),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _boxedField(
-                      label: 'Last Name',
-                      hint: 'Your last name',
-                      ctrl: lastNameCtrl),
-                ),
-              ]),
-              const SizedBox(height: 16),
-
-              _boxedField(
-                  label: 'Username',
-                  hint: 'Choose a username',
-                  ctrl: userNameCtrl),
-              const SizedBox(height: 16),
-
-              _boxedField(
-                  label: 'Email',
-                  hint: 'you@example.com',
-                  ctrl: emailCtrl,
-                  keyboard: TextInputType.emailAddress,
-                  validator: (v) => v != null && v.contains('@')
-                      ? null
-                      : 'Enter a valid email'),
-              const SizedBox(height: 16),
-
-              _boxedField(
-                label: 'Date of Birth',
-                hint: 'YYYY-MM-DD',
-                ctrl: dobCtrl,
-                onTap: () async {
-                  final dt = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime(2005, 1, 1),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                  );
-                  if (dt != null) {
-                    dobCtrl.text = dt.toIso8601String().split('T').first;
-                  }
-                },
-                suffix: const Icon(Icons.calendar_today, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-
-              _boxedField(
-                label: 'Password',
-                hint: 'Enter password',
-                ctrl: passwordCtrl,
-                obscure: _obscure,
-                suffix: IconButton(
-                  icon: Icon(
-                    _obscure ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 32),
+            Row(children: [
+              BackButton(color: Colors.white),
+              const SizedBox(width: 8),
+              const Text('REGISTER',
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 8),
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                children: [
+                  const TextSpan(text: 'Create an account to start booking free events!\n'),
+                  TextSpan(
+                    text: 'Already have one? Log in',
+                    style: const TextStyle(
+                        decoration: TextDecoration.underline, color: Colors.white),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        Navigator.pushNamed(context, '/login');
+                      },
                   ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
+                ],
               ),
-              const SizedBox(height: 16),
-
-              _boxedField(
-                  label: 'Confirm Password',
-                  hint: 'Re-enter password',
-                  ctrl: confirmCtrl,
-                  obscure: _obscure),
-              const SizedBox(height: 16),
-
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 16),
-              ],
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _loading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white)
-                      : const Text('NEXT',
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 16)),
-                ),
+            ),
+            const SizedBox(height: 24),
+            Row(children: [
+              Expanded(
+                child: _boxedField(
+                    label: 'First Name', hint: 'Your first name', ctrl: firstNameCtrl),
               ),
-              const SizedBox(height: 16),
-
-              // Terms & Privacy
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                  children: [
-                    const TextSpan(text: 'By registering you agree to our '),
-                    TextSpan(
-                      text: 'Terms & Conditions',
-                      style: const TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Colors.white),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          launcher.launchUrl(
-                            Uri.parse(
-                                'https://www.yourcorps.co.nz/terms-and-conditions'),
-                            mode: launcher.LaunchMode.externalApplication,
-                          );
-                        },
-                    ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: const TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Colors.white),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          launcher.launchUrl(
-                            Uri.parse(
-                                'https://www.yourcorps.co.nz/privacy-policy'),
-                            mode: launcher.LaunchMode.externalApplication,
-                          );
-                        },
-                    ),
-                  ],
-                ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _boxedField(
+                    label: 'Last Name', hint: 'Your last name', ctrl: lastNameCtrl),
               ),
-              const SizedBox(height: 32),
+            ]),
+            const SizedBox(height: 16),
+            _boxedField(
+                label: 'Username', hint: 'Choose a username', ctrl: userNameCtrl),
+            const SizedBox(height: 16),
+            _boxedField(
+                label: 'Email',
+                hint: 'you@example.com',
+                ctrl: emailCtrl,
+                keyboard: TextInputType.emailAddress,
+                validator: (v) => v != null && v.contains('@') ? null : 'Enter a valid email'),
+            const SizedBox(height: 16),
+            _boxedField(
+              label: 'Date of Birth',
+              hint: 'YYYY-MM-DD',
+              ctrl: dobCtrl,
+              onTap: () async {
+                final dt = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime(2005, 1, 1),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (dt != null) {
+                  dobCtrl.text = dt.toIso8601String().split('T').first;
+                }
+              },
+              suffix: const Icon(Icons.calendar_today, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            _boxedField(
+              label: 'Password',
+              hint: 'Enter password',
+              ctrl: passwordCtrl,
+              obscure: _obscure,
+              suffix: IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _boxedField(
+                label: 'Confirm Password',
+                hint: 'Re-enter password',
+                ctrl: confirmCtrl,
+                obscure: _obscure),
+            const SizedBox(height: 16),
+            if (_error != null) ...[
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
             ],
-          ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('NEXT', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                children: [
+                  const TextSpan(text: 'By registering you agree to our '),
+                  TextSpan(
+                    text: 'Terms & Conditions',
+                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        launcher.launchUrl(
+                          Uri.parse('https://www.yourcorps.co.nz/terms-and-conditions'),
+                          mode: launcher.LaunchMode.externalApplication,
+                        );
+                      },
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        launcher.launchUrl(
+                          Uri.parse('https://www.yourcorps.co.nz/privacy-policy'),
+                          mode: launcher.LaunchMode.externalApplication,
+                        );
+                      },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+          ]),
         ),
       ),
     );
   }
 
   Widget _buildSuccess() {
-  return Container(
-    color: Colors.black,
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-    child: Column(
-      children: [
-        // push the circle down a bit
-        const Spacer(flex: 2),
-
-        // Mint-green circle with black check
-        Container(
-          width: 120,
-          height: 120,
-          decoration: const BoxDecoration(
-            color: Color(0xFF8EF9B3),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.check,
-            size: 72,
-            color: Colors.black,
-          ),
-        ),
-
-        const SizedBox(height: 32),
-
-        // Instruction text
-        const Text(
-          'A verification link has been sent to your email.\n'
-          'Please check your inbox to activate your account.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // “Didn't receive…?” in white
-        GestureDetector(
-          onTap: _resend,
-          child: const Text(
-            "Didn't receive email? Resend",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              decoration: TextDecoration.underline,
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        children: [
+          const Spacer(flex: 2),
+          Container(
+            width: 120,
+            height: 120,
+            decoration: const BoxDecoration(
+              color: Color(0xFF8EF9B3),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.check, size: 72, color: Colors.black),
           ),
-        ),
-
-        // push the DONE button down
-        const Spacer(flex: 1),
-
-        // DONE button in blue fill
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A90E2),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 32),
+          const Text(
+            'A verification link has been sent to your email.\n'
+            'Please check your inbox to activate your account.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          // _cooldown is zero on first display, so this link is active immediately
+          if (_cooldown > Duration.zero)
+            Text('Retry in ${_formatDuration(_cooldown)}',
+                style: const TextStyle(color: Colors.white, fontSize: 14))
+          else
+            GestureDetector(
+              onTap: _resend,
+              child: const Text(
+                "Didn't receive email? Resend",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
-            child: const Text(
-              'DONE',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+          const Spacer(flex: 1),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4A90E2),
+                shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
+              child: const Text('DONE',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
-        ),
-
-        const SizedBox(height: 32),
-      ],
-    ),
-  );
-}
-
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: _step == 0 ? _buildForm() : _buildSuccess(),
-      ),
+      body: SafeArea(child: _step == 0 ? _buildForm() : _buildSuccess()),
     );
   }
 }

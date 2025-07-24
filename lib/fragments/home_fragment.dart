@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../views/reserve_flow.dart';
 
 
 /// Local model for /api/events/{id}
@@ -335,7 +336,6 @@ class _FilterSheet extends StatefulWidget {
   ) onApply;
 
   const _FilterSheet({
-    super.key,
     this.initialSession,
     required this.initialDateAsc,
     required this.initialDateDesc,
@@ -817,7 +817,13 @@ Widget _buildContentPanels() {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24)),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReserveFlow(eventId: widget.summary.eventId,),
+                  ),
+                );
+              },
               child: const Text('RESERVE', style: TextStyle(color: Colors.white)),
             ),
           ),

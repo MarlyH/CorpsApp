@@ -106,6 +106,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                         child: const Text(
                                           'LOGIN',
                                           style: TextStyle(
+                                            fontFamily: 'WinnerSans',
                                             color: Colors.white,
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -130,6 +131,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                         child: const Text(
                                           'REGISTER',
                                           style: TextStyle(
+                                            fontFamily: 'WinnerSans',
                                             color: Colors.black,
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -145,6 +147,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                       child: const Text(
                                         'CONTINUE AS GUEST',
                                         style: TextStyle(
+                                          fontFamily: 'WinnerSans',
                                           color: Colors.white,
                                           decoration: TextDecoration.underline,
                                           fontWeight: FontWeight.w500,

@@ -98,6 +98,7 @@ class _LoginViewState extends State<LoginView> {
       children: [
         Text(label,
           style: const TextStyle(
+            fontFamily: 'WinnerSans',
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -156,6 +157,7 @@ class _LoginViewState extends State<LoginView> {
                     'WELCOME BACK',
                     textAlign: TextAlign.center,
                     style: TextStyle(
+                      fontFamily: 'WinnerSans',
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -269,6 +271,7 @@ class _LoginViewState extends State<LoginView> {
                               : const Text(
                                   'LOGIN',
                                   style: TextStyle(
+                                    fontFamily: 'WinnerSans',
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

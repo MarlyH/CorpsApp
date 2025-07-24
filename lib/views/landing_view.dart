@@ -1,3 +1,4 @@
+import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/token_service.dart';
@@ -91,71 +92,39 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                           )
                         : Column(
                             children: [
-                                    // LOGIN (blue)
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF4A90E2),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                        onPressed: () => Navigator.pushNamed(context, '/login'),
-                                        child: const Text(
-                                          'LOGIN',
-                                          style: TextStyle(
-                                            fontFamily: 'WinnerSans',
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
+                              //Login
+                              Button(
+                                label: 'LOGIN', 
+                                onPressed: () => Navigator.pushNamed(context, '/dashboard')
+                              ),
 
-                                    // REGISTER (white)
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                        onPressed: () => Navigator.pushNamed(context, '/register'),
-                                        child: const Text(
-                                          'REGISTER',
-                                          style: TextStyle(
-                                            fontFamily: 'WinnerSans',
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
+                              const SizedBox(height: 8),
 
-                                    // CONTINUE AS GUEST
-                                    GestureDetector(
-                                      onTap: () => Navigator.pushNamed(context, '/dashboard'),
-                                      child: const Text(
-                                        'CONTINUE AS GUEST',
-                                        style: TextStyle(
-                                          fontFamily: 'WinnerSans',
-                                          color: Colors.white,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                              //Register
+                              Button(
+                                label: 'REGISTER', 
+                                onPressed: () => Navigator.pushNamed(context, '/register'),
+                                buttonColor: Colors.white,
+                                textColor: const Color(0xFF121212),
+                              ),
+                                    
+                              const SizedBox(height: 16),
+
+                              // CONTINUE AS GUEST
+                              GestureDetector(
+                                onTap: () => Navigator.pushNamed(context, '/dashboard'),
+                                child: const Text(
+                                  'CONTINUE AS GUEST',
+                                  style: TextStyle(
+                                    fontFamily: 'WinnerSans',
+                                    color: Colors.white,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                   ),
 

@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         title: 'Welcome App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          fontFamily: 'CorpsFont',
+          fontFamily: '',
           scaffoldBackgroundColor: Colors.black,
           colorScheme: const ColorScheme.dark(),
           pageTransitionsTheme: const PageTransitionsTheme(

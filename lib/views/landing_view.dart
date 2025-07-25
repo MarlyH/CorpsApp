@@ -95,7 +95,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                               //Login
                               Button(
                                 label: 'LOGIN', 
-                                onPressed: () => Navigator.pushNamed(context, '/dashboard')
+                                onPressed: () => Navigator.pushNamed(context, '/login')
                               ),
 
                               const SizedBox(height: 8),

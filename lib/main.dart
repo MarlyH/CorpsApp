@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           fontFamily: '',
-          scaffoldBackgroundColor: Colors.black,
+          scaffoldBackgroundColor: Color(0xFF121212),
           colorScheme: const ColorScheme.dark(),
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {
@@ -44,9 +44,9 @@ class MyApp extends StatelessWidget {
             displayLarge: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
           textSelectionTheme: TextSelectionThemeData(
-            cursorColor: Colors.black,           // Caret
+            cursorColor: Color(0xFF121212),           // Caret
             selectionColor: Colors.black26,      // Highlighted text
-            selectionHandleColor: Colors.black,  // The little grab‑handles
+            selectionHandleColor: Color(0xFF121212),  // The little grab‑handles
           ),
         ),
         home: const LandingView(),

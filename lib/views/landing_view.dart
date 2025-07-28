@@ -63,77 +63,70 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(color: Colors.black),
-          Container(color: Colors.black.withOpacity(0.5)),
-
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 30),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Image.asset(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          child: Column(
+            children: [
+              // Expanded block centers the logo vertically
+              Expanded(
+                child: Center(
+                  child: Image.asset(
                     'assets/logo/logo_transparent_1024px.png',
-                    height: 220,
+                    height: 280,
                   ),
-                  const SizedBox(height: 120),
-
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    transitionBuilder: (child, animation) =>
-                        FadeTransition(opacity: animation, child: child),
-                    child: _loading
-                        ? const CircularProgressIndicator(
-                            color: Colors.white,
-                            key: ValueKey('loading'),
-                          )
-                        : Column(
-                            children: [
-                              //Login
-                              Button(
-                                label: 'LOGIN', 
-                                onPressed: () => Navigator.pushNamed(context, '/login')
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              //Register
-                              Button(
-                                label: 'REGISTER', 
-                                onPressed: () => Navigator.pushNamed(context, '/register'),
-                                buttonColor: Colors.white,
-                                textColor: const Color(0xFF121212),
-                              ),
-                                    
-                              const SizedBox(height: 16),
-
-                              // CONTINUE AS GUEST
-                              GestureDetector(
-                                onTap: () => Navigator.pushNamed(context, '/dashboard'),
-                                child: const Text(
-                                  'CONTINUE AS GUEST',
-                                  style: TextStyle(
-                                    fontFamily: 'WinnerSans',
-                                    color: Colors.white,
-                                    decoration: TextDecoration.underline,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
-            ),
+
+              // Loading or action buttons
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: _loading
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                        key: ValueKey('loading'),
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Button(
+                            label: 'LOGIN',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/login'),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Button(
+                            label: 'REGISTER',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/register'),
+                            buttonColor: Colors.white,
+                            textColor: const Color(0xFF121212),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          GestureDetector(
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/dashboard'),
+                            child: const Text(
+                              'CONTINUE AS GUEST',
+                              style: TextStyle(
+                                fontFamily: 'WinnerSans',
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

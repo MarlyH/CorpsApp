@@ -335,6 +335,7 @@ class _FilterSheet extends StatefulWidget {
   ) onApply;
 
   const _FilterSheet({
+    super.key,
     this.initialSession,
     required this.initialDateAsc,
     required this.initialDateDesc,

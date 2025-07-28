@@ -10,7 +10,7 @@ import 'package:corpsapp/views/change_user_role_view.dart';
 
 /// Dialog to change the user’s email.
 class _ChangeEmailDialog extends StatefulWidget {
-  const _ChangeEmailDialog({super.key});
+  const _ChangeEmailDialog({Key? key}) : super(key: key);
 
   @override
   __ChangeEmailDialogState createState() => __ChangeEmailDialogState();
@@ -60,7 +60,7 @@ class __ChangeEmailDialogState extends State<_ChangeEmailDialog> {
 
 /// Dialog to update username, first name, and last name.
 class _UpdateProfileDialog extends StatefulWidget {
-  const _UpdateProfileDialog({super.key});
+  const _UpdateProfileDialog({Key? key}) : super(key: key);
 
   @override
   __UpdateProfileDialogState createState() => __UpdateProfileDialogState();
@@ -81,7 +81,7 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
 
   @override
   Widget build(BuildContext context) {
-    InputDecoration dec(String label) => InputDecoration(
+    InputDecoration _dec(String label) => InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: Colors.grey),
       enabledBorder:
@@ -100,19 +100,19 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
             TextField(
               controller: _userCtrl,
               style: const TextStyle(color: Colors.white),
-              decoration: dec("New Username"),
+              decoration: _dec("New Username"),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _firstCtrl,
               style: const TextStyle(color: Colors.white),
-              decoration: dec("New First Name"),
+              decoration: _dec("New First Name"),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _lastCtrl,
               style: const TextStyle(color: Colors.white),
-              decoration: dec("New Last Name"),
+              decoration: _dec("New Last Name"),
             ),
           ],
         ),
@@ -136,7 +136,7 @@ class __UpdateProfileDialogState extends State<_UpdateProfileDialog> {
 }
 
 class ProfileFragment extends StatefulWidget {
-  const ProfileFragment({super.key});
+  const ProfileFragment({Key? key}) : super(key: key);
 
   @override
   State<ProfileFragment> createState() => _ProfileFragmentState();
@@ -231,7 +231,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
   }
 
   Future<void> _confirmDelete() async {
-    final TextEditingController confirmController = TextEditingController();
+    final TextEditingController _confirmController = TextEditingController();
 
     bool ok = await showDialog<bool>(
       context: context,
@@ -239,7 +239,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setState) {
-            final isValid = confirmController.text.trim().toLowerCase() == 'delete';
+            final isValid = _confirmController.text.trim().toLowerCase() == 'delete';
             return AlertDialog(
               backgroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -257,7 +257,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: confirmController,
+                    controller: _confirmController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'delete',
@@ -486,11 +486,11 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const _ActionButton({
-    super.key,
+    Key? key,
     required this.icon,
     required this.label,
     required this.onPressed,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext c) {

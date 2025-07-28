@@ -239,7 +239,6 @@ class _BookingCard extends StatelessWidget {
   final void Function(Booking) onCancelled;
 
   const _BookingCard({
-    super.key,
     required this.booking,
     required this.time,
     required this.allowCancel,

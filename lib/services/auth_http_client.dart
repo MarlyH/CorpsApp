@@ -1,8 +1,10 @@
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 import 'token_service.dart';
 import '../models/location.dart';
@@ -202,5 +204,82 @@ class AuthHttpClient {
     if (response.statusCode >= 400) {
       throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
+  }
+  /// GET /api/Locations
+  static Future<http.Response> getLocations() {
+    return get('/api/Locations');
+  }
+
+  /// GET /api/Locations/{id}
+  static Future<http.Response> getLocation(int id) {
+    return get('/api/Locations/$id');
+  }
+
+  /// POST /api/Locations  (multipart/form-data)
+  static Future<http.Response> createLocation({
+    required String name,
+    File? imageFile,
+  }) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+
+    final uri = Uri.parse('$_baseUrl/api/Locations');
+    final req = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['name'] = name;
+
+    if (imageFile != null) {
+      final mimeType = lookupMimeType(imageFile.path) ?? 'application/octet-stream';
+      final parts    = mimeType.split('/');
+      req.files.add(
+        await http.MultipartFile.fromPath(
+          'mascotImage',
+          imageFile.path,
+          contentType: MediaType(parts[0], parts[1]),
+        ),
+      );
+    }
+
+    final streamed = await req.send();
+    final res      = await http.Response.fromStream(streamed);
+    _checkForErrors(res);
+    return res;
+  }
+
+  /// PUT /api/Locations/{id}  (multipart/form-data)
+  static Future<http.Response> updateLocation({
+    required int    id,
+    required String name,
+    File? imageFile,
+  }) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+
+    final uri = Uri.parse('$_baseUrl/api/Locations/$id');
+    final req = http.MultipartRequest('PUT', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['name'] = name;
+
+    if (imageFile != null) {
+      final mimeType = lookupMimeType(imageFile.path) ?? 'application/octet-stream';
+      final parts    = mimeType.split('/');
+      req.files.add(
+        await http.MultipartFile.fromPath(
+          'mascotImage',
+          imageFile.path,
+          contentType: MediaType(parts[0], parts[1]),
+        ),
+      );
+    }
+
+    final streamed = await req.send();
+    final res      = await http.Response.fromStream(streamed);
+    _checkForErrors(res);
+    return res;
+  }
+
+  /// DELETE /api/Locations/{id}
+  static Future<http.Response> deleteLocation(int id) {
+    return delete('/api/Locations/$id');
   }
 }

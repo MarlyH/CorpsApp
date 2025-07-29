@@ -11,7 +11,7 @@ import '../services/auth_http_client.dart';
 import 'change_password_view.dart';
 
 class AccountSecurityView extends StatefulWidget {
-  const AccountSecurityView({Key? key}) : super(key: key);
+  const AccountSecurityView({super.key});
 
   @override
   _AccountSecurityViewState createState() => _AccountSecurityViewState();
@@ -283,12 +283,12 @@ class _SingleFieldDialog extends StatefulWidget {
   final String hint;
   final bool isEmail;
   const _SingleFieldDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.initial,
     required this.hint,
     this.isEmail = false,
-  }) : super(key: key);
+  });
 
   @override
   __SingleFieldDialogState createState() => __SingleFieldDialogState();
@@ -348,7 +348,7 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteConfirmDialog extends StatefulWidget {
-  const _DeleteConfirmDialog({Key? key}) : super(key: key);
+  const _DeleteConfirmDialog({super.key});
   @override
   __DeleteConfirmDialogState createState() => __DeleteConfirmDialogState();
 }

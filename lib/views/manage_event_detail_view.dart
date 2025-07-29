@@ -7,7 +7,7 @@ import '../services/auth_http_client.dart';
 
 class ManageEventDetailView extends StatefulWidget {
   final EventSummary event;
-  const ManageEventDetailView({Key? key, required this.event}) : super(key: key);
+  const ManageEventDetailView({super.key, required this.event});
 
   @override
   _ManageEventDetailViewState createState() => _ManageEventDetailViewState();

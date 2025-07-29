@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_http_client.dart';
 
 class ChangePasswordView extends StatefulWidget {
-  const ChangePasswordView({Key? key}) : super(key: key);
+  const ChangePasswordView({super.key});
 
   @override
   _ChangePasswordViewState createState() => _ChangePasswordViewState();

@@ -6,7 +6,7 @@ import '../services/auth_http_client.dart';
 
 class ReserveFlow extends StatefulWidget {
   final int eventId;
-  const ReserveFlow({Key? key, required this.eventId}) : super(key: key);
+  const ReserveFlow({super.key, required this.eventId});
 
   @override
   _ReserveFlowState createState() => _ReserveFlowState();

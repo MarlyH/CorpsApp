@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_http_client.dart';
 class ManageLocationsView extends StatefulWidget {
-  const ManageLocationsView({Key? key}) : super(key: key);
+  const ManageLocationsView({super.key});
 
   @override
   State<ManageLocationsView> createState() => _ManageLocationsViewState();
@@ -417,7 +417,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteLocationConfirmDialog extends StatefulWidget {
-  const _DeleteLocationConfirmDialog({Key? key}) : super(key: key);
+  const _DeleteLocationConfirmDialog({super.key});
 
   @override
   State<_DeleteLocationConfirmDialog> createState() =>

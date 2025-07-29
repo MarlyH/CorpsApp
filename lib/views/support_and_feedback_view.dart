@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 
 class SupportAndFeedbackView extends StatefulWidget {
-  const SupportAndFeedbackView({Key? key}) : super(key: key);
+  const SupportAndFeedbackView({super.key});
 
   @override
   _SupportAndFeedbackViewState createState() =>
@@ -60,7 +60,7 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
         centerTitle: true,
         title: const Text(
           'SUPPORT AND FEEDBACK',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'WinnerSans',
             fontSize: 20,            // tweak as needed
             fontWeight: FontWeight.w600,

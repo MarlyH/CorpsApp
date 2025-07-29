@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 
 class PoliciesView extends StatelessWidget {
-  const PoliciesView({Key? key}) : super(key: key);
+  const PoliciesView({super.key});
 
   Widget _buildSectionHeader(String text) {
     return Padding(
@@ -61,7 +61,7 @@ class PoliciesView extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           'POLICIES',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'WinnerSans',
             fontSize: 20,            // tweak as needed
             fontWeight: FontWeight.w600,

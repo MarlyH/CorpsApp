@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 
 class AboutCorpsView extends StatelessWidget {
-  const AboutCorpsView({Key? key}) : super(key: key);
+  const AboutCorpsView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class AboutCorpsView extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           'ABOUT CORPS',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'WinnerSans',
             fontSize: 20,            // tweak as needed
             fontWeight: FontWeight.w600,

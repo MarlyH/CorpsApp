@@ -16,7 +16,7 @@ import '../views/policies_view.dart';
 import '../views/support_and_feedback_view.dart';
 
 class ProfileFragment extends StatelessWidget {
-  const ProfileFragment({Key? key}) : super(key: key);
+  const ProfileFragment({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +29,9 @@ class ProfileFragment extends StatelessWidget {
 
     // Determine role label
     String roleLabel;
-    if (isAdmin)
+    if (isAdmin) {
       roleLabel = "Admin";
-    else if (isManager)
+    } else if (isManager)
       roleLabel = "Event Manager";
     else
       roleLabel = "User";

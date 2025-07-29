@@ -171,14 +171,17 @@ class _HomeFragmentState extends State<HomeFragment> {
             // APPLY FILTERS (rely solely on status from backend)
             final events =
                 all.where((e) {
-                    if (e.status != event_summary.EventStatus.Available)
+                    if (e.status != event_summary.EventStatus.Available) {
                       return false;
+                    }
                     if (_filterLocation != null &&
-                        e.locationName != _filterLocation)
+                        e.locationName != _filterLocation) {
                       return false;
+                    }
                     if (_filterSessionType != null &&
-                        e.sessionType != _filterSessionType)
+                        e.sessionType != _filterSessionType) {
                       return false;
+                    }
                     return true;
                   }).toList()
                   // APPLY SORTS

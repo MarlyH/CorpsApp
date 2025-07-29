@@ -1,4 +1,5 @@
 import 'package:corpsapp/widgets/button.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/token_service.dart';
@@ -20,6 +21,34 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkForToken();
+    _setupFirebaseMessaging();
+  }
+
+  Future<void> _setupFirebaseMessaging() async {
+    final messaging = FirebaseMessaging.instance;
+
+    // Request permission (safe for Android and required on iOS)
+    await messaging.requestPermission();
+
+    // Optional: get and print the FCM token for debugging or backend registration
+    final token = await messaging.getToken();
+    print('FCM Token: $token');
+
+    // Handle messages when app is in the foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        print('📬 Foreground notification: ${message.notification!.title}');
+        // Optionally show an in-app alert/snackbar here
+      }
+    });
+
+    // Handle when the app is opened from a notification tap
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('📦 Notification caused app to open: ${message.data}');
+      // Navigate or update UI based on message.data here
+      // Example:
+      // Navigator.pushNamed(context, '/someRoute', arguments: message.data);
+    });
   }
 
   Future<void> _checkForToken() async {

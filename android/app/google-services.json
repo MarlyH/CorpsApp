@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062951344148",
+    "project_id": "yourcorps-fcm-test",
+    "storage_bucket": "yourcorps-fcm-test.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062951344148:android:0dd5204037ee4d2463af01",
+        "android_client_info": {
+          "package_name": "com.example.corpsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkjnDezRPwsFO8HXMHn9prUaXUKJI4aNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

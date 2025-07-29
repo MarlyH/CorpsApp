@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.corpsapp"
-        minSdk = flutter.minSdkVersion
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -41,4 +41,7 @@ flutter {
 dependencies {
     // ✅ Required for core library desugaring support (Java 8+ APIs)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
 }
+
+apply(plugin = "com.google.gms.google-services")

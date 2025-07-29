@@ -1,15 +1,11 @@
-// lib/views/booking_flow.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../models/event_summary.dart' show EventSummary, friendlySession;
 import '../models/event_detail.dart' show EventDetail;
 import '../models/child_model.dart';
-
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
   const BookingFlow({Key? key, required this.event}) : super(key: key);
@@ -223,9 +219,6 @@ class _BookingFlowState extends State<BookingFlow> {
       ),
     );
   }
-
-  // ... rest of your existing _buildHeader, _termsView, _seatView, _attendeeView, _confirmView,
-  //     _showAddChildDialog(), etc. all unchanged, just moved above.
 
   Widget _buildHeader() {
     final e = widget.event;

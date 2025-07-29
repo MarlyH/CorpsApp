@@ -25,6 +25,7 @@ class ProfileFragment extends StatelessWidget {
     final isUser = auth.isUser || auth.isStaff;
     final isManager = auth.isEventManager;
     final isAdmin = auth.isAdmin;
+    final age = user['age'] as int? ?? 0;
 
     // Determine role label
     String roleLabel;
@@ -125,19 +126,17 @@ class ProfileFragment extends StatelessWidget {
                         ),
                   ),
 
-                  if (isUser) ...[
+                  if (isUser && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,
                       label: "My Children",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ManageChildrenView(),
-                            ),
-                          ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ManageChildrenView()),
+                      ),
                     ),
                   ],
+
 
                   if (isManager || isAdmin) ...[
                     _OptionTile(

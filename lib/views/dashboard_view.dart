@@ -115,7 +115,7 @@ class _DashboardViewState extends State<DashboardView> {
                 width: _fabDiameter + _fabBorder * 2,
                 height: _fabDiameter + _fabBorder * 2,
                 child: FloatingActionButton(
-                  backgroundColor: Colors.red,
+                  backgroundColor: const Color(0xFFD01417),
                   elevation: 4,
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const QrScanFragment()),
@@ -123,7 +123,7 @@ class _DashboardViewState extends State<DashboardView> {
                   shape: CircleBorder(
                     side: BorderSide(color: Colors.black, width: _fabBorder),
                   ),
-                  child: const Icon(Icons.qr_code_scanner, size: 32),
+                  child: const Icon(Icons.qr_code_scanner, size: 32, color: Color.fromARGB(255, 255, 255, 255),),
                 ),
               )
             : null,

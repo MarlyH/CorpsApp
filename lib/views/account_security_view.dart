@@ -5,10 +5,10 @@ import 'dart:convert';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:corpsapp/views/change_password_view.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
+import 'change_password_view.dart';
 
 class AccountSecurityView extends StatefulWidget {
   const AccountSecurityView({Key? key}) : super(key: key);
@@ -43,6 +43,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
         title: title,
         initial: initial,
         hint: hint,
+        isEmail: false,
       ),
     );
     if (result == null || result.trim() == initial.trim()) return;
@@ -60,16 +61,18 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
   }
 
   Future<void> _changeEmail() async {
+    final auth = context.read<AuthProvider>();
+    final current = auth.userProfile?['email'] as String? ?? '';
     final newEmail = await showDialog<String?>(
       context: context,
-      builder: (_) => const _SingleFieldDialog(
+      builder: (_) => _SingleFieldDialog(
         title: 'Change Email',
-        initial: '',
+        initial: current,
         hint: 'you@example.com',
         isEmail: true,
       ),
     );
-    if (newEmail == null) return;
+    if (newEmail == null || newEmail.trim() == current.trim()) return;
 
     if (!EmailValidator.validate(newEmail)) {
       setState(() => _emailError = "Enter a valid email");
@@ -83,7 +86,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     });
 
     try {
-      final res = await AuthHttpClient.requestEmailChange(newEmail);
+      final res = await AuthHttpClient.requestEmailChange(newEmail.trim());
       if (res.statusCode == 200) {
         _showSnack("Check your new email to confirm", bg: Colors.green);
       } else {
@@ -100,7 +103,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool>(
+    final ok = await showDialog<bool?>(
       context: context,
       builder: (_) => const _DeleteConfirmDialog(),
     ) ?? false;
@@ -123,6 +126,8 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.userProfile ?? {};
+    final isAdmin = auth.isAdmin;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -151,7 +156,8 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                             title: 'First Name',
                             initial: user['firstName'] as String? ?? '',
                             hint: 'new first name',
-                            onSubmit: (v) => AuthHttpClient.updateProfile(newFirstName: v),
+                            onSubmit: (v) =>
+                                AuthHttpClient.updateProfile(newFirstName: v),
                           ),
                           showArrow: true,
                         ),
@@ -163,7 +169,8 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                             title: 'Last Name',
                             initial: user['lastName'] as String? ?? '',
                             hint: 'new last name',
-                            onSubmit: (v) => AuthHttpClient.updateProfile(newLastName: v),
+                            onSubmit: (v) =>
+                                AuthHttpClient.updateProfile(newLastName: v),
                           ),
                           showArrow: true,
                         ),
@@ -175,7 +182,8 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                             title: 'Username',
                             initial: user['userName'] as String? ?? '',
                             hint: 'new username',
-                            onSubmit: (v) => AuthHttpClient.updateProfile(newUserName: v),
+                            onSubmit: (v) =>
+                                AuthHttpClient.updateProfile(newUserName: v),
                           ),
                           showArrow: true,
                         ),
@@ -207,7 +215,8 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                           value: '●●●●●●●●',
                           onTap: () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ChangePasswordView()),
+                            MaterialPageRoute(
+                                builder: (_) => const ChangePasswordView()),
                           ),
                           showArrow: true,
                         ),
@@ -217,12 +226,15 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
 
                   const SizedBox(height: 24),
 
-                  // Delete Account button
-                  TextButton(
-                    onPressed: _confirmDelete,
-                    child: const Text('Delete Account',
-                        style: TextStyle(color: Colors.redAccent)),
-                  ),
+                  // only non-admins can delete
+                  if (!isAdmin)
+                    TextButton(
+                      onPressed: _confirmDelete,
+                      child: const Text(
+                        'Delete Account',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -284,6 +296,7 @@ class _SingleFieldDialog extends StatefulWidget {
 
 class __SingleFieldDialogState extends State<_SingleFieldDialog> {
   late TextEditingController _ctrl;
+
   @override
   void initState() {
     super.initState();
@@ -304,8 +317,9 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
       title: Text(widget.title, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: _ctrl,
-        keyboardType:
-            widget.isEmail ? TextInputType.emailAddress : TextInputType.text,
+        keyboardType: widget.isEmail
+            ? TextInputType.emailAddress
+            : TextInputType.text,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: widget.hint,
@@ -341,6 +355,7 @@ class _DeleteConfirmDialog extends StatefulWidget {
 
 class __DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
   final _ctrl = TextEditingController();
+
   @override
   void dispose() {
     _ctrl.dispose();
@@ -364,12 +379,12 @@ class __DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
           const SizedBox(height: 12),
           TextField(
             controller: _ctrl,
-            style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+            style: const TextStyle(color: Colors.black),
             decoration: InputDecoration(
               hintText: 'delete',
               hintStyle: const TextStyle(color: Colors.white24),
               filled: true,
-              fillColor: const Color.fromARGB(255, 255, 255, 255),
+              fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,

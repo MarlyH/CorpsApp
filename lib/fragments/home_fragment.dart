@@ -125,24 +125,27 @@ class _HomeFragmentState extends State<HomeFragment> {
     return Scaffold(
       backgroundColor: Colors.black,
       floatingActionButton: canManage
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 5.0),
-              child: SizedBox(
-                width: 70,
-                height: 70,
-                child: FloatingActionButton(
-                  shape: const CircleBorder(),
-                  backgroundColor: const Color(0xFF4C85D0),
-                  child: const Icon(Icons.add, color: Colors.black),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CreateEventView()),
-                    );
-                  },
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: 5.0),
+            child: SizedBox(
+              width: 70,
+              height: 70,
+              child: FloatingActionButton(
+                shape: CircleBorder(
+                  side: BorderSide(color: const Color(0xFF4C85D0), width: 2),
                 ),
+                backgroundColor: Colors.white,
+                child: const Icon(Icons.add, color: Colors.black),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CreateEventView()),
+                  );
+                },
               ),
-            )
-          : null,
+            ),
+          )
+        : null,
+
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<event_summary.EventSummary>>(

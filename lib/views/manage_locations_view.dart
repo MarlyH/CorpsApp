@@ -1,13 +1,8 @@
-// lib/views/manage_locations_view.dart
-
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../services/auth_http_client.dart';
-
 class ManageLocationsView extends StatefulWidget {
   const ManageLocationsView({Key? key}) : super(key: key);
 
@@ -24,7 +19,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
   bool _isLoading = false;
   String? _currentImageUrl;
   Map<String, dynamic>? _editingLocation;
-
   List<Map<String, dynamic>> _locations = [];
 
   @override
@@ -70,6 +64,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       setState(() {
         _editingLocation = data;
         _locations = [];
+        _idController.text = data['locationId'].toString();
         _nameController.text = data['name'] as String? ?? '';
         _currentImageUrl = data['mascotImgSrc'] as String?;
       });
@@ -185,34 +180,58 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ─── ID Field ──────────────────────────────
+          const Text(
+            'ID (tap list or type)',
+            style: TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 6),
           TextFormField(
             controller: _idController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'ID (tap list or type)',
-              labelStyle: TextStyle(color: Colors.white70),
-              enabledBorder:
-                  UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              focusedBorder:
-                  UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-            ),
             keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              hintText: 'e.g. 42',
+              hintStyle: const TextStyle(color: Colors.black38),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+
+          // ─── Name Field ────────────────────────────
+          const Text(
+            'Name',
+            style: TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 6),
           TextFormField(
             controller: _nameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              labelStyle: TextStyle(color: Colors.white70),
-              enabledBorder:
-                  UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              focusedBorder:
-                  UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              hintText: 'Location name',
+              hintStyle: const TextStyle(color: Colors.black38),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
             ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Required' : null,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+
+          // ─── Image Picker ──────────────────────────
           Row(
             children: [
               ElevatedButton.icon(
@@ -222,42 +241,77 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
                   _pickedImage != null ? 'Change Image' : 'Pick Image',
                   style: const TextStyle(color: Colors.black),
                 ),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                ),
               ),
               const SizedBox(width: 12),
-              if (_pickedImage != null) const Icon(Icons.check, color: Colors.white70),
+              if (_pickedImage != null)
+                const Icon(Icons.check, color: Colors.white70),
             ],
           ),
           const SizedBox(height: 24),
+
+          // ─── CREATE / UPDATE / DELETE / CLEAR ─────
           if (!isEditing) ...[
             ElevatedButton(
               onPressed: _isLoading ? null : _createLocation,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               child: const Text('CREATE'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
           ] else ...[
             ElevatedButton(
               onPressed: _isLoading ? null : _updateLocation,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               child: const Text('UPDATE'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: _isLoading ? null : _deleteLocation,
-              child: const Text('DELETE'),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => const _DeleteLocationConfirmDialog(),
+                      ) ?? false;
+                      if (confirmed) _deleteLocation();
+                    },
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
+              child: const Text('DELETE'),
             ),
             const SizedBox(height: 12),
-            OutlinedButton(
+            ElevatedButton(
               onPressed: _isLoading ? null : _clearForm,
-              child: const Text('CLEAR'),
               style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(48),
-                side: const BorderSide(color: Colors.white54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
+              child: const Text('CLEAR'),
             ),
           ],
         ],
@@ -269,7 +323,8 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 16),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 16),
       itemCount: _locations.length,
       itemBuilder: (ctx, i) {
         final loc = _locations[i];
@@ -279,11 +334,14 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
           child: ListTile(
             leading: loc['mascotImgSrc'] != null
                 ? CircleAvatar(
-                    backgroundImage: NetworkImage(loc['mascotImgSrc'] as String),
+                    backgroundImage:
+                        NetworkImage(loc['mascotImgSrc'] as String),
                   )
                 : const Icon(Icons.location_on, color: Colors.white70),
-            title: Text(loc['name'] as String, style: const TextStyle(color: Colors.white)),
-            subtitle: Text('ID: ${loc['locationId']}', style: const TextStyle(color: Colors.white70)),
+            title: Text(loc['name'] as String,
+                style: const TextStyle(color: Colors.white)),
+            subtitle: Text('ID: ${loc['locationId']}',
+                style: const TextStyle(color: Colors.white70)),
             onTap: () {
               _idController.text = loc['locationId'].toString();
               _loadLocationById(_idController.text);
@@ -294,29 +352,53 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     );
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Locations'),
         backgroundColor: Colors.black,
+        title: Text(
+          'Location Management',
+          style: const TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,            // tweak as needed
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _isLoading ? null : _loadAllLocations),
-          IconButton(icon: const Icon(Icons.search), onPressed: _isLoading ? null : () => _loadLocationById(_idController.text)),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadAllLocations,
+          ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _isLoading
+                ? null
+                : () => _loadLocationById(_idController.text),
+          ),
         ],
       ),
       backgroundColor: Colors.black,
       body: SafeArea(
         bottom: true,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_currentImageUrl != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(_currentImageUrl!, height: 120, fit: BoxFit.cover),
+                  child: Image.network(
+                    _currentImageUrl!,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -329,6 +411,80 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
+class _DeleteLocationConfirmDialog extends StatefulWidget {
+  const _DeleteLocationConfirmDialog({Key? key}) : super(key: key);
+
+  @override
+  State<_DeleteLocationConfirmDialog> createState() =>
+      _DeleteLocationConfirmDialogState();
+}
+
+class _DeleteLocationConfirmDialogState
+    extends State<_DeleteLocationConfirmDialog> {
+  final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isValid = _ctrl.text.trim().toUpperCase() == 'DELETE';
+    return AlertDialog(
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text("Delete Location", style: TextStyle(color: Colors.white)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Type “delete” to confirm permanent deletion of this location.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              hintText: 'delete',
+              hintStyle: const TextStyle(color: Colors.black38),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.white70)),
+        ),
+        TextButton(
+          onPressed: isValid ? () => Navigator.pop(context, true) : null,
+          child: Text(
+            "DELETE",
+            style: TextStyle(
+              color: isValid
+                  ? Colors.redAccent
+                  : Colors.redAccent.withOpacity(0.4),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1030,7 +1030,7 @@ class _CancellationDialog extends StatelessWidget {
             TextField(
               controller: controller,
               maxLines: 4,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
               decoration: InputDecoration(
                 hintText:
                     'Add explanation. This message will be sent to people with an active booking.',

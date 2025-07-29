@@ -72,7 +72,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('My Events', style: TextStyle(letterSpacing: 1.2)),
+        title: const Text('My Events', style: TextStyle(letterSpacing: 1.2, fontFamily: 'WinnerSans', fontSize: 20, fontWeight: FontWeight.w600,)),
         leading: const BackButton(color: Colors.white),
         elevation: 0,
       ),

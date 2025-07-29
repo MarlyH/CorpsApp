@@ -120,8 +120,8 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: const Color(0xFF4C85D0),
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         onPressed: _isLoading ? null : _changeRole,
@@ -140,8 +140,15 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Change User Role'),
         backgroundColor: Colors.black,
+        title: const Text(
+          'Role Management',
+          style: TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,           // adjust size as needed
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       backgroundColor: Colors.black,
       body: SafeArea(

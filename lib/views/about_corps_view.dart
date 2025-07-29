@@ -16,10 +16,10 @@ class AboutCorpsView extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           'ABOUT CORPS',
-          style: TextStyle(
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+          style: const TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,            // tweak as needed
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

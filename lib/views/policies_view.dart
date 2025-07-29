@@ -61,10 +61,10 @@ class PoliciesView extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           'POLICIES',
-          style: TextStyle(
-            color: Colors.white,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.bold,
+          style: const TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,            // tweak as needed
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

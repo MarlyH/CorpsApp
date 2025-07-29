@@ -60,10 +60,10 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
         centerTitle: true,
         title: const Text(
           'SUPPORT AND FEEDBACK',
-          style: TextStyle(
-            color: Colors.white,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.bold,
+          style: const TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,            // tweak as needed
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

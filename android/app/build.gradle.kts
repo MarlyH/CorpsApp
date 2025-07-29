@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -12,7 +13,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-        isCoreLibraryDesugaringEnabled = true // ✅ this is the fix
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -39,9 +40,9 @@ flutter {
 }
 
 dependencies {
-    // ✅ Required for core library desugaring support (Java 8+ APIs)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("com.google.firebase:firebase-messaging:23.4.0")
+    implementation("com.microsoft.azure:notification-hubs-android-sdk-fcm:1.1.4")
+    implementation("androidx.appcompat:appcompat:1.4.1")
+    implementation("com.android.volley:volley:1.2.1")
 }
-
-apply(plugin = "com.google.gms.google-services")

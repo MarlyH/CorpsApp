@@ -1,3 +1,5 @@
+// lib/views/booking_flow.dart
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +12,7 @@ import '../models/child_model.dart';
 
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
-
-  const BookingFlow({super.key, required this.event});
+  const BookingFlow({Key? key, required this.event}) : super(key: key);
 
   @override
   _BookingFlowState createState() => _BookingFlowState();
@@ -25,43 +26,57 @@ class _BookingFlowState extends State<BookingFlow> {
 
   List<ChildModel> _children = [];
   late Future<EventDetail> _detailFut;
+  String? _mascotUrl; // ← URL from GET /api/locations/{id}
 
   @override
   void initState() {
     super.initState();
     _loadChildren();
     _detailFut = _loadEventDetail();
+    _fetchMascotImage();
   }
 
-  Future<void> _loadChildren() async {
+  Future<void> _fetchMascotImage() async {
     try {
-      final resp = await AuthHttpClient.fetchChildren();
-      final data = jsonDecode(resp.body) as List<dynamic>;
-      setState(() {
-        _children = data
-            .cast<Map<String, dynamic>>()
-            .map(ChildModel.fromJson)
-            .toList();
-      });
+      final resp = await AuthHttpClient.getLocation(widget.event.locationId);
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final url = data['mascotImgSrc'] as String?;
+        if (url != null && url.isNotEmpty) {
+          setState(() => _mascotUrl = url);
+        }
+      }
     } catch (_) {
       // ignore errors
     }
   }
 
+  Future<void> _loadChildren() async {
+    try {
+      final resp = await AuthHttpClient.fetchChildren();
+      final list = jsonDecode(resp.body) as List<dynamic>;
+      setState(() {
+        _children =
+            list.cast<Map<String, dynamic>>().map(ChildModel.fromJson).toList();
+      });
+    } catch (_) {}
+  }
+
   Future<EventDetail> _loadEventDetail() async {
-    final resp =
-        await AuthHttpClient.get('/api/events/${widget.event.eventId}');
+    final resp = await AuthHttpClient.get(
+      '/api/events/${widget.event.eventId}',
+    );
     return EventDetail.fromJson(jsonDecode(resp.body));
   }
 
   bool get _needsFullFlow {
-    final age =
-        context.read<AuthProvider>().userProfile?['age'] as int? ?? 0;
+    final age = context.read<AuthProvider>().userProfile?['age'] as int? ?? 0;
     return age >= 16;
   }
 
   void _next() {
-    final last = _needsFullFlow ? 3 : 1;
+    // now under-16 goes up to index 2 (Terms=0, Seat=1, Confirm=2)
+    final last = _needsFullFlow ? 3 : 2;
     if (_step < last) {
       setState(() => _step++);
     } else {
@@ -78,12 +93,12 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   Future<void> _submitBooking() async {
-    final isForChild = _selectedChildId != null;
+    final isChild = _selectedChildId != null;
     final dto = {
       'eventId': widget.event.eventId,
       'seatNumber': _selectedSeat,
-      'isForChild': isForChild,
-      'childId': isForChild ? int.parse(_selectedChildId!) : null,
+      'isForChild': isChild,
+      'childId': isChild ? int.parse(_selectedChildId!) : null,
       'canBeLeftAlone': _allowAlone,
     };
 
@@ -92,7 +107,7 @@ class _BookingFlowState extends State<BookingFlow> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Booking successful'),
-          backgroundColor: Color.fromARGB(255, 255, 255, 255),
+          backgroundColor: Colors.white,
         ),
       );
       Navigator.pop(context, true);
@@ -108,37 +123,41 @@ class _BookingFlowState extends State<BookingFlow> {
 
   @override
   Widget build(BuildContext context) {
-    final totalSteps = _needsFullFlow ? 4 : 2;
-    final showNav = !(_needsFullFlow && _step == 0);
+    // fullFlow has 4 pages, under16 has 3
+    final totalSteps = _needsFullFlow ? 4 : 3;
+    // only hide nav on Terms (step 0)
+    final showNav = _step > 0;
 
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              // Always show the details header, even on Terms which is step 0
-              _buildHeader(),
+    // labels per step
+    final labels =
+        _needsFullFlow
+            ? ['Terms', 'Seat', 'Attendee', 'Confirm']
+            : ['Terms', 'Seat', 'Confirm'];
 
-            // Step title
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildHeader(),
+
+            // step title
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
-                _needsFullFlow
-                    ? ['Terms', 'Seat', 'Attendee', 'Confirm'][_step]
-                    : ['Seat', 'Confirm'][_step],
-                style:
-                    const TextStyle(color: Colors.white70, fontSize: 16),
+                labels[_step],
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
               ),
             ),
 
-            // Step content
+            // content
             Expanded(
               child: IndexedStack(
                 index: _step,
                 children: [
-                  if (_needsFullFlow)
-                    _termsView(onCancel: _back, onAgree: _next),
+                  // always Terms first
+                  _termsView(onCancel: _back, onAgree: _next),
                   _seatView(),
                   if (_needsFullFlow) _attendeeView(),
                   _confirmView(),
@@ -146,7 +165,7 @@ class _BookingFlowState extends State<BookingFlow> {
               ),
             ),
 
-            // Back/Next buttons which are hidden on Terms
+            // BACK / NEXT bar
             if (showNav)
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -157,39 +176,41 @@ class _BookingFlowState extends State<BookingFlow> {
                 ),
                 child: Row(
                   children: [
+                    // Back
                     Expanded(
                       child: OutlinedButton(
                         onPressed: _back,
                         style: OutlinedButton.styleFrom(
                           backgroundColor: const Color(0xFF9E9E9E),
                           side: BorderSide.none,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
-                        child: const Text('BACK',
-                            style: TextStyle(color: Colors.white)),
+                        child: const Text(
+                          'BACK',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
+                    // Next / Complete
                     Expanded(
                       child: ElevatedButton(
                         onPressed:
-                            (_step == 1 && _selectedSeat == null) ? null : _next,
+                            (_step == 1 && _selectedSeat == null)
+                                ? null
+                                : _next,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4C85D0),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
                         child: Text(
-                          (_step == totalSteps - 1)
-                              ? 'COMPLETE'
-                              : 'NEXT',
+                          (_step == totalSteps - 1) ? 'COMPLETE' : 'NEXT',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
@@ -203,96 +224,77 @@ class _BookingFlowState extends State<BookingFlow> {
     );
   }
 
-  
-  // Dynamic, full-width header with full date on one line
-  
-    Widget _buildHeader() {
+  // ... rest of your existing _buildHeader, _termsView, _seatView, _attendeeView, _confirmView,
+  //     _showAddChildDialog(), etc. all unchanged, just moved above.
+
+  Widget _buildHeader() {
     final e = widget.event;
+    final hasMascot = e.mascotUrl != null && e.mascotUrl!.isNotEmpty;
+
+    // Build the avatar: either the mascot URL or a generic icon.
+    final avatar = hasMascot
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              e.mascotUrl!,
+              height: 56,
+              width: 56,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.location_on, size: 56, color: Colors.white30),
+            ),
+          )
+        : const Icon(Icons.location_on, size: 56, color: Colors.white30);
+
     return Container(
       width: double.infinity,
       color: Colors.black,
-      // extra top padding so you never collide with the notch/status bar
       padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
       child: Column(
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // back arrow
               IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                 onPressed: _back,
               ),
-
-              // logo
-              Expanded(
-                flex: 2,
-                child: Center(
-                  child: Image.asset(
-                    e.locationAssetPath,
-                    height: 56,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-
+              const SizedBox(width: 8),
+              avatar,
               const SizedBox(width: 12),
-
-              // text details
+              // Event info
               Expanded(
-                flex: 5,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // full weekday & day & month in one line
                     Text(
                       _headerDate(e.startDate),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,    // smaller
-                      ),
+                      style: const TextStyle(color: Colors.white70, fontSize: 16),
                     ),
-
                     const SizedBox(height: 6),
-
-                    // session title
                     Text(
                       friendlySession(e.sessionType),
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,   // smaller
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold),
                     ),
-
                     const SizedBox(height: 6),
-
-                    // time & location on same row
                     Row(
                       children: [
                         Text(
                           e.startTime,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style:
+                              const TextStyle(color: Colors.white70, fontSize: 14),
                         ),
-                        const Text(
-                          ' • ',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
+                        const Text(' • ',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 14)),
                         Expanded(
                           child: Text(
                             e.locationName,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
                           ),
                         ),
                       ],
@@ -302,7 +304,6 @@ class _BookingFlowState extends State<BookingFlow> {
               ),
             ],
           ),
-
           const SizedBox(height: 20),
           const Divider(color: Colors.white54, height: 1),
         ],
@@ -310,21 +311,20 @@ class _BookingFlowState extends State<BookingFlow> {
     );
   }
 
-  /// Helper for date format
+  // ... make sure you still have this helper below in the same file:
+
   String _headerDate(DateTime d) {
     const months = [
       'January','February','March','April','May','June',
       'July','August','September','October','November','December'
     ];
     const weekdays = [
-      'Monday','Tuesday','Wednesday',
-      'Thursday','Friday','Saturday','Sunday'
+      'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'
     ];
-    final wd = weekdays[d.weekday - 1];
-    final mo = months[d.month - 1];
-    return '$wd ${d.day} $mo';
+    return '${weekdays[d.weekday-1]} ${d.day} ${months[d.month-1]}';
   }
- 
+
+
   // TERMS PAGE
 
   Widget _termsView({
@@ -343,9 +343,10 @@ class _BookingFlowState extends State<BookingFlow> {
                 'TERMS AND CONDITIONS',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -390,8 +391,10 @@ class _BookingFlowState extends State<BookingFlow> {
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text('CANCEL',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'CANCEL',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -405,8 +408,10 @@ class _BookingFlowState extends State<BookingFlow> {
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text('AGREE & CONTINUE',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'AGREE & CONTINUE',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -419,7 +424,7 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   // SEAT SELECTION
-  
+
   Widget _seatView() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -427,11 +432,16 @@ class _BookingFlowState extends State<BookingFlow> {
         children: [
           Expanded(
             child: Center(
-              child: (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
-                  ? Image.network(widget.event.seatingMapImgSrc!,
-                      fit: BoxFit.contain)
-                  : const Text('No seating map available',
-                      style: TextStyle(color: Colors.white70)),
+              child:
+                  (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
+                      ? Image.network(
+                        widget.event.seatingMapImgSrc!,
+                        fit: BoxFit.contain,
+                      )
+                      : const Text(
+                        'No seating map available',
+                        style: TextStyle(color: Colors.white70),
+                      ),
             ),
           ),
           const SizedBox(height: 12),
@@ -442,13 +452,17 @@ class _BookingFlowState extends State<BookingFlow> {
                 return const CircularProgressIndicator(color: Colors.white);
               }
               if (snap.hasError) {
-                return const Text('Error loading seats',
-                    style: TextStyle(color: Colors.redAccent));
+                return const Text(
+                  'Error loading seats',
+                  style: TextStyle(color: Colors.redAccent),
+                );
               }
               final seats = snap.data!.availableSeats;
               if (seats.isEmpty) {
-                return const Text('No seats available',
-                    style: TextStyle(color: Colors.white70));
+                return const Text(
+                  'No seats available',
+                  style: TextStyle(color: Colors.white70),
+                );
               }
               return DropdownButtonFormField<int>(
                 dropdownColor: Colors.white,
@@ -456,18 +470,26 @@ class _BookingFlowState extends State<BookingFlow> {
                   labelText: 'Seat Number',
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
                 style: const TextStyle(color: Colors.black),
                 value: _selectedSeat,
-                items: seats
-                    .map((n) =>
-                        DropdownMenuItem(value: n, child: Text(n.toString())))
-                    .toList(),
+                items:
+                    seats
+                        .map(
+                          (n) => DropdownMenuItem(
+                            value: n,
+                            child: Text(n.toString()),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (v) => setState(() => _selectedSeat = v),
               );
             },
@@ -476,7 +498,6 @@ class _BookingFlowState extends State<BookingFlow> {
       ),
     );
   }
-
 
   // ATTENDEE DETAILS
 
@@ -487,8 +508,10 @@ class _BookingFlowState extends State<BookingFlow> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Attendee Details',
-                style: TextStyle(color: Colors.white, fontSize: 14)),
+            const Text(
+              'Attendee Details',
+              style: TextStyle(color: Colors.white, fontSize: 14),
+            ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               dropdownColor: Colors.white,
@@ -496,23 +519,31 @@ class _BookingFlowState extends State<BookingFlow> {
                 labelText: 'Select Child',
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 16,
+                ),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
               ),
               style: const TextStyle(color: Colors.black),
               value: _selectedChildId,
               items: [
-                ..._children.map((c) => DropdownMenuItem(
-                      value: c.childId.toString(),
-                      child: Text('${c.firstName} ${c.lastName}'),
-                    )),
+                ..._children.map(
+                  (c) => DropdownMenuItem(
+                    value: c.childId.toString(),
+                    child: Text('${c.firstName} ${c.lastName}'),
+                  ),
+                ),
                 const DropdownMenuItem(
-                    value: 'ADD',
-                    child:
-                        Text('Add Child', style: TextStyle(color: Colors.blue))),
+                  value: 'ADD',
+                  child: Text(
+                    'Add Child',
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
               ],
               onChanged: (v) {
                 if (v == 'ADD') {
@@ -523,7 +554,10 @@ class _BookingFlowState extends State<BookingFlow> {
               },
             ),
             const SizedBox(height: 16),
-            const Text('Allow child to leave on their own?', style: TextStyle(color: Colors.white70)),
+            const Text(
+              'Allow child to leave on their own?',
+              style: TextStyle(color: Colors.white70),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -583,8 +617,10 @@ class _BookingFlowState extends State<BookingFlow> {
             return Dialog(
               backgroundColor: Colors.transparent,
               child: Container(
-                decoration:
-                    BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -597,7 +633,14 @@ class _BookingFlowState extends State<BookingFlow> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text('Add New Child', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Add New Child',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 12),
 
                     // First Name
@@ -609,7 +652,10 @@ class _BookingFlowState extends State<BookingFlow> {
                         hintText: 'e.g. Jane',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -623,7 +669,10 @@ class _BookingFlowState extends State<BookingFlow> {
                         hintText: 'e.g. Doe',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -633,7 +682,9 @@ class _BookingFlowState extends State<BookingFlow> {
                       onTap: () async {
                         final d = await showDatePicker(
                           context: sbCtx,
-                          initialDate: DateTime.now().subtract(const Duration(days: 365 * 8)),
+                          initialDate: DateTime.now().subtract(
+                            const Duration(days: 365 * 8),
+                          ),
                           firstDate: DateTime(2005),
                           lastDate: DateTime.now(),
                         );
@@ -644,13 +695,19 @@ class _BookingFlowState extends State<BookingFlow> {
                           labelText: 'Date of Birth',
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                         child: Text(
                           dob == null
                               ? 'Tap to select date'
-                              : '${dob!.year}-${dob!.month.toString().padLeft(2,'0')}-${dob!.day.toString().padLeft(2,'0')}',
-                          style: TextStyle(color: dob == null ? Colors.black38 : Colors.black87),
+                              : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            color:
+                                dob == null ? Colors.black38 : Colors.black87,
+                          ),
                         ),
                       ),
                     ),
@@ -665,7 +722,10 @@ class _BookingFlowState extends State<BookingFlow> {
                         hintText: 'e.g. John Doe',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -680,60 +740,90 @@ class _BookingFlowState extends State<BookingFlow> {
                         hintText: '(555) 123-4567',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
                     ElevatedButton(
-                      onPressed: isSubmitting
-                          ? null
-                          : () async {
-                              if (fn.text.trim().isEmpty ||
-                                  ln.text.trim().isEmpty ||
-                                  dob == null ||
-                                  emName.text.trim().isEmpty ||
-                                  emPhone.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please fill out all fields'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                                return;
-                              }
-                              setSb(() => isSubmitting = true);
-                              try {
-                                await AuthHttpClient.post(
-                                  '/api/child',
-                                  body: {  
-                                    'firstName': fn.text.trim(),
-                                    'lastName': ln.text.trim(),
-                                    'dateOfBirth': dob!.toIso8601String().split('T').first,
-                                    'emergencyContactName': emName.text.trim(),
-                                    'emergencyContactPhone': emPhone.text.trim(),
-                                  },
-                                );
-                                await _loadChildren();
-                                Navigator.of(dialogCtx).pop(); // only pop dialog
-                              } catch (e) {
-                                setSb(() => isSubmitting = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Could not add child: $e'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
-                            },
+                      onPressed:
+                          isSubmitting
+                              ? null
+                              : () async {
+                                if (fn.text.trim().isEmpty ||
+                                    ln.text.trim().isEmpty ||
+                                    dob == null ||
+                                    emName.text.trim().isEmpty ||
+                                    emPhone.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please fill out all fields',
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                setSb(() => isSubmitting = true);
+                                try {
+                                  await AuthHttpClient.post(
+                                    '/api/child',
+                                    body: {
+                                      'firstName': fn.text.trim(),
+                                      'lastName': ln.text.trim(),
+                                      'dateOfBirth':
+                                          dob!
+                                              .toIso8601String()
+                                              .split('T')
+                                              .first,
+                                      'emergencyContactName':
+                                          emName.text.trim(),
+                                      'emergencyContactPhone':
+                                          emPhone.text.trim(),
+                                    },
+                                  );
+                                  await _loadChildren();
+                                  Navigator.of(
+                                    dialogCtx,
+                                  ).pop(); // only pop dialog
+                                } catch (e) {
+                                  setSb(() => isSubmitting = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Could not add child: $e'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+                              },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
-                      child: isSubmitting
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('ADD CHILD', style: TextStyle(color: Colors.white)),
+                      child:
+                          isSubmitting
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text(
+                                'ADD CHILD',
+                                style: TextStyle(color: Colors.white),
+                              ),
                     ),
                   ],
                 ),
@@ -746,7 +836,15 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   String _weekdayFull(DateTime d) {
-    const week = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const week = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
     return week[d.weekday - 1];
   }
 }

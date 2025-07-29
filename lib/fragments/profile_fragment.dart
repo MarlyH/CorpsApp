@@ -532,6 +532,7 @@ class _ProfileFragmentState extends State<ProfileFragment> {
                       ),
             ),
           ],
+
           
           if (_emailChangeError != null) ...[
             const SizedBox(height: 20),

@@ -282,4 +282,88 @@ class AuthHttpClient {
   static Future<http.Response> deleteLocation(int id) {
     return delete('/api/Locations/$id');
   }
+
+
+
+
+  /// GET /api/events
+  static Future<http.Response> getEvents() {
+    return get('/api/events');
+  }
+
+  /// GET /api/events/{id}
+  static Future<http.Response> getEvent(int id) {
+    return get('/api/events/$id');
+  }
+
+  /// POST /api/events  (multipart/form-data)
+  static Future<http.Response> createEvent({
+    required int    locationId,
+    required String sessionType,
+    required String startDate,
+    required String startTime,
+    required String endTime,
+    required String availableDate,
+    required int    totalSeats,
+    String?         description,
+    String?         address,
+    File?           seatingMapImage,
+  }) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+    final uri = Uri.parse('$_baseUrl/api/events');
+    final req = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields.addAll({
+        'locationId':    locationId.toString(),
+        'sessionType':   sessionType,
+        'startDate':     startDate,
+        'startTime':     startTime,
+        'endTime':       endTime,
+        'availableDate': availableDate,
+        'totalSeats':    totalSeats.toString(),
+        if (description != null) 'description': description,
+        if (address     != null) 'address':     address,
+      });
+
+    if (seatingMapImage != null) {
+      final mimeType = lookupMimeType(seatingMapImage.path) ?? 'application/octet-stream';
+      final parts    = mimeType.split('/');
+      req.files.add(await http.MultipartFile.fromPath(
+        'seatingMapImage',
+        seatingMapImage.path,
+        contentType: MediaType(parts[0], parts[1]),
+      ));
+    }
+
+    final streamed = await req.send();
+    final res      = await http.Response.fromStream(streamed);
+    _checkForErrors(res);
+    return res;
+  }
+
+  /// PUT /api/events/{id}/cancel
+  static Future<http.Response> cancelEvent(int id, {String? cancellationMessage}) {
+    return put(
+      '/api/events/$id/cancel',
+      body: {
+        if (cancellationMessage != null) 'cancellationMessage': cancellationMessage,
+      },
+    );
+  }
+
+  /// GET /api/events/{eventId}/waitlist
+  static Future<http.Response> getWaitlist(int eventId) {
+    return get('/api/events/$eventId/waitlist');
+  }
+
+  /// POST /api/events/{eventId}/waitlist
+  static Future<http.Response> addToWaitlist(int eventId) {
+    return post('/api/events/$eventId/waitlist');
+  }
+
+  /// DELETE /api/events/{eventId}/waitlist
+  static Future<http.Response> removeFromWaitlist(int eventId) {
+    return delete('/api/events/$eventId/waitlist');
+  }
 }

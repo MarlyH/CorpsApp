@@ -111,28 +111,7 @@ flutter:
     - assets/otp.jpg
     - assets/change_password.jpg
     - assets/success.jpg
-    - assets/location_assets/ASH_CORPS_FINAL.PNG
-    - assets/location_assets/BLEN_CORPS_FINAL.PNG
-    - assets/location_assets/CHCH_CORPS_FINAL.png
-    - assets/location_assets/CLUTHA_CORPS_FINAL.PNG
-    - assets/location_assets/CROM_CORPS.png
-    - assets/location_assets/DUNE_CORPS_FINAL.PNG
-    - assets/location_assets/FINAL_WEST_CORPS_LOGO.png
-    - assets/location_assets/GORE_CORPS_FINAL.PNG
-    - assets/location_assets/HOKITIKA_CORPS_FINAL.png
-    - assets/location_assets/INVA_CORPS_FINAL.png
-    - assets/location_assets/KAIKOURA_CORPS_FINAL.png
-    - assets/location_assets/MLTN_CORPS.png
-    - assets/location_assets/NLSN_CORPS_FINAL.PNG
-    - assets/location_assets/OMRU_CORPS_FINAL.PNG
-    - assets/location_assets/PMRSTON_CORPS_FINAL.png
-    - assets/location_assets/QTWN_CORPS_FINAL.PNG
-    - assets/location_assets/RVRTON_CORPS_FINAL.png
-    - assets/location_assets/TEANAU_CORPS.png
-    - assets/location_assets/TIMARU_CORPS_FINAL.png
-    - assets/location_assets/TMUKA_CORPS.png
-    - assets/location_assets/WINTON_CORPS.png
-    - assets/location_assets/WKAKA_CORPS.png
+    
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

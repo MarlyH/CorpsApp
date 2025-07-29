@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../views/booking_flow.dart';
-import 'package:http/http.dart' as http;
 import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -65,17 +64,13 @@ class _HomeFragmentState extends State<HomeFragment> {
     _futureSummaries = _loadSummaries();
   }
 
-  Future<List<event_summary.EventSummary>> _loadSummaries() async {
-    final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final resp = await http.get(
-      Uri.parse('$base/api/events'),
-      headers: {'Content-Type':'application/json'},
-    );
-    final list = jsonDecode(resp.body) as List<dynamic>;
-    return list
-        .cast<Map<String, dynamic>>()
-        .map(event_summary.EventSummary.fromJson)
-        .toList();
+ Future<List<event_summary.EventSummary>> _loadSummaries() async {
+   final resp = await AuthHttpClient.get('/api/events');
+   final list = jsonDecode(resp.body) as List<dynamic>;
+   return list
+     .cast<Map<String, dynamic>>()
+     .map(event_summary.EventSummary.fromJson)
+     .toList();
   }
 
   Future<void> _refresh() async {
@@ -174,9 +169,9 @@ class _HomeFragmentState extends State<HomeFragment> {
                   if (c != 0) return c;
                 }
                 if (_seatsAsc) {
-                  return a.availableSeats.compareTo(b.availableSeats);
+                  return a.availableSeatsCount.compareTo(b.availableSeatsCount);
                 } else if (_seatsDesc) {
-                  return b.availableSeats.compareTo(a.availableSeats);
+                  return b.availableSeatsCount.compareTo(a.availableSeatsCount);
                 }
                 return 0;
               });
@@ -722,7 +717,7 @@ Widget _buildContentPanels() {
         children: [
           const Icon(Icons.event_seat, color: Colors.white, size: 16),
           const SizedBox(width: 8),
-          Text('${s.availableSeats} Seats Available',
+          Text('${s.availableSeatsCount} Seats Available',
               style: const TextStyle(color: Colors.white)),
         ],
       );

@@ -30,8 +30,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       _checkForToken();
       _subscribeToConnectivity();
     });
-
-    _setupFirebaseMessaging();
   }
 
   void _subscribeToConnectivity() {
@@ -45,22 +43,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       }
     };
     connProvider.addListener(_connListener);
-  }
-
-  Future<void> _setupFirebaseMessaging() async {
-    final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission();
-    final token = await messaging.getToken();
-    print('FCM Token: $token');
-
-    FirebaseMessaging.onMessage.listen((msg) {
-      if (msg.notification != null) {
-        print('📬 Foreground notification: ${msg.notification!.title}');
-      }
-    });
-    FirebaseMessaging.onMessageOpenedApp.listen((msg) {
-      print('📦 App opened from notification: ${msg.data}');
-    });
   }
 
   Future<void> _attemptAutoLogin() async {

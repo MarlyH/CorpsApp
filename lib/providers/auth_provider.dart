@@ -16,6 +16,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isUser => _hasRole('User');
   bool get isEventManager => _hasRole('Event Manager');
   bool get isStaff => _hasRole('Staff');
+  bool get isGuest => !_hasRole('Admin') && !_hasRole('User') && !_hasRole('Event Manager') && !_hasRole('Staff');
 
   // Private helper for role checks
   bool _hasRole(String role) {

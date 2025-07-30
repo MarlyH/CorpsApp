@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../providers/auth_provider.dart';
 import '../fragments/home_fragment.dart';
 import '../fragments/profile_fragment.dart';
 import '../fragments/tickets_fragment.dart';
 import '../fragments/qr_scan_fragment.dart';
+import '../services/auth_http_client.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -27,12 +29,51 @@ class _DashboardViewState extends State<DashboardView> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+
+    // don't set up Firebase Messaging if guest user
+    if (!context.read<AuthProvider>().isGuest) {
+      _setupFirebaseMessaging();
+    }
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _setupFirebaseMessaging() async {
+    final messaging = FirebaseMessaging.instance;
+
+    // Request permission
+    await messaging.requestPermission();
+
+    // get the FCM token and register it with API -> Azure Notification Hubs
+    final token = await messaging.getToken();
+
+    if (token != null) {
+      try {
+        await AuthHttpClient.registerDeviceToken(token);
+      } catch (e) {
+        print('Error registering device token: $e');
+      }
+    }
+
+    // Handle messages when app is in the foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        print('Foreground notification: ${message.notification!.title}');
+        // Optionally show an in-app alert/snackbar here
+      }
+    });
+
+    // Handle when the app is opened from a notification tap
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Notification caused app to open: ${message.data}');
+      // Navigate or update UI based on message.data here
+      // Example:
+      // Navigator.pushNamed(context, '/someRoute', arguments: message.data);
+    });
   }
 
   Future<bool> _onWillPop() async {

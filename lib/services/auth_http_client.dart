@@ -366,4 +366,18 @@ class AuthHttpClient {
   static Future<http.Response> removeFromWaitlist(int eventId) {
     return delete('/api/events/$eventId/waitlist');
   }
+
+  static Future<void> registerDeviceToken(String deviceToken) async {
+    final platform = Platform.isAndroid ? 'Android' : 'iOS';
+
+    final body = {
+      'deviceToken': deviceToken,
+      'platform': platform,
+    };
+
+    final resp = await post('/api/notification', body: body);
+    if (resp.statusCode != 200) {
+      throw Exception('Failed to register device token: ${resp.body}');
+    }
+  }
 }

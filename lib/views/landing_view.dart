@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+
 import '../services/token_service.dart';
 import '../providers/auth_provider.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
+import '../providers/connectivity_provider.dart';
 
 class LandingView extends StatefulWidget {
   const LandingView({super.key});
@@ -15,78 +18,86 @@ class LandingView extends StatefulWidget {
 
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   bool _loading = true;
+  late VoidCallback _connListener;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkForToken();
+
+    // Delay token check until after first frame so context.read works
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForToken();
+      _subscribeToConnectivity();
+    });
+
     _setupFirebaseMessaging();
+  }
+
+  void _subscribeToConnectivity() {
+    // Listen for connectivity changes
+    final connProvider = Provider.of<ConnectivityProvider>(context, listen: false);
+    _connListener = () {
+      // When we go from offline → online and we're not already loading,
+      // retry the token check so we can auto‑login.
+      if (!connProvider.isOffline && !_loading) {
+        _attemptAutoLogin();
+      }
+    };
+    connProvider.addListener(_connListener);
   }
 
   Future<void> _setupFirebaseMessaging() async {
     final messaging = FirebaseMessaging.instance;
-
-    // Request permission (safe for Android and required on iOS)
     await messaging.requestPermission();
-
-    // Optional: get and print the FCM token for debugging or backend registration
     final token = await messaging.getToken();
     print('FCM Token: $token');
 
-    // Handle messages when app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        print('📬 Foreground notification: ${message.notification!.title}');
-        // Optionally show an in-app alert/snackbar here
+    FirebaseMessaging.onMessage.listen((msg) {
+      if (msg.notification != null) {
+        print('📬 Foreground notification: ${msg.notification!.title}');
       }
     });
-
-    // Handle when the app is opened from a notification tap
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('📦 Notification caused app to open: ${message.data}');
-      // Navigate or update UI based on message.data here
-      // Example:
-      // Navigator.pushNamed(context, '/someRoute', arguments: message.data);
+    FirebaseMessaging.onMessageOpenedApp.listen((msg) {
+      print('📦 App opened from notification: ${msg.data}');
     });
+  }
+
+  Future<void> _attemptAutoLogin() async {
+    setState(() => _loading = true);
+    await _checkForToken();
   }
 
   Future<void> _checkForToken() async {
-    final token = await TokenService.getRefreshToken();
+    final refreshToken = await TokenService.getRefreshToken();
+    final offline      = context.read<ConnectivityProvider>().isOffline;
 
-    if (token != null && !JwtDecoder.isExpired(token)) {
-      // the refresh token exists and is valid, try to load profile
+    if (refreshToken != null &&
+        !JwtDecoder.isExpired(refreshToken) &&
+        !offline
+    ) {
+      // valid token & online → load user + navigate
       final authProvider = context.read<AuthProvider>();
       await authProvider.loadUser();
-
-      if (mounted) {
-        // if logged in, immediately take user to the dashboard.
-        Navigator.pushReplacementNamed(context, '/dashboard');
-        return;
-      }
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/dashboard');
+      return;
     }
 
-    // token is bad, show landing view
+    // either no token, expired, or offline → show landing buttons
     if (mounted) {
-      setState(() {
-        _loading = false;
-      });
+      setState(() => _loading = false);
     }
   }
 
-  /*String maskEmail(String email) {
-    final parts = email.split('@');
-    if (parts.length != 2) return email;
-    final name = parts[0];
-    final domain = parts[1];
-    if (name.length <= 2) {
-      return '*' * name.length + '@' + domain;
-    }
-    final visibleStart = name.substring(0, 2);
-    final visibleEnd = name.length > 4 ? name.substring(name.length - 2) : '';
-    final masked = '*' * (name.length - visibleStart.length - visibleEnd.length);
-    return '$visibleStart$masked$visibleEnd@$domain';
-  }*/
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Clean up our connectivity listener
+    Provider.of<ConnectivityProvider>(context, listen: false)
+        .removeListener(_connListener);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +108,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           child: Column(
             children: [
-              // Expanded block centers the logo vertically
               Expanded(
                 child: Center(
                   child: Image.asset(
@@ -107,11 +117,10 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                 ),
               ),
 
-              // Loading or action buttons
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
-                transitionBuilder: (child, animation) =>
-                    FadeTransition(opacity: animation, child: child),
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
                 child: _loading
                     ? const CircularProgressIndicator(
                         color: Colors.white,
@@ -125,9 +134,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             onPressed: () =>
                                 Navigator.pushNamed(context, '/login'),
                           ),
-
                           const SizedBox(height: 12),
-
                           Button(
                             label: 'REGISTER',
                             onPressed: () =>
@@ -135,9 +142,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             buttonColor: Colors.white,
                             textColor: const Color(0xFF121212),
                           ),
-
                           const SizedBox(height: 32),
-
                           GestureDetector(
                             onTap: () =>
                                 Navigator.pushNamed(context, '/dashboard'),

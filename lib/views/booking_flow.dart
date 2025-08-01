@@ -687,13 +687,19 @@ class _BookingFlowState extends State<BookingFlow> {
           builder: (sbCtx, setSb) {
             return Dialog(
               backgroundColor: Colors.transparent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.95,
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
                 ),
-                padding: const EdgeInsets.all(24),
-                child: SingleChildScrollView(
+                child: Container(
+                  width: double.maxFinite,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1024,9 +1030,10 @@ class _BookingFlowState extends State<BookingFlow> {
                   ),
                 ),
               ),
-            );
-          },
-        );
+            ),
+          );
+        },
+      );
       },
     );
   }

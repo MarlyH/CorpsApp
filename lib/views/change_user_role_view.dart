@@ -58,9 +58,10 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.black)),
-        backgroundColor: isError ? Colors.redAccent : Colors.white,
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.redAccent : const Color(0xFF4C85D0),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -68,14 +69,29 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailCtl,
-      style: const TextStyle(color: Colors.white),
-      decoration: const InputDecoration(
+      style: const TextStyle(color: Colors.black),
+      decoration: InputDecoration(
         labelText: 'User Email',
-        labelStyle: TextStyle(color: Colors.white70),
-        enabledBorder:
-            UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-        focusedBorder:
-            UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+        hintText: 'Enter user email',
+        filled: true,
+        fillColor: Colors.white,
+        labelStyle: const TextStyle(color: Colors.black54),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
       ),
       keyboardType: TextInputType.emailAddress,
       validator: (val) {
@@ -89,26 +105,29 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
   }
 
   Widget _buildRoleDropdown() {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Select Role',
-        labelStyle: TextStyle(color: Colors.white70),
-        enabledBorder:
-            UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedRole,
-          dropdownColor: Colors.black,
+          dropdownColor: Colors.white,
           isExpanded: true,
-          iconEnabledColor: Colors.white,
-          hint: const Text('Choose role', style: TextStyle(color: Colors.white54)),
-          items: _roles.map((r) {
-            return DropdownMenuItem(
-              value: r,
-              child: Text(r, style: const TextStyle(color: Colors.white)),
-            );
-          }).toList(),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+          hint: const Text(
+            'Select role',
+            style: TextStyle(color: Colors.black54),
+          ),
+          items:
+              _roles.map((r) {
+                return DropdownMenuItem(
+                  value: r,
+                  child: Text(r, style: const TextStyle(color: Colors.black87)),
+                );
+              }).toList(),
           onChanged: (v) => setState(() => _selectedRole = v),
         ),
       ),
@@ -123,15 +142,30 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
           backgroundColor: const Color(0xFF4C85D0),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
         ),
         onPressed: _isLoading ? null : _changeRole,
-        child: _isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text('Change Role', style: TextStyle(fontSize: 16)),
+        child:
+            _isLoading
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : const Text(
+                  'CHANGE ROLE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
       ),
     );
   }
@@ -145,19 +179,28 @@ class _ChangeUserRoleViewState extends State<ChangeUserRoleView> {
           'Role Management',
           style: TextStyle(
             fontFamily: 'WinnerSans',
-            fontSize: 20,           // adjust size as needed
+            fontSize: 20,
             fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
         ),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text(
+                  'Change User Access Level',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
                 _buildEmailField(),
                 const SizedBox(height: 24),
                 _buildRoleDropdown(),

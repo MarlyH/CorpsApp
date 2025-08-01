@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../models/event_summary.dart' show EventSummary, friendlySession;
 import '../models/event_detail.dart' show EventDetail;
 import '../models/child_model.dart';
+
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
   const BookingFlow({super.key, required this.event});
@@ -225,19 +226,24 @@ class _BookingFlowState extends State<BookingFlow> {
     final hasMascot = e.mascotUrl != null && e.mascotUrl!.isNotEmpty;
 
     // Build the avatar: either the mascot URL or a generic icon.
-    final avatar = hasMascot
-        ? ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              e.mascotUrl!,
-              height: 56,
-              width: 56,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.location_on, size: 56, color: Colors.white30),
-            ),
-          )
-        : const Icon(Icons.location_on, size: 56, color: Colors.white30);
+    final avatar =
+        hasMascot
+            ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                e.mascotUrl!,
+                height: 56,
+                width: 56,
+                fit: BoxFit.cover,
+                errorBuilder:
+                    (_, __, ___) => const Icon(
+                      Icons.location_on,
+                      size: 56,
+                      color: Colors.white30,
+                    ),
+              ),
+            )
+            : const Icon(Icons.location_on, size: 56, color: Colors.white30);
 
     return Container(
       width: double.infinity,
@@ -248,7 +254,11 @@ class _BookingFlowState extends State<BookingFlow> {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: _back,
               ),
               const SizedBox(width: 8),
@@ -261,33 +271,42 @@ class _BookingFlowState extends State<BookingFlow> {
                   children: [
                     Text(
                       _headerDate(e.startDate),
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       friendlySession(e.sessionType),
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Text(
                           e.startTime,
-                          style:
-                              const TextStyle(color: Colors.white70, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
-                        const Text(' • ',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 14)),
+                        const Text(
+                          ' • ',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
                         Expanded(
                           child: Text(
                             e.locationName,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: Colors.white70, fontSize: 14),
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ],
@@ -308,15 +327,30 @@ class _BookingFlowState extends State<BookingFlow> {
 
   String _headerDate(DateTime d) {
     const months = [
-      'January','February','March','April','May','June',
-      'July','August','September','October','November','December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const weekdays = [
-      'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
-    return '${weekdays[d.weekday-1]} ${d.day} ${months[d.month-1]}';
+    return '${weekdays[d.weekday - 1]} ${d.day} ${months[d.month - 1]}';
   }
-
 
   // TERMS PAGE
 
@@ -495,81 +529,125 @@ class _BookingFlowState extends State<BookingFlow> {
   // ATTENDEE DETAILS
 
   Widget _attendeeView() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Attendee Details',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              dropdownColor: Colors.white,
-              decoration: InputDecoration(
-                labelText: 'Select Child',
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
+              'Who is attending?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontFamily: 'WinnerSans',
+                fontWeight: FontWeight.w600,
               ),
-              style: const TextStyle(color: Colors.black),
-              value: _selectedChildId,
-              items: [
-                ..._children.map(
-                  (c) => DropdownMenuItem(
-                    value: c.childId.toString(),
-                    child: Text('${c.firstName} ${c.lastName}'),
-                  ),
-                ),
-                const DropdownMenuItem(
-                  value: 'ADD',
-                  child: Text(
-                    'Add Child',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                ),
-              ],
-              onChanged: (v) {
-                if (v == 'ADD') {
-                  _showAddChildDialog();
-                } else {
-                  setState(() => _selectedChildId = v);
-                }
-              },
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Allow child to leave on their own?',
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 8),
-            Row(
+            const SizedBox(height: 24),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Radio<bool>(
-                  value: true,
-                  groupValue: _allowAlone,
-                  activeColor: Colors.white,
-                  onChanged: (v) => setState(() => _allowAlone = v!),
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 6),
+                  child: Text(
+                    'Select Child',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                 ),
-                const Text('Yes', style: TextStyle(color: Colors.white70)),
-                const SizedBox(width: 12),
-                Radio<bool>(
-                  value: false,
-                  groupValue: _allowAlone,
-                  activeColor: Colors.white,
-                  onChanged: (v) => setState(() => _allowAlone = v!),
+                DropdownButtonFormField<String>(
+                  dropdownColor: Colors.white,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.black),
+                  value: _selectedChildId,
+                  items: [
+                    ..._children.map(
+                      (c) => DropdownMenuItem(
+                        value: c.childId.toString(),
+                        child: Text('${c.firstName} ${c.lastName}'),
+                      ),
+                    ),
+                    const DropdownMenuItem(
+                      value: 'ADD',
+                      child: Text(
+                        'Add New Child',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v == 'ADD') {
+                      _showAddChildDialog();
+                    } else {
+                      setState(() => _selectedChildId = v);
+                    }
+                  },
                 ),
-                const Text('No', style: TextStyle(color: Colors.white70)),
               ],
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Permission to Leave',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Allow child to leave on their own after the event?',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Radio<bool>(
+                        value: true,
+                        groupValue: _allowAlone,
+                        activeColor: Colors.blue,
+                        onChanged: (v) => setState(() => _allowAlone = v!),
+                      ),
+                      const Text('Yes', style: TextStyle(color: Colors.white)),
+                      const SizedBox(width: 24),
+                      Radio<bool>(
+                        value: false,
+                        groupValue: _allowAlone,
+                        activeColor: Colors.blue,
+                        onChanged: (v) => setState(() => _allowAlone = v!),
+                      ),
+                      const Text('No', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -614,211 +692,336 @@ class _BookingFlowState extends State<BookingFlow> {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(dialogCtx).pop(),
-                        child: const Icon(Icons.close, color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Add New Child',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // First Name
-                    TextField(
-                      controller: fn,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        labelText: 'First Name',
-                        hintText: 'e.g. Jane',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Last Name
-                    TextField(
-                      controller: ln,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        labelText: 'Last Name',
-                        hintText: 'e.g. Doe',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // DOB
-                    GestureDetector(
-                      onTap: () async {
-                        final d = await showDatePicker(
-                          context: sbCtx,
-                          initialDate: DateTime.now().subtract(
-                            const Duration(days: 365 * 8),
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Add New Child',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontFamily: 'WinnerSans',
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          firstDate: DateTime(2005),
-                          lastDate: DateTime.now(),
-                        );
-                        if (d != null) setSb(() => dob = d);
-                      },
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: 'Date of Birth',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                          IconButton(
+                            onPressed: () => Navigator.of(dialogCtx).pop(),
+                            icon: const Icon(Icons.close, color: Colors.white),
                           ),
-                        ),
-                        child: Text(
-                          dob == null
-                              ? 'Tap to select date'
-                              : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            color:
-                                dob == null ? Colors.black38 : Colors.black87,
-                          ),
-                        ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 24),
 
-                    // Emergency Name
-                    TextField(
-                      controller: emName,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        labelText: 'Emergency Contact Name',
-                        hintText: 'e.g. John Doe',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Emergency Phone
-                    TextField(
-                      controller: emPhone,
-                      keyboardType: TextInputType.phone,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        labelText: 'Emergency Contact Phone',
-                        hintText: '(555) 123-4567',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    ElevatedButton(
-                      onPressed:
-                          isSubmitting
-                              ? null
-                              : () async {
-                                if (fn.text.trim().isEmpty ||
-                                    ln.text.trim().isEmpty ||
-                                    dob == null ||
-                                    emName.text.trim().isEmpty ||
-                                    emPhone.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please fill out all fields',
-                                      ),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                  return;
-                                }
-                                setSb(() => isSubmitting = true);
-                                try {
-                                  await AuthHttpClient.post(
-                                    '/api/child',
-                                    body: {
-                                      'firstName': fn.text.trim(),
-                                      'lastName': ln.text.trim(),
-                                      'dateOfBirth':
-                                          dob!
-                                              .toIso8601String()
-                                              .split('T')
-                                              .first,
-                                      'emergencyContactName':
-                                          emName.text.trim(),
-                                      'emergencyContactPhone':
-                                          emPhone.text.trim(),
-                                    },
-                                  );
-                                  await _loadChildren();
-                                  Navigator.of(
-                                    dialogCtx,
-                                  ).pop(); // only pop dialog
-                                } catch (e) {
-                                  setSb(() => isSubmitting = false);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Could not add child: $e'),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
-                              },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child:
-                          isSubmitting
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Text(
-                                'ADD CHILD',
-                                style: TextStyle(color: Colors.white),
+                      // First Name
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 6),
+                            child: Text(
+                              'First Name',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
                               ),
-                    ),
-                  ],
+                            ),
+                          ),
+                          TextField(
+                            controller: fn,
+                            style: const TextStyle(color: Colors.black),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Jane',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.person_outline,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Last Name
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 6),
+                            child: Text(
+                              'Last Name',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          TextField(
+                            controller: ln,
+                            style: const TextStyle(color: Colors.black),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Doe',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.person_outline,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // DOB
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 6),
+                            child: Text(
+                              'Date of Birth',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              final d = await showDatePicker(
+                                context: sbCtx,
+                                initialDate: DateTime.now().subtract(
+                                  const Duration(days: 365 * 8),
+                                ),
+                                firstDate: DateTime(2005),
+                                lastDate: DateTime.now(),
+                              );
+                              if (d != null) setSb(() => dob = d);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today,
+                                    color: Colors.black54,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    dob == null
+                                        ? 'Tap to select date'
+                                        : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}',
+                                    style: TextStyle(
+                                      color:
+                                          dob == null
+                                              ? Colors.black38
+                                              : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Emergency Name
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 6),
+                            child: Text(
+                              'Emergency Contact Name',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          TextField(
+                            controller: emName,
+                            style: const TextStyle(color: Colors.black),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. John Doe',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.contact_phone_outlined,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Emergency Phone
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4, bottom: 6),
+                            child: Text(
+                              'Emergency Contact Phone',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          TextField(
+                            controller: emPhone,
+                            keyboardType: TextInputType.phone,
+                            style: const TextStyle(color: Colors.black),
+                            decoration: InputDecoration(
+                              hintText: '(555) 123-4567',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.phone_outlined,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Submit Button
+                      ElevatedButton(
+                        onPressed:
+                            isSubmitting
+                                ? null
+                                : () async {
+                                  if (fn.text.trim().isEmpty ||
+                                      ln.text.trim().isEmpty ||
+                                      dob == null ||
+                                      emName.text.trim().isEmpty ||
+                                      emPhone.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please fill out all fields',
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setSb(() => isSubmitting = true);
+                                  try {
+                                    await AuthHttpClient.post(
+                                      '/api/child',
+                                      body: {
+                                        'firstName': fn.text.trim(),
+                                        'lastName': ln.text.trim(),
+                                        'dateOfBirth':
+                                            dob!
+                                                .toIso8601String()
+                                                .split('T')
+                                                .first,
+                                        'emergencyContactName':
+                                            emName.text.trim(),
+                                        'emergencyContactPhone':
+                                            emPhone.text.trim(),
+                                      },
+                                    );
+                                    await _loadChildren();
+                                    Navigator.of(dialogCtx).pop();
+                                  } catch (e) {
+                                    setSb(() => isSubmitting = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Could not add child: $e',
+                                        ),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                  }
+                                },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          disabledBackgroundColor: Colors.blue.withOpacity(0.3),
+                        ),
+                        child:
+                            isSubmitting
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                                : const Text(
+                                  'ADD CHILD',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -826,18 +1029,5 @@ class _BookingFlowState extends State<BookingFlow> {
         );
       },
     );
-  }
-
-  String _weekdayFull(DateTime d) {
-    const week = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    return week[d.weekday - 1];
   }
 }

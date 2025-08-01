@@ -36,11 +36,11 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
           children = data.map((e) => ChildModel.fromJson(e)).toList();
         });
       } else {
-        final msg = jsonDecode(res.body)['message'] ?? 'Failed to load children.';
+        final msg =
+            jsonDecode(res.body)['message'] ?? 'Failed to load children.';
         throw Exception('Server responded with ${res.statusCode}: $msg');
       }
     } catch (e) {
-      print("Error: $e");
       setState(() {
         error = e.toString();
       });
@@ -49,39 +49,59 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
     }
   }
 
-  Future<void> deleteChild(int childId) async {
-    final confirm = await showDialog<bool>(
+  void _showHelp() {
+    showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        title: const Text("Delete Child", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure you want to delete this child?", style: TextStyle(color: Colors.grey)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.redAccent))),
-        ],
-      ),
+      builder:
+          (_) => AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              "Managing Children",
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add a Child:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '• Tap the + button\n• Fill in the details\n• Save to add',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Edit/Delete a Child:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '• Tap on the child\'s name\n• Modify details or delete\n• Save changes',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'GOT IT',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
     );
-
-    if (confirm != true) return;
-
-    try {
-      final res = await AuthHttpClient.delete('/api/child/$childId');
-
-      if (res.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Child deleted successfully.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.grey),
-        );
-        fetchChildren();
-      } else {
-        final msg = jsonDecode(res.body)['message'] ?? 'Failed to delete.';
-        throw Exception('Server error: $msg');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
-      );
-    }
   }
 
   void navigateToCreate() async {
@@ -96,79 +116,150 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
 
   @override
   Widget build(BuildContext context) {
-    // Define a dark, grayscale theme for just this view:
-    final grayscaleTheme = ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: Colors.black,
-      appBarTheme: const AppBarTheme(
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
         backgroundColor: Colors.black,
-        iconTheme: IconThemeData(color: Colors.white),
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
-      ),
-      listTileTheme: const ListTileThemeData(
-        tileColor: Colors.black,
-        textColor: Colors.white,
-        iconColor: Colors.white,
-        subtitleTextStyle: TextStyle(color: Colors.grey),
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Colors.grey,
-        foregroundColor: Colors.white,
-      ),
-      dividerColor: Colors.grey,
-      popupMenuTheme: PopupMenuThemeData(
-        color: Colors.grey[900],
-        textStyle: const TextStyle(color: Colors.white),
-      ),
-    );
-
-    return Theme(
-      data: grayscaleTheme,
-      child: Scaffold(
-        appBar: AppBar(title: const Text("Manage Children")),
-        floatingActionButton: FloatingActionButton(
-          onPressed: navigateToCreate,
-          child: const Icon(Icons.add),
+        title: const Text(
+          'MY CHILDREN',
+          style: TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
         ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : error != null
-                ? Center(child: Text("Error: $error", style: const TextStyle(color: Colors.redAccent)))
-                : children.isEmpty
-                    ? const Center(child: Text("No children added.", style: TextStyle(color: Colors.grey)))
-                    : RefreshIndicator(
-                        onRefresh: fetchChildren,
-                        color: Colors.white,
-                        backgroundColor: Colors.black,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: children.length,
-                          separatorBuilder: (_, __) => const Divider(),
-                          itemBuilder: (_, index) {
-                            final child = children[index];
-                            return ListTile(
-                              title: Text("${child.firstName} ${child.lastName}"),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text("DOB: ${child.dateOfBirth}"),
-                                  Text("Group: ${child.ageGroupLabel}"),
-                                  Text("Contact: ${child.emergencyContactName} (${child.emergencyContactPhone})"),
-                                ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _showHelp,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: Column(
+          children: [
+            if (isLoading)
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              )
+            else if (error != null)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Error: $error",
+                        style: const TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child:
+                    children.isEmpty
+                        ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.person_outline,
+                                color: Colors.white70,
+                                size: 48,
                               ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  if (value == 'edit') navigateToEdit(child);
-                                  if (value == 'delete') deleteChild(child.childId);
-                                },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                                ],
+                              SizedBox(height: 16),
+                              Text(
+                                "No children added yet",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        )
+                        : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount:
+                              children.length + 1, // +1 for Add Child button
+                          itemBuilder: (_, index) {
+                            if (index == children.length) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Card(
+                                  color: Colors.white10,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    title: const Text(
+                                      'Add Child',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    trailing: const Icon(
+                                      Icons.add,
+                                      color: Colors.white70,
+                                    ),
+                                    onTap: navigateToCreate,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final child = children[index];
+                            return InkWell(
+                              onTap: () => navigateToEdit(child),
+                              child: Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                color: Colors.white10,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  title: Text(
+                                    "${child.firstName} ${child.lastName}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  trailing: const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white70,
+                                  ),
+                                ),
                               ),
                             );
                           },
                         ),
-                      ),
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

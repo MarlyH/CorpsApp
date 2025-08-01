@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_http_client.dart';
+
 class ManageLocationsView extends StatefulWidget {
   const ManageLocationsView({super.key});
 
@@ -12,7 +13,6 @@ class ManageLocationsView extends StatefulWidget {
 
 class _ManageLocationsViewState extends State<ManageLocationsView> {
   final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
   final _nameController = TextEditingController();
 
   File? _pickedImage;
@@ -29,7 +29,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
   @override
   void dispose() {
-    _idController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -51,12 +50,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     }
   }
 
-  Future<void> _loadLocationById(String idText) async {
-    final id = int.tryParse(idText);
-    if (id == null) {
-      _showSnack('Please enter a valid ID', isError: true);
-      return;
-    }
+  Future<void> _loadLocationById(int id) async {
     setState(() => _isLoading = true);
     try {
       final resp = await AuthHttpClient.getLocation(id);
@@ -64,7 +58,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       setState(() {
         _editingLocation = data;
         _locations = [];
-        _idController.text = data['locationId'].toString();
         _nameController.text = data['name'] as String? ?? '';
         _currentImageUrl = data['mascotImgSrc'] as String?;
       });
@@ -98,20 +91,20 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
   }
 
   Future<void> _updateLocation() async {
-    final id = int.tryParse(_idController.text);
-    if (id == null || !_formKey.currentState!.validate()) {
-      _showSnack('Valid ID & name required', isError: true);
+    if (!_formKey.currentState!.validate() || _editingLocation == null) {
+      _showSnack('Location name is required', isError: true);
       return;
     }
+    final locationId = _editingLocation!['locationId'] as int;
     setState(() => _isLoading = true);
     try {
       final resp = await AuthHttpClient.updateLocation(
-        id: id,
+        id: locationId,
         name: _nameController.text.trim(),
         imageFile: _pickedImage,
       );
       if (resp.statusCode == 200) {
-        _showSnack('Location updated');
+        _showSnack('Location updated successfully');
         await _loadAllLocations();
       } else {
         _showSnack('Failed to update (${resp.statusCode})', isError: true);
@@ -124,16 +117,16 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
   }
 
   Future<void> _deleteLocation() async {
-    final id = int.tryParse(_idController.text);
-    if (id == null) {
-      _showSnack('Enter valid ID', isError: true);
+    if (_editingLocation == null) {
+      _showSnack('No location selected', isError: true);
       return;
     }
+    final locationId = _editingLocation!['locationId'] as int;
     setState(() => _isLoading = true);
     try {
-      final resp = await AuthHttpClient.deleteLocation(id);
+      final resp = await AuthHttpClient.deleteLocation(locationId);
       if (resp.statusCode == 200 || resp.statusCode == 204) {
-        _showSnack('Location deleted');
+        _showSnack('Location deleted successfully');
         _clearForm();
         await _loadAllLocations();
       } else {
@@ -154,7 +147,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
   }
 
   void _clearForm() {
-    _idController.clear();
     _nameController.clear();
     setState(() {
       _pickedImage = null;
@@ -180,30 +172,27 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── ID Field ──────────────────────────────
-          const Text(
-            'ID (tap list or type)',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: _idController,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              hintText: 'e.g. 42',
-              hintStyle: const TextStyle(color: Colors.black38),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              border: OutlineInputBorder(
+          // Show ID only when editing an existing location
+          if (isEditing) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white12,
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.tag, color: Colors.white70, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Location ID: ${_editingLocation!['locationId']}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 24),
+          ],
 
           // ─── Name Field ────────────────────────────
           const Text(
@@ -219,15 +208,17 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
               hintStyle: const TextStyle(color: Colors.black38),
               filled: true,
               fillColor: Colors.white,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
             ),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
+            validator:
+                (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: 16),
 
@@ -241,9 +232,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
                   _pickedImage != null ? 'Change Image' : 'Pick Image',
                   style: const TextStyle(color: Colors.black),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
               ),
               const SizedBox(width: 12),
               if (_pickedImage != null)
@@ -254,17 +243,24 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
           // ─── CREATE / UPDATE / DELETE / CLEAR ─────
           if (!isEditing) ...[
-            ElevatedButton(
-              onPressed: _isLoading ? null : _createLocation,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('CREATE'),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _nameController,
+              builder: (context, value, child) {
+                final hasContent = value.text.trim().isNotEmpty;
+                return ElevatedButton(
+                  onPressed: _isLoading || !hasContent ? null : _createLocation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    disabledBackgroundColor: Colors.blue.withOpacity(0.3),
+                  ),
+                  child: const Text('CREATE'),
+                );
+              },
             ),
           ] else ...[
             ElevatedButton(
@@ -281,15 +277,19 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: _isLoading
-                  ? null
-                  : () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => const _DeleteLocationConfirmDialog(),
-                      ) ?? false;
-                      if (confirmed) _deleteLocation();
-                    },
+              onPressed:
+                  _isLoading
+                      ? null
+                      : () async {
+                        final confirmed =
+                            await showDialog<bool>(
+                              context: context,
+                              builder:
+                                  (_) => const _DeleteLocationConfirmDialog(),
+                            ) ??
+                            false;
+                        if (confirmed) _deleteLocation();
+                      },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -323,58 +323,173 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 16),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemCount: _locations.length,
       itemBuilder: (ctx, i) {
         final loc = _locations[i];
-        final isSelected = loc['locationId'].toString() == _idController.text;
+        final isSelected =
+            _editingLocation != null &&
+            _editingLocation!['locationId'] == loc['locationId'];
         return Card(
-          color: isSelected ? Colors.blueGrey : Colors.white10,
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: Colors.white10,
           child: ListTile(
-            leading: loc['mascotImgSrc'] != null
-                ? CircleAvatar(
-                    backgroundImage:
-                        NetworkImage(loc['mascotImgSrc'] as String),
-                  )
-                : const Icon(Icons.location_on, color: Colors.white70),
-            title: Text(loc['name'] as String,
-                style: const TextStyle(color: Colors.white)),
-            subtitle: Text('ID: ${loc['locationId']}',
-                style: const TextStyle(color: Colors.white70)),
-            onTap: () {
-              _idController.text = loc['locationId'].toString();
-              _loadLocationById(_idController.text);
-            },
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading:
+                loc['mascotImgSrc'] != null
+                    ? CircleAvatar(
+                      radius: 24,
+                      backgroundImage: NetworkImage(
+                        loc['mascotImgSrc'] as String,
+                      ),
+                    )
+                    : Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.white70,
+                      ),
+                    ),
+            title: Text(
+              loc['name'] as String,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              'ID: ${loc['locationId']}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: const Icon(Icons.edit, color: Colors.white70),
+            onTap: () => _loadLocationById(loc['locationId'] as int),
           ),
         );
       },
     );
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text(
+        title: const Text(
           'Location Management',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'WinnerSans',
-            fontSize: 20,            // tweak as needed
+            fontSize: 20,
             fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
         ),
+        leading:
+            _editingLocation != null
+                ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    _clearForm();
+                    _loadAllLocations();
+                  },
+                )
+                : null,
         actions: [
+          if (_editingLocation == null)
+            IconButton(
+              icon: const Icon(Icons.help_outline),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: const Text(
+                          'How to Use',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        content: const SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Creating a Location:',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '1. Click the + button to start\n'
+                                '2. Enter the location name\n'
+                                '3. Optionally add an image\n'
+                                '4. Click CREATE',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Editing a Location:',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '1. Click on any location in the list\n'
+                                '2. Modify the name or image\n'
+                                '3. Click UPDATE to save changes',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Deleting a Location:',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '1. Select a location to edit\n'
+                                '2. Click DELETE\n'
+                                '3. Type "delete" to confirm',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'GOT IT',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isLoading ? null : _loadAllLocations,
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _isLoading
-                ? null
-                : () => _loadLocationById(_idController.text),
           ),
         ],
       ),
@@ -405,7 +520,11 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
               _buildForm(),
               const SizedBox(height: 24),
               if (_isLoading)
-                const Center(child: CircularProgressIndicator()),
+                const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
               if (_editingLocation == null) _buildList(),
             ],
           ),
@@ -417,7 +536,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteLocationConfirmDialog extends StatefulWidget {
-  const _DeleteLocationConfirmDialog({super.key});
+  const _DeleteLocationConfirmDialog({Key? key}) : super(key: key);
 
   @override
   State<_DeleteLocationConfirmDialog> createState() =>
@@ -440,7 +559,10 @@ class _DeleteLocationConfirmDialogState
     return AlertDialog(
       backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Delete Location", style: TextStyle(color: Colors.white)),
+      title: const Text(
+        "Delete Location",
+        style: TextStyle(color: Colors.white),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -457,8 +579,10 @@ class _DeleteLocationConfirmDialogState
               hintStyle: const TextStyle(color: Colors.black38),
               filled: true,
               fillColor: Colors.white,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -478,9 +602,10 @@ class _DeleteLocationConfirmDialogState
           child: Text(
             "DELETE",
             style: TextStyle(
-              color: isValid
-                  ? Colors.redAccent
-                  : Colors.redAccent.withOpacity(0.4),
+              color:
+                  isValid
+                      ? Colors.redAccent
+                      : Colors.redAccent.withOpacity(0.4),
             ),
           ),
         ),

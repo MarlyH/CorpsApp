@@ -25,18 +25,18 @@ class _CreateChildViewState extends State<CreateChildView> {
       initialDate: now,
       firstDate: DateTime(now.year - 18),
       lastDate: now,
-      builder: (ctx, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          //my theming styles
-          colorScheme: ColorScheme.dark(
-            primary: Colors.grey, // header background
-            onPrimary: Colors.white, // header text
-            surface: Colors.black, // picker background
-            onSurface: Colors.white, // picker text
+      builder:
+          (ctx, child) => Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: Colors.blue, // header background
+                onPrimary: Colors.white, // header text
+                surface: Colors.black, // picker background
+                onSurface: Colors.white, // picker text
+              ),
+            ),
+            child: child!,
           ),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) {
       _dob.text = picked.toIso8601String().split('T').first;
@@ -73,97 +73,98 @@ class _CreateChildViewState extends State<CreateChildView> {
   void _showSnackBar(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: isError ? Colors.redAccent : Colors.grey,
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        content: Text(msg, style: const TextStyle(color: Colors.black)),
+        backgroundColor: isError ? Colors.redAccent : Colors.white,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final grayscaleTheme = ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: Colors.black,
-      appBarTheme: const AppBarTheme(
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
         backgroundColor: Colors.black,
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      cardColor: Colors.grey[900],
-      inputDecorationTheme: InputDecorationTheme(
-        labelStyle: const TextStyle(color: Colors.white70),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey[700]!),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey[500]!),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        suffixIconColor: Colors.white70,
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: Colors.white),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey[800],
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(48),
+        title: const Text(
+          'Add Child',
+          style: TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
-      snackBarTheme: const SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        contentTextStyle: TextStyle(color: Colors.white),
-      ),
-    );
-
-    return Theme(
-      data: grayscaleTheme,
-      child: Scaffold(
-        appBar: AppBar(title: const Text("Add Child")),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Card(
-            elevation: 4,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    _buildField(_firstName, "First Name"),
-                    _buildField(_lastName, "Last Name"),
-                    _buildField(
-                      _dob,
-                      "Date of Birth",
-                      readOnly: true,
-                      onTap: _selectDate,
-                      suffixIcon: const Icon(Icons.calendar_today),
-                    ),
-                    _buildField(_contactName, "Emergency Contact Name"),
-                    _buildField(
-                      _contactPhone,
-                      "Emergency Contact Phone",
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: isLoading ? null : createChild,
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.save),
-                      label: const Text("Save"),
-                    ),
-                  ],
+      body: SafeArea(
+        bottom: true,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildField(
+                  controller: _firstName,
+                  label: 'First Name',
+                  icon: Icons.person_outline,
                 ),
-              ),
+                _buildField(
+                  controller: _lastName,
+                  label: 'Last Name',
+                  icon: Icons.person_outline,
+                ),
+                _buildField(
+                  controller: _dob,
+                  label: 'Date of Birth',
+                  icon: Icons.calendar_today,
+                  readOnly: true,
+                  onTap: _selectDate,
+                ),
+                _buildField(
+                  controller: _contactName,
+                  label: 'Emergency Contact Name',
+                  icon: Icons.contact_phone_outlined,
+                ),
+                _buildField(
+                  controller: _contactPhone,
+                  label: 'Emergency Contact Phone',
+                  icon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: isLoading ? null : createChild,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    disabledBackgroundColor: Colors.blue.withOpacity(0.3),
+                  ),
+                  child:
+                      isLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                          : const Text('SAVE'),
+                ),
+              ],
             ),
           ),
         ),
@@ -171,28 +172,54 @@ class _CreateChildViewState extends State<CreateChildView> {
     );
   }
 
-  Widget _buildField(
-    TextEditingController controller,
-    String label, {
-    TextInputType? keyboardType,
-    bool readOnly = false,
-    VoidCallback? onTap,
-    Widget? suffixIcon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        readOnly: readOnly,
-        onTap: onTap,
-        decoration: InputDecoration(
-          labelText: label,
-          suffixIcon: suffixIcon,
+  Widget _buildField({
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  TextInputType? keyboardType,
+  bool readOnly = false,
+  VoidCallback? onTap,
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16, top: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
         ),
-        style: const TextStyle(color: Colors.white),
-        validator: (val) => val == null || val.isEmpty ? "Required" : null,
-      ),
-    );
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          readOnly: readOnly,
+          onTap: onTap,
+          style: const TextStyle(color: Colors.black),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: Colors.black54),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+          validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
+        ),
+      ],
+    ),
+  );
   }
-}
+  }
+

@@ -18,7 +18,7 @@ class AboutCorpsView extends StatelessWidget {
           'ABOUT CORPS',
           style: TextStyle(
             fontFamily: 'WinnerSans',
-            fontSize: 20,            // tweak as needed
+            fontSize: 20, // tweak as needed
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -34,29 +34,20 @@ class AboutCorpsView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Your Corps logo asset
-                  // Make sure to add assets/your_corps_logo.png in pubspec.yaml
                   Image.asset(
-                    'assets/your_corps_logo.png',
+                    'assets/logo/logo_transparent_1024px.png',
                     height: 120,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 24),
                   const Text(
                     'Corps App',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   const Text(
                     'Version v1.0.0',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
@@ -74,7 +65,10 @@ class AboutCorpsView extends StatelessWidget {
                   'Rate our app',
                   style: TextStyle(color: Colors.white),
                 ),
-                trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.white),
+                trailing: const Icon(
+                  Icons.keyboard_arrow_right,
+                  color: Colors.white,
+                ),
                 onTap: () {
                   // TODO: launch your app store link
                 },
@@ -86,10 +80,7 @@ class AboutCorpsView extends StatelessWidget {
               padding: EdgeInsets.only(top: 24, bottom: 16),
               child: Text(
                 'Copyright Your Corps 2025',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ),
           ],

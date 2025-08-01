@@ -201,15 +201,15 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                           value: (user['age']?.toString() ?? ''),
                         ),
                         _divider(),
-                        _buildTile(
-                          label: 'Location',
-                          value: user['location'] as String? ?? '',
-                          onTap: () {
-                            // TODO: push a real LocationPickerView
-                          },
-                          showArrow: true,
-                        ),
-                        _divider(),
+                        // _buildTile(
+                        //   label: 'Location',
+                        //   value: user['location'] as String? ?? '',
+                        //   onTap: () {
+                        //     // TODO: push a real LocationPickerView
+                        //   },
+                        //   showArrow: true,
+                        // ),
+                        // _divider(),
                         _buildTile(
                           label: 'Password',
                           value: '●●●●●●●●',

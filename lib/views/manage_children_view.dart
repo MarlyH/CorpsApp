@@ -171,93 +171,144 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
               )
             else
               Expanded(
-                child:
-                    children.isEmpty
-                        ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                color: Colors.white70,
-                                size: 48,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                "No children added yet",
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                        )
-                        : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount:
-                              children.length + 1, // +1 for Add Child button
-                          itemBuilder: (_, index) {
-                            if (index == children.length) {
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Card(
-                                  color: Colors.white10,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    title: const Text(
-                                      'Add Child',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 16,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Children List or Empty State
+                      Expanded(
+                        child:
+                            children.isEmpty
+                                ? Column(
+                                  children: [
+                                    Card(
+                                      color: Colors.white10,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                        title: const Text(
+                                          'Add Child',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        trailing: const Icon(
+                                          Icons.add,
+                                          color: Colors.white70,
+                                        ),
+                                        onTap: navigateToCreate,
                                       ),
                                     ),
-                                    trailing: const Icon(
-                                      Icons.add,
-                                      color: Colors.white70,
+                                    const SizedBox(height: 24),
+                                    const Expanded(
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.person_outline,
+                                              color: Colors.white70,
+                                              size: 48,
+                                            ),
+                                            SizedBox(height: 16),
+                                            Text(
+                                              "No children added yet",
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                    onTap: navigateToCreate,
-                                  ),
+                                  ],
+                                )
+                                : ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  itemCount:
+                                      children.length +
+                                      1, // +1 for Add Child button
+                                  itemBuilder: (_, index) {
+                                    if (index == children.length) {
+                                      // Add Child button as last item
+                                      return Card(
+                                        margin: const EdgeInsets.only(top: 16),
+                                        color: Colors.white10,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                          title: const Text(
+                                            'Add Child',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          trailing: const Icon(
+                                            Icons.add,
+                                            color: Colors.white70,
+                                          ),
+                                          onTap: navigateToCreate,
+                                        ),
+                                      );
+                                    }
+                                    final child = children[index];
+                                    return InkWell(
+                                      onTap: () => navigateToEdit(child),
+                                      child: Card(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        color: Colors.white10,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                          title: Text(
+                                            "${child.firstName} ${child.lastName}",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          trailing: const Icon(
+                                            Icons.chevron_right,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            }
-
-                            final child = children[index];
-                            return InkWell(
-                              onTap: () => navigateToEdit(child),
-                              child: Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                color: Colors.white10,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  title: Text(
-                                    "${child.firstName} ${child.lastName}",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  trailing: const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            const SizedBox(height: 16),
           ],
         ),
       ),

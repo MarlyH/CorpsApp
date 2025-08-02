@@ -109,10 +109,11 @@ class _TicketsFragmentState extends State<TicketsFragment>
             const Text(
               'MY TICKETS',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
+                fontFamily: 'WinnerSans',
                 color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+                fontSize: 30,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 16),

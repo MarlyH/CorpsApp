@@ -50,7 +50,14 @@ class _NotificationsViewState extends State<NotificationsView> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Notifications', style: TextStyle(letterSpacing: 1.2)),
+        title: const Text('Notifications', 
+          style: TextStyle(
+            fontFamily: 'WinnerSans',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
+        ),
         leading: const BackButton(color: Colors.white),
         elevation: 0,
       ),

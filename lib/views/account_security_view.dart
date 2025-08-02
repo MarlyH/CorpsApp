@@ -133,6 +133,12 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('Account & Security'),
+            titleTextStyle: const TextStyle(
+              fontFamily: 'WinnerSans',
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
         leading: const BackButton(color: Colors.white),
       ),
       body: _isLoading

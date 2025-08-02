@@ -231,10 +231,11 @@ class _HomeFragmentState extends State<HomeFragment> {
                           isExpanded: true,
                           hint: const Text(
                             'All Locations',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'WinnerSans',
                               color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           items: [
@@ -242,10 +243,11 @@ class _HomeFragmentState extends State<HomeFragment> {
                               value: null,
                               child: Text(
                                 'All Locations',
-                                style: TextStyle(
+                                style: const TextStyle(
+                                  fontFamily: 'WinnerSans',
                                   color: Colors.white,
                                   fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -255,9 +257,10 @@ class _HomeFragmentState extends State<HomeFragment> {
                                 child: Text(
                                   loc.toUpperCase(),
                                   style: const TextStyle(
+                                    fontFamily: 'WinnerSans',
                                     color: Colors.white,
                                     fontSize: 24,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),

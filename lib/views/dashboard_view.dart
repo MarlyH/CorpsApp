@@ -21,7 +21,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Sizes
   static const double _fabDiameter = 64.0;
-  static const double _fabBorder   = 8.0;   // black border around FAB
+  static const double _fabBorder   = 16.0;   // black border around FAB
   static const double _bottomPad   = 8.0;   // extra bottom padding
   static const double _sideGap     = 16.0;  // extra horizontal gap around FAB
 

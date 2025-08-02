@@ -186,9 +186,10 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                   child: Text(
                     widget.booking.attendeeName.toUpperCase(),
                     style: const TextStyle(
+                      fontFamily: 'WinnerSans',
                       color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

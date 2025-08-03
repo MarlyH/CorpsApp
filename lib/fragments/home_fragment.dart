@@ -9,6 +9,7 @@ import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../views/reserve_flow.dart';
+import '../widgets/delayed_slide_in.dart';
 
 /// Local model for /api/events/{id}
 class EventDetail {
@@ -60,6 +61,7 @@ class HomeFragment extends StatefulWidget {
 
 class _HomeFragmentState extends State<HomeFragment> {
   late Future<List<event_summary.EventSummary>> _futureSummaries;
+  int _dropdownOpenTime = 0;
 
   String? _filterLocation;
   event_summary.SessionType? _filterSessionType;
@@ -90,6 +92,94 @@ class _HomeFragmentState extends State<HomeFragment> {
       _futureSummaries = _loadSummaries();
     });
     await _futureSummaries;
+  }
+
+  void _showHelp() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Row(
+              children: [
+                Icon(Icons.help_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Text(
+                  'Event Browser Help',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Location Filter',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '• Use the dropdown at the top to filter events by location\n'
+                    '• Select "All Locations" to see events from everywhere\n',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+
+                  Text(
+                    'Session Types & Sorting',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '• Tap "All Sessions" to open the filter panel\n'
+                    '• Filter by age groups (8-11, 12-15, 16+)\n'
+                    '• Sort by date (ascending/descending)\n'
+                    '• Sort by available seats\n',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+
+                  Text(
+                    'Event Cards',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '• Tap a card to see event details\n'
+                    '• View location, date, time, and seat availability\n'
+                    '• Use "Book Now" to register for an event\n',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+
+                  Text(
+                    'Refresh',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '• Pull down to refresh the event list\n'
+                    '• This will show the latest event updates\n',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: Text('GOT IT', style: TextStyle(color: Colors.white)),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+    );
   }
 
   void _showFilters() {
@@ -220,57 +310,89 @@ class _HomeFragmentState extends State<HomeFragment> {
                         horizontal: 16,
                         vertical: 12,
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String?>(
-                          value: _filterLocation,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.white,
-                          ),
-                          dropdownColor: Colors.grey[900],
-                          isExpanded: true,
-                          hint: const Text(
-                            'All Locations',
-                            style: const TextStyle(
-                              fontFamily: 'WinnerSans',
-                              color: Colors.white,
-                              fontSize: 30,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          items: [
-                            const DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text(
-                                'All Locations',
-                                style: const TextStyle(
-                                  fontFamily: 'WinnerSans',
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String?>(
+                                value: _filterLocation,
+                                icon: const Icon(
+                                  Icons.keyboard_arrow_down,
                                   color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                            ),
-                            ...allLocations.map(
-                              (loc) => DropdownMenuItem<String?>(
-                                value: loc,
-                                child: Text(
-                                  loc.toUpperCase(),
+                                dropdownColor: Colors.grey[900],
+                                isExpanded: true,
+                                onTap: () {
+                                  setState(() {
+                                    _dropdownOpenTime =
+                                        DateTime.now().millisecondsSinceEpoch;
+                                  });
+                                },
+                                hint: const Text(
+                                  'All Locations',
                                   style: const TextStyle(
                                     fontFamily: 'WinnerSans',
                                     color: Colors.white,
-                                    fontSize: 24,
+                                    fontSize: 30,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                                items: [
+                                  DropdownMenuItem<String?>(
+                                    value: null,
+                                    child: const Text(
+                                      'All Locations',
+                                      style: TextStyle(
+                                        fontFamily: 'WinnerSans',
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  ...allLocations.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final value = entry.value;
+                                  return DropdownMenuItem<String?>(
+                                    value: value,
+                                    child: DelayedSlideIn(
+                                      delay: Duration(milliseconds: 100 * index),
+                                      child: Text(
+                                        value.toUpperCase(),
+                                        style: TextStyle(
+                                          fontFamily: 'WinnerSans',
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w600,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.blue.withOpacity(0.3),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                )
+                                ],
+                                onChanged:
+                                    (v) => setState(() {
+                                      _filterLocation = v;
+                                    }),
                               ),
                             ),
-                          ],
-                          onChanged:
-                              (v) => setState(() {
-                                _filterLocation = v;
-                              }),
-                        ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.help_outline,
+                              color: Colors.white,
+                            ),
+                            onPressed: _showHelp,
+                          ),
+                        ],
                       ),
                     ),
                   ),

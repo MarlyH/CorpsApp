@@ -59,11 +59,20 @@ class _DashboardViewState extends State<DashboardView> {
       }
     }
 
-    // Handle messages when app is in the foreground
+    // handle notifications when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        print('Foreground notification: ${message.notification!.title}');
-        // Optionally show an in-app alert/snackbar here
+      final notification = message.notification;
+
+      if (notification != null) {
+        final title = notification.title ?? 'Notification';
+        final body = notification.body ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body),
+            duration: Duration(seconds: 10),
+          ),
+        );
       }
     });
 

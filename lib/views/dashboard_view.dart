@@ -6,8 +6,11 @@ import '../../providers/auth_provider.dart';
 import '../fragments/home_fragment.dart';
 import '../fragments/profile_fragment.dart';
 import '../fragments/tickets_fragment.dart';
-import '../fragments/qr_scan_fragment.dart';
 import '../services/auth_http_client.dart';
+import '../widgets/navbar/admin_navbar.dart';
+import '../widgets/navbar/guest_navbar.dart';
+import '../widgets/navbar/qr_scanner_fab.dart';
+import '../widgets/navbar/user_navbar.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -126,15 +129,13 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final isManagerOrAdmin =
-        _hasRole('Event Manager') || _hasRole('Admin');
-    final showScanFAB    = isManagerOrAdmin;
-    final showTicketsTab = !showScanFAB;
+    final isManagerOrAdmin = _hasRole('Event Manager') || _hasRole('Admin');
+    final isGuest = context.watch<AuthProvider>().isGuest;
 
-    // Build pages array
+    // Build pages list depending on role
     final pages = <Widget>[
       const HomeFragment(),
-      if (showTicketsTab) const TicketsFragment(),
+      if (!isGuest && !isManagerOrAdmin) const TicketsFragment(),
       const ProfileFragment(),
     ];
 
@@ -159,138 +160,46 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ),
 
-        // CENTER-DOCKED SCAN FAB
-        floatingActionButton: showScanFAB
-            ? SizedBox(
-                width: _fabDiameter + _fabBorder * 2,
-                height: _fabDiameter + _fabBorder * 2,
-                child: FloatingActionButton(
-                  backgroundColor: const Color(0xFFD01417),
-                  elevation: 4,
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const QrScanFragment()),
-                  ),
-                  shape: CircleBorder(
-                    side: BorderSide(color: Colors.black, width: _fabBorder),
-                  ),
-                  child: const Icon(Icons.qr_code_scanner, size: 32, color: Color.fromARGB(255, 255, 255, 255),),
-                ),
-              )
+        // Display QR scanner FAB only for privileged users
+        // Positioned centrally above the bottom navigation bar with a notch
+        floatingActionButton: isManagerOrAdmin
+            ? QrScanFab(diameter: _fabDiameter, borderWidth: _fabBorder)
             : null,
-        floatingActionButtonLocation:
-            FloatingActionButtonLocation.centerDocked,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-        // BOTTOM NAV BAR
         bottomNavigationBar: BottomAppBar(
           color: Colors.black,
-          shape: showScanFAB ? const CircularNotchedRectangle() : null,
-          notchMargin: showScanFAB ? _fabBorder : 0,
+          // Use a notched shape to accommodate the FAB for privileged users
+          shape: isManagerOrAdmin ? const CircularNotchedRectangle() : null,
+          notchMargin: isManagerOrAdmin ? _fabBorder : 0,
           child: SizedBox(
             height: barH + inset,
-            child: showScanFAB
-                // Two-item layout with extra gap around center FAB
-                ? Row(
-                    children: [
-                      // HOME
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _goTo(0),
-                          behavior: HitTestBehavior.opaque,
-                          child: _buildIconLabel(
-                            icon: Icons.home,
-                            label: 'HOME',
-                            isSelected: _selectedIndex == 0,
-                          ),
-                        ),
-                      ),
-
-                      // Spacer: FAB diameter + double border + sideGap
-                      SizedBox(
-                        width: _fabDiameter + _fabBorder * 2 + _sideGap,
-                      ),
-
-                      // PROFILE (page index = 1)
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _goTo(1),
-                          behavior: HitTestBehavior.opaque,
-                          child: _buildIconLabel(
-                            icon: Icons.person,
-                            label: 'PROFILE',
-                            isSelected: _selectedIndex == 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                // Three-item layout (Home, Tickets, Profile)
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // HOME
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _goTo(0),
-                          behavior: HitTestBehavior.opaque,
-                          child: _buildIconLabel(
-                            icon: Icons.home,
-                            label: 'HOME',
-                            isSelected: _selectedIndex == 0,
-                          ),
-                        ),
-                      ),
-                      // TICKETS (page index = 1)
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _goTo(1),
-                          behavior: HitTestBehavior.opaque,
-                          child: _buildIconLabel(
-                            icon: Icons.confirmation_number,
-                            label: 'TICKETS',
-                            isSelected: _selectedIndex == 1,
-                          ),
-                        ),
-                      ),
-                      // PROFILE (page index = 2)
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _goTo(2),
-                          behavior: HitTestBehavior.opaque,
-                          child: _buildIconLabel(
-                            icon: Icons.person,
-                            label: 'PROFILE',
-                            isSelected: _selectedIndex == 2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+            child: Builder(builder: (_) {
+              if (isManagerOrAdmin) {
+                return AdminNavBar(
+                  selectedIndex: _selectedIndex,
+                  onTap: _goTo,
+                  fabDiameter: _fabDiameter,
+                  fabBorder: _fabBorder,
+                  sideGap: _sideGap,
+                );
+              }
+              else if (isGuest) {
+                return GuestNavBar(
+                  selectedIndex: _selectedIndex,
+                  onTap: _goTo,
+                );
+              }
+              else {
+                return UserNavBar(
+                  selectedIndex: _selectedIndex,
+                  onTap: _goTo,
+                );
+              }
+            }),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildIconLabel({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-  }) {
-    final color = isSelected ? Colors.white : Colors.grey[600];
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 24, color: color),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: color,
-          ),
-        ),
-      ],
     );
   }
 }

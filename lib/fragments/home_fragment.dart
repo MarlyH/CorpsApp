@@ -79,7 +79,7 @@ class _HomeFragmentState extends State<HomeFragment> {
   }
 
   Future<List<event_summary.EventSummary>> _loadSummaries() async {
-    final resp = await AuthHttpClient.get('/api/events');
+    final resp = await AuthHttpClient.getNoAuth('/api/events');
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list
         .cast<Map<String, dynamic>>()
@@ -478,7 +478,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                           canManage: canManage,
                           //isGuest: isGuest,
                           loadDetail:
-                              (id) => AuthHttpClient.get(
+                              (id) => AuthHttpClient.getNoAuth(
                                 '/api/events/$id',
                               ).then(
                                 (r) => EventDetail.fromJson(jsonDecode(r.body)),

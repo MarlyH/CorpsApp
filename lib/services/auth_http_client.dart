@@ -29,6 +29,15 @@ class AuthHttpClient {
     return resp;
   }
 
+  static Future<http.Response> getNoAuth(String endpoint, {Map<String, String>? extraHeaders}) async {
+    final resp = await _client.get(
+      Uri.parse('$_baseUrl$endpoint'),
+      headers: extraHeaders,
+    );
+    _checkForErrors(resp);
+    return resp;
+  }
+
   static Future<http.Response> post(String endpoint,
       {Map<String, String>? extraHeaders, dynamic body}) async {
     await _ensureValidToken();
@@ -281,19 +290,6 @@ class AuthHttpClient {
   /// DELETE /api/Locations/{id}
   static Future<http.Response> deleteLocation(int id) {
     return delete('/api/Locations/$id');
-  }
-
-
-
-
-  /// GET /api/events
-  static Future<http.Response> getEvents() {
-    return get('/api/events');
-  }
-
-  /// GET /api/events/{id}
-  static Future<http.Response> getEvent(int id) {
-    return get('/api/events/$id');
   }
 
   /// POST /api/events  (multipart/form-data)

@@ -97,90 +97,118 @@ class _HomeFragmentState extends State<HomeFragment> {
   void _showHelp() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: Colors.grey[900],
-            title: const Row(
-              children: [
-                Icon(Icons.help_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Text(
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          // Keep margins small for narrow (e.g., Fold cover) screens
+          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+          // Tighter paddings to avoid accidental overflow
+          titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          scrollable: true, // let content scroll instead of overflow
+
+          // Make title wrap instead of pushing horizontally
+          title: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Icon(Icons.help_outline, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
                   'Event Browser Help',
                   style: TextStyle(color: Colors.white),
+                  softWrap: true,
                 ),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Location Filter',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '• Use the dropdown at the top to filter events by location\n'
-                    '• Select "All Locations" to see events from everywhere\n',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-
-                  Text(
-                    'Session Types & Sorting',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '• Tap "All Sessions" to open the filter panel\n'
-                    '• Filter by age groups (8-11, 12-15, 16+)\n'
-                    '• Sort by date (ascending/descending)\n'
-                    '• Sort by available seats\n',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-
-                  Text(
-                    'Event Cards',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '• Tap a card to see event details\n'
-                    '• View location, date, time, and seat availability\n'
-                    '• Use "Book Now" to register for an event\n',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-
-                  Text(
-                    'Refresh',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '• Pull down to refresh the event list\n'
-                    '• This will show the latest event updates\n',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                child: Text('GOT IT', style: TextStyle(color: Colors.white)),
-                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
+
+          // Constrain content width to fit narrow screens
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: screenWidth - 48),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                // Location
+                Text(
+                  'Location Filter',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '• Use the dropdown at the top to filter events by location\n'
+                  '• Select "All Locations" to see events from everywhere\n',
+                  style: TextStyle(color: Colors.white70),
+                  softWrap: true,
+                ),
+
+                // Sessions & Sorting
+                SizedBox(height: 12),
+                Text(
+                  'Session Types & Sorting',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '• Tap "All Sessions" to open the filter panel\n'
+                  '• Filter by age groups (8–11, 12–15, 16+)\n'
+                  '• Sort by date (ascending/descending)\n'
+                  '• Sort by available seats\n',
+                  style: TextStyle(color: Colors.white70),
+                  softWrap: true,
+                ),
+
+                // Event Cards
+                SizedBox(height: 12),
+                Text(
+                  'Event Cards',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '• Tap a card to see event details\n'
+                  '• View location, date, time, and seat availability\n'
+                  '• Use "Book Now" to register for an event\n',
+                  style: TextStyle(color: Colors.white70),
+                  softWrap: true,
+                ),
+
+                // Refresh
+                SizedBox(height: 12),
+                Text(
+                  'Refresh',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '• Pull down to refresh the event list\n'
+                  '• This will show the latest event updates\n',
+                  style: TextStyle(color: Colors.white70),
+                  softWrap: true,
+                ),
+              ],
+            ),
+          ),
+
+          actionsPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                child: const Text('GOT IT', style: TextStyle(color: Colors.white)),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
+
 
   void _showFilters() {
     showModalBottomSheet(
@@ -1024,7 +1052,14 @@ class _EventTileState extends State<EventTile> {
         _showRequireLoginModal(context);
       }
     },
-    child: const Text('BOOK NOW', style: TextStyle(color: Colors.white)),
+    child: const Text('BOOK NOW', 
+      style: const TextStyle(
+        fontFamily: 'WinnerSans',
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
   );
 
   Widget _buildCancelReserveRow() => Row(
@@ -1040,9 +1075,17 @@ class _EventTileState extends State<EventTile> {
             ),
           ),
           onPressed: _cancelEvent,
-          child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
+          child: const Text('CANCEL', 
+            style: const TextStyle(
+              fontFamily: 'WinnerSans',
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
+
       const SizedBox(width: 8),
       Expanded(
         child: ElevatedButton(
@@ -1060,7 +1103,14 @@ class _EventTileState extends State<EventTile> {
               ),
             );
           },
-          child: const Text('RESERVE', style: TextStyle(color: Colors.white)),
+          child: const Text('RESERVE', 
+            style: const TextStyle(
+              fontFamily: 'WinnerSans',
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     ],

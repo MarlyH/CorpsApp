@@ -22,6 +22,11 @@
             <data android:mimeType="text/plain"/>
         </intent>
         <intent>
+        <!-- needed to be able to select and send emails out of app through to selected email service  -->
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.VIEW"/>
             <category android:name="android.intent.category.BROWSABLE"/>
             <data android:scheme="http"/>

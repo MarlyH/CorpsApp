@@ -11,10 +11,10 @@ class PoliciesView extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.0,
+          fontFamily: 'WinnerSans',
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -63,7 +63,8 @@ class PoliciesView extends StatelessWidget {
           'POLICIES',
           style: TextStyle(
             fontFamily: 'WinnerSans',
-            fontSize: 20,            // tweak as needed
+            color: Colors.white,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),

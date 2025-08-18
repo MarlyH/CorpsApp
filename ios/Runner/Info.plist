@@ -36,6 +36,13 @@
     <string>Main</string>
     <key>UIStatusBarHidden</key>
     <true/>
+    <!-- to send emails out of app to selected email service -->
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>mailto</string>
+      <string>https</string>
+    </array>
+
     <key>UISupportedInterfaceOrientations</key>
     <array>
       <string>UIInterfaceOrientationPortrait</string>

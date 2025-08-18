@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:corpsapp/widgets/button.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -33,11 +31,11 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   }
 
   void _subscribeToConnectivity() {
-    // Listen for connectivity changes
-    final connProvider = Provider.of<ConnectivityProvider>(context, listen: false);
+    final connProvider =
+        Provider.of<ConnectivityProvider>(context, listen: false);
     _connListener = () {
       // When we go from offline → online and we're not already loading,
-      // retry the token check so we can auto‑login.
+      // retry the token check so we can auto-login.
       if (!connProvider.isOffline && !_loading) {
         _attemptAutoLogin();
       }
@@ -52,12 +50,11 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
 
   Future<void> _checkForToken() async {
     final refreshToken = await TokenService.getRefreshToken();
-    final offline      = context.read<ConnectivityProvider>().isOffline;
+    final offline = context.read<ConnectivityProvider>().isOffline;
 
     if (refreshToken != null &&
         !JwtDecoder.isExpired(refreshToken) &&
-        !offline
-    ) {
+        !offline) {
       // valid token & online → load user + navigate
       final authProvider = context.read<AuthProvider>();
       await authProvider.loadUser();
@@ -75,7 +72,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // Clean up our connectivity listener
     Provider.of<ConnectivityProvider>(context, listen: false)
         .removeListener(_connListener);
     super.dispose();
@@ -83,6 +79,28 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    const winnerSans16 = TextStyle(
+      fontFamily: 'WinnerSans',
+      fontWeight: FontWeight.w600,
+      fontSize: 16,
+    );
+
+    final buttonRadius = BorderRadius.circular(12);
+
+    final ButtonStyle filledStyle = ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF4C85D0),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: buttonRadius),
+    );
+
+    final ButtonStyle outlinedStyle = OutlinedButton.styleFrom(
+      foregroundColor: Colors.white, // text & ripple
+      side: const BorderSide(color: Colors.white, width: 1.5),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: buttonRadius),
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -98,7 +116,6 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 transitionBuilder: (child, anim) =>
@@ -109,22 +126,34 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                         key: ValueKey('loading'),
                       )
                     : Column(
+                        key: const ValueKey('buttons'),
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Button(
-                            label: 'LOGIN',
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/login'),
+                          // login
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: filledStyle,
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/login'),
+                              child: const Text('LOGIN', style: winnerSans16),
+                            ),
                           ),
                           const SizedBox(height: 12),
-                          Button(
-                            label: 'REGISTER',
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/register'),
-                            buttonColor: Colors.white,
-                            textColor: const Color(0xFF121212),
+
+                          // Reg
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              style: outlinedStyle,
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/register'),
+                              child: const Text('REGISTER', style: winnerSans16),
+                            ),
                           ),
                           const SizedBox(height: 32),
+
+                          // Cont as guest
                           GestureDetector(
                             onTap: () =>
                                 Navigator.pushNamed(context, '/dashboard'),
@@ -134,6 +163,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                                 fontFamily: 'WinnerSans',
                                 color: Colors.white,
                                 fontWeight: FontWeight.w500,
+                                fontSize: 14,
                               ),
                             ),
                           ),

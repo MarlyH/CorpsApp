@@ -1,9 +1,19 @@
-// lib/views/policies_view.dart
-
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PoliciesView extends StatelessWidget {
   const PoliciesView({super.key});
+
+  // Open a URL in the external browser
+  Future<void> _open(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open link')),
+      );
+    }
+  }
 
   Widget _buildSectionHeader(String text) {
     return Padding(
@@ -76,10 +86,10 @@ class PoliciesView extends StatelessWidget {
             _buildSectionHeader('General'),
             _buildPolicyGroup([
               _buildTile('Terms & Conditions', () {
-                // TODO: push Terms & Conditions view
+                _open(context, 'https://www.yourcorps.co.nz/terms-and-conditions');
               }),
               _buildTile('Privacy Policy', () {
-                // TODO: push Privacy Policy view
+                _open(context, 'https://www.yourcorps.co.nz/privacy-policy');
               }),
             ]),
 
@@ -87,16 +97,16 @@ class PoliciesView extends StatelessWidget {
             _buildSectionHeader('Child Protection'),
             _buildPolicyGroup([
               _buildTile('Child Protection Policy', () {
-                // TODO: push Child Protection Policy view
+                _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_5d58ed0ed7f74328aa1dc0524ef00410.pdf');
               }),
               _buildTile('Child Protection Prevention Framework', () {
-                // TODO: push Prevention Framework view
+                _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_13c2b4f95fca4ac9abc97661e8387e27.pdf');
               }),
               _buildTile('Health and Safety Manual', () {
-                // TODO: push Health & Safety Manual view
+                _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_d193389476e34ac89da4ab0dd1067afc.pdf');
               }),
               _buildTile('Code of Conduct for Interacting with Children', () {
-                // TODO: push Code of Conduct view
+                _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_57085482bbd8423dbbea34e8989bd4eb.pdf');
               }),
             ]),
 

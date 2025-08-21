@@ -825,36 +825,42 @@ class _EventTileState extends State<EventTile> {
       if (mounted) setState(() => _waitlistSubmitting = false);
     }
   }
-  // this is for showing a badge that displayes a booked out event 
+  // this is for showing a watermark that displayes a booked out event 
   bool get _isFull => widget.summary.availableSeatsCount <= 0;
 
-  Widget _bookedOutBadge() => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      // color: const Color(0xFFFFEBEE),              // very light red
-      borderRadius: BorderRadius.circular(12),
-      // border: Border.all(color: Colors.redAccent),
-      boxShadow: const [
-        BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
-      ],
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.event_busy, size: 14, color: Colors.redAccent),
-        SizedBox(width: 6),
-        Text(
-          'BOOKED OUT',
-          style: TextStyle(
-            color: Colors.redAccent,
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-            letterSpacing: 0.5,
+  Widget _bookedOutWatermark() {
+    return IgnorePointer( // don’t block taps
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Align(
+          alignment: Alignment.center,
+          child: Opacity(
+            opacity: 0.2,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.event_busy, size: 120, color: Colors.redAccent),
+                  SizedBox(width: 12),
+                  Text(
+                    'BOOKED OUT',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
+
 
 
   @override
@@ -905,12 +911,6 @@ class _EventTileState extends State<EventTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_isFull)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: _bookedOutBadge(),
-          ),
         // SUMMARY and PILL Section
         Padding(
           padding: const EdgeInsets.only(bottom: _halfPill),
@@ -947,6 +947,7 @@ class _EventTileState extends State<EventTile> {
                     //   ),
                     // ),
 
+                    if (_isFull) _bookedOutWatermark(),
                     // summary text
                     Row(
                       children: [

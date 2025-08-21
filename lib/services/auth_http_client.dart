@@ -348,6 +348,23 @@ class AuthHttpClient {
     );
   }
 
+  ////////////////////////////////////
+  // for updateing manuel attendence 
+  static Future<http.Response> postRaw(String path,
+    {required String body, Map<String,String>? headers}) async {
+  final token = await TokenService.getAccessToken();
+  return http.post(
+    Uri.parse('$_baseUrl$path'),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      ...?headers,
+    },
+    body: body,
+  );
+}
+
+
   /// GET /api/events/{eventId}/waitlist
   static Future<http.Response> getWaitlist(int eventId) {
     return get('/api/events/$eventId/waitlist');

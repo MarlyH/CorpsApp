@@ -743,6 +743,9 @@ class _EventTileState extends State<EventTile> {
   static const double _outerRadius = 16.0;
   static const double _innerRadius = _outerRadius - _borderWidth;
 
+  bool _isWaitlisted = false;         // local reflection after user taps
+  bool _waitlistSubmitting = false;
+
   @override
   void initState() {
     super.initState();
@@ -780,6 +783,79 @@ class _EventTileState extends State<EventTile> {
       }
     }
   }
+  void _snack(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.black)),
+        backgroundColor: error ? Colors.redAccent : Colors.white,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _toggleWaitlist() async {
+    if (_waitlistSubmitting) return;
+    setState(() => _waitlistSubmitting = true);
+    try {
+      if (!_isWaitlisted) {
+        // opt-in
+        final r = await AuthHttpClient.joinWaitlist(widget.summary.eventId);
+        // await AuthHttpClient.post('/api/events/${widget.summary.eventId}/waitlist');
+        if (r.statusCode == 200) {
+          setState(() => _isWaitlisted = true);
+          _snack("We’ll notify you when a seat opens for this event.");
+        } else {
+          _snack('Could not add to waitlist (${r.statusCode}).', error: true);
+        }
+      } else {
+        // opt-out
+        final r = await AuthHttpClient.leaveWaitlist(widget.summary.eventId);
+        // await AuthHttpClient.delete('/api/events/${widget.summary.eventId}/waitlist');
+        if (r.statusCode == 200) {
+          setState(() => _isWaitlisted = false);
+          _snack("You’ll no longer receive notifications for this event.");
+        } else {
+          _snack('Could not remove from waitlist (${r.statusCode}).', error: true);
+        }
+      }
+    } catch (e) {
+      _snack('Network error: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _waitlistSubmitting = false);
+    }
+  }
+  // this is for showing a badge that displayes a booked out event 
+  bool get _isFull => widget.summary.availableSeatsCount <= 0;
+
+  Widget _bookedOutBadge() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      // color: const Color(0xFFFFEBEE),              // very light red
+      borderRadius: BorderRadius.circular(12),
+      // border: Border.all(color: Colors.redAccent),
+      boxShadow: const [
+        BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
+      ],
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.event_busy, size: 14, color: Colors.redAccent),
+        SizedBox(width: 6),
+        Text(
+          'BOOKED OUT',
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    ),
+  );
+
 
   @override
   Widget build(BuildContext context) {
@@ -798,6 +874,7 @@ class _EventTileState extends State<EventTile> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
+            
             // Outer border
             Positioned.fill(
               child: Container(
@@ -828,6 +905,12 @@ class _EventTileState extends State<EventTile> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_isFull)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _bookedOutBadge(),
+          ),
         // SUMMARY and PILL Section
         Padding(
           padding: const EdgeInsets.only(bottom: _halfPill),
@@ -835,6 +918,7 @@ class _EventTileState extends State<EventTile> {
             clipBehavior: Clip.none,
             children: [
               // Summary card with small centered image
+              
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -870,6 +954,7 @@ class _EventTileState extends State<EventTile> {
                         Expanded(child: _summaryRight(s)),
                       ],
                     ),
+                    
                   ],
                 ),
               ),
@@ -1036,31 +1121,73 @@ class _EventTileState extends State<EventTile> {
     );
   }
 
-  Widget _buildBookNowButton() => ElevatedButton(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF4C85D0),
-      minimumSize: const Size.fromHeight(48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-    ),
-    onPressed: () {
-      if (widget.isUser) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)),
-        );
-      } else {
-        _showRequireLoginModal(context);
-      }
-    },
-    child: const Text('BOOK NOW', 
-      style: const TextStyle(
-        fontFamily: 'WinnerSans',
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
+  Widget _buildBookNowButton() {
+    final s = widget.summary;
+
+    // If seats available -> BOOK NOW (your existing behavior)
+    if (s.availableSeatsCount > 0) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF4C85D0),
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        onPressed: () {
+          if (widget.isUser) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)),
+            );
+          } else {
+            _showRequireLoginModal(context);
+          }
+        },
+        child: const Text(
+          'BOOK NOW',
+          style: TextStyle(
+            fontFamily: 'WinnerSans',
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    // Event is FULL -> NOTIFY ME (opt-in to waitlist)
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueGrey.shade700,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
-    ),
-  );
+      onPressed: () {
+        if (!widget.isUser) {
+          _showRequireLoginModal(context);
+          return;
+        }
+        _toggleWaitlist();
+      },
+      icon: _waitlistSubmitting
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : Icon(_isWaitlisted ? Icons.notifications_off : Icons.notifications_active,
+              color: Colors.white),
+      label: Text(
+        _isWaitlisted ? 'STOP NOTIFYING ME' : 'NOTIFY ME',
+        style: const TextStyle(
+          fontFamily: 'WinnerSans',
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildCancelReserveRow() => Row(
     children: [
@@ -1129,6 +1256,7 @@ class _EventTileState extends State<EventTile> {
     return week[d.weekday - 1];
   }
 }
+
 
 void _showRequireLoginModal(BuildContext context) {
   showModalBottomSheet<void>(

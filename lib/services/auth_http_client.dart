@@ -353,15 +353,21 @@ class AuthHttpClient {
     return get('/api/events/$eventId/waitlist');
   }
 
-  /// POST /api/events/{eventId}/waitlist
-  static Future<http.Response> addToWaitlist(int eventId) {
-    return post('/api/events/$eventId/waitlist');
-  }
+  // /// POST /api/events/{eventId}/waitlist
+  // static Future<http.Response> addToWaitlist(int eventId) {
+  //   return post('/api/events/$eventId/waitlist');
+  // }
 
-  /// DELETE /api/events/{eventId}/waitlist
-  static Future<http.Response> removeFromWaitlist(int eventId) {
-    return delete('/api/events/$eventId/waitlist');
-  }
+  // /// DELETE /api/events/{eventId}/waitlist
+  // static Future<http.Response> removeFromWaitlist(int eventId) {
+  //   return delete('/api/events/$eventId/waitlist');
+  // }
+
+  static Future<http.Response> joinWaitlist(int eventId) =>
+    post('/api/events/$eventId/waitlist');
+
+  static Future<http.Response> leaveWaitlist(int eventId) =>
+    delete('/api/events/$eventId/waitlist');
 
   static Future<void> registerDeviceToken(String deviceToken) async {
     final platform = Platform.isAndroid ? 'Android' : 'iOS';

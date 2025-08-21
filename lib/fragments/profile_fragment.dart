@@ -26,15 +26,19 @@ class ProfileFragment extends StatelessWidget {
     final isManager = auth.isEventManager;
     final isAdmin = auth.isAdmin;
     final age = user['age'] as int? ?? 0;
+    final showStrikes = auth.isUser;
+    final strikeCount = (user['attendanceStrikeCount'] as int?) ?? 0; // 0..3
+    final isSuspended = (user['isSuspended'] as bool?) ?? false;
 
     // Determine role label
     String roleLabel;
     if (isAdmin) {
       roleLabel = "Admin";
-    } else if (isManager)
+    } else if (isManager) {
       roleLabel = "Event Manager";
-    else
+    } else {
       roleLabel = "User";
+    }
 
     return Container(
       color: Colors.black,
@@ -57,11 +61,9 @@ class ProfileFragment extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-           // ─── HEADER CARD ───────────────────────────────────────
+            // HEADER CARD
             Container(
-              // make it as wide as possible
               width: double.infinity,
-              // optional: add horizontal margin if you don’t want it flush with the screen
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -69,7 +71,7 @@ class ProfileFragment extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center, // left‑align the text
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     "${user['firstName'] ?? ''} ${user['lastName'] ?? ''}",
@@ -92,6 +94,17 @@ class ProfileFragment extends StatelessWidget {
                       fontStyle: FontStyle.italic,
                     ),
                   ),
+
+                  // Attendance Strikes
+                  if (showStrikes) ...[
+                    const SizedBox(height: 12),
+                    _StrikesBanner(
+                      strikeCount: strikeCount.clamp(0, 3),
+                      isSuspended: isSuspended,
+                      onInfoTap: () => _showStrikesInfo(context),
+                    ),
+                  ],
+
                 ],
               ),
             ),
@@ -105,27 +118,19 @@ class ProfileFragment extends StatelessWidget {
                   _OptionTile(
                     icon: Icons.lock,
                     label: "Account & Security",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AccountSecurityView(),
-                          ),
-                        ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AccountSecurityView()),
+                    ),
                   ),
-
                   _OptionTile(
                     icon: Icons.notifications,
                     label: "Notifications",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationsView(),
-                          ),
-                        ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsView()),
+                    ),
                   ),
-
                   if (isUser && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,
@@ -136,111 +141,74 @@ class ProfileFragment extends StatelessWidget {
                       ),
                     ),
                   ],
-
-
                   if (isManager || isAdmin) ...[
                     _OptionTile(
                       icon: Icons.event,
                       label: "Manage My Events",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ManageEventsView(),
-                            ),
-                          ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ManageEventsView()),
+                      ),
                     ),
-                    ////////////////////////////////////////////////////////
-                    ///
-                    ///this needs to be adjusted when logic is created for
                     _OptionTile(
                       icon: Icons.history,
                       label: "Events History",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AccountSecurityView(),
-                            ),
-                            // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
-                          ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AccountSecurityView()),
+                        // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
+                      ),
                     ),
                   ],
-
                   if (isAdmin) ...[
                     _OptionTile(
                       icon: Icons.admin_panel_settings,
                       label: "Roles Management",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ChangeUserRoleView(),
-                            ),
-                          ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
+                      ),
                     ),
                     _OptionTile(
                       icon: Icons.location_on,
                       label: "Location Management",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ManageLocationsView(),
-                            ),
-                          ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ManageLocationsView()),
+                      ),
                     ),
                   ],
-
-                  const Divider(
-                    color: Colors.white30,
-                    indent: 24,
-                    endIndent: 24,
-                  ),
-
+                  const Divider(color: Colors.white30, indent: 24, endIndent: 24),
                   _OptionTile(
                     icon: Icons.info,
                     label: "About Corps",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AboutCorpsView(),
-                          ),
-                        ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AboutCorpsView()),
+                    ),
                   ),
                   _OptionTile(
                     icon: Icons.policy,
                     label: "Policies",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PoliciesView(),
-                          ),
-                        ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PoliciesView()),
+                    ),
                   ),
                   _OptionTile(
                     icon: Icons.support_agent,
                     label: "Support & Feedback",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SupportAndFeedbackView(),
-                          ),
-                        ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupportAndFeedbackView()),
+                    ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // ─── LOG OUT ─────────────────────────────────────────
                   _OptionTile(
                     icon: Icons.logout,
                     label: "Log Out",
                     onTap: () => _confirmLogout(context),
                   ),
-
                   const SizedBox(height: 24),
                 ],
               ),
@@ -251,9 +219,31 @@ class ProfileFragment extends StatelessWidget {
     );
   }
 
+  static void _showStrikesInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Attendance Strikes', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "• A strike is issued when you don’t attend a booked event.\n"
+          "• If multiple children are booked for the same event and none attend, it counts as ONE strike (per event).\n"
+          "• 3 strikes = a 90-day suspension from making bookings.",
+          style: TextStyle(color: Colors.white70, height: 1.35),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmLogout(BuildContext context) async {
-    final ok =
-        await showDialog<bool>(
+    final ok = await showDialog<bool>(
           context: context,
           builder: (_) => const _ConfirmLogoutDialog(),
         ) ??
@@ -262,6 +252,92 @@ class ProfileFragment extends StatelessWidget {
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
     Navigator.pushReplacementNamed(context, '/landing');
+  }
+}
+
+/// NEW: compact widget that draws 0–3 red flags + info, and shows a suspended badge when needed.
+class _StrikesBanner extends StatelessWidget {
+  final int strikeCount; // 0..3
+  final bool isSuspended;
+  final VoidCallback onInfoTap;
+
+  const _StrikesBanner({
+    required this.strikeCount,
+    required this.isSuspended,
+    required this.onInfoTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final flags = List.generate(
+      3,
+      (i) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Icon(
+          Icons.flag,
+          size: 22,
+          color: i < strikeCount ? Colors.redAccent : Colors.black26,
+        ),
+      ),
+    );
+
+    final subtitle = switch (strikeCount) {
+      0 => 'No attendance strikes',
+      1 => '1 of 3 strikes',
+      2 => '2 of 3 strikes',
+      _ => '3 of 3 strikes',
+    };
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ...flags,
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: onInfoTap,
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.info_outline, size: 20, color: Colors.black45),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(color: Colors.black54, fontSize: 12),
+        ),
+        if (isSuspended) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE), // light red
+              border: Border.all(color: Colors.redAccent),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.block, size: 16, color: Colors.redAccent),
+                SizedBox(width: 6),
+                Text(
+                  'Bookings temporarily suspended',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -309,10 +385,7 @@ class _ConfirmLogoutDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () => Navigator.pop(c, true),
-          child: const Text(
-            "LOG OUT",
-            style: TextStyle(color: Colors.redAccent),
-          ),
+          child: const Text("LOG OUT", style: TextStyle(color: Colors.redAccent)),
         ),
       ],
     );

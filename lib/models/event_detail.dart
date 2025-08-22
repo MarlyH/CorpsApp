@@ -35,8 +35,11 @@ class EventDetail {
   final SessionType sessionType;
   final DateTime startDate;
   final String startTime; // "HH:mm:ss"
-  final String endTime; // "HH:mm:ss"
+  final String endTime;   // "HH:mm:ss"
   final List<int> availableSeats;
+
+  // NEW: total seats (nullable to be safe if backend omits it)
+  final int? totalSeats;
 
   EventDetail({
     required this.description,
@@ -47,35 +50,39 @@ class EventDetail {
     required this.startTime,
     required this.endTime,
     required this.availableSeats,
+    this.totalSeats,
   });
 
   factory EventDetail.fromJson(Map<String, dynamic> json) {
-    // parse seats array
-    final seatsJson = (json['availableSeats'] as List<dynamic>?) ?? <dynamic>[];
+    final seatsJson = (json['availableSeats'] as List<dynamic>?) ?? const <dynamic>[];
     final seats = seatsJson.cast<int>();
 
     return EventDetail(
       description : json['description'] as String? ?? '',
-      address : json['address'] as String? ?? '',
+      address     : json['address'] as String? ?? '',
       seatingMapImgSrc : json['seatingMapImgSrc'] as String?,
       sessionType : sessionTypeFromRaw(json['sessionType']),
-      startDate : DateTime.parse(json['startDate'] as String),
-      startTime : json['startTime'] as String? ?? '',
-      endTime : json['endTime'] as String? ?? '',
+      startDate   : DateTime.parse(json['startDate'] as String),
+      startTime   : json['startTime'] as String? ?? '',
+      endTime     : json['endTime'] as String? ?? '',
       availableSeats : seats,
+
+      // parse totalSeats if present
+      totalSeats  : (json['totalSeats'] as num?)?.toInt(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'description': description,
-      'address' : address,
+      'description' : description,
+      'address'     : address,
       if (seatingMapImgSrc != null) 'seatingMapImgSrc': seatingMapImgSrc,
-      'sessionType': SessionType.values.indexOf(sessionType),
-      'startDate': startDate.toIso8601String(),
-      'startTime': startTime,
-      'endTime': endTime,
+      'sessionType' : SessionType.values.indexOf(sessionType),
+      'startDate'   : startDate.toIso8601String(),
+      'startTime'   : startTime,
+      'endTime'     : endTime,
       'availableSeats': availableSeats,
+      if (totalSeats != null) 'totalSeats': totalSeats,
     };
   }
 }

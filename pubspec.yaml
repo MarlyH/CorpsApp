@@ -43,6 +43,8 @@ dependencies:
   intl: ^0.18.1
   file_picker: ^10.2.0
   connectivity_plus: ^4.0.0
+  # Shared prefs currently will save state of waitlist notif state on a per UID basis
+  shared_preferences: ^2.2.2
 
   flutter:
     sdk: flutter

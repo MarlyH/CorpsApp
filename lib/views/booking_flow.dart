@@ -71,6 +71,31 @@ class _BookingFlowState extends State<BookingFlow> {
     return age >= 16;
   }
 
+  // opens a dedicated seat picker modal
+  // returns the selected seat number or null if cancelled
+  Future<void> _openSeatPicker() async {
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return FractionallySizedBox(
+          heightFactor: 0.9, // ~90% height, scrollable inside
+          child: _SeatPickerSheet(
+            futureDetail: _detailFut,
+            initialSelected: _selectedSeat,
+            eventTotalSeats: widget.event.totalSeats, // non-nullable in your model
+          ),
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _selectedSeat = picked);
+    }
+  }
+
+
   void _next() {
     // now under-16 goes up to index 2 (Terms=0, Seat=1, Confirm=2)
     final last = _needsFullFlow ? 3 : 2;
@@ -457,74 +482,62 @@ class _BookingFlowState extends State<BookingFlow> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          // Seating map preview (more room by default)
           Expanded(
             child: Center(
-              child:
-                  (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
-                      ? Image.network(
-                        widget.event.seatingMapImgSrc!,
-                        fit: BoxFit.contain,
-                      )
-                      : const Text(
-                        'No seating map available',
-                        style: TextStyle(color: Colors.white70),
-                      ),
+              child: (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
+                  ? Image.network(
+                      widget.event.seatingMapImgSrc!,
+                      fit: BoxFit.contain,
+                    )
+                  : const Text(
+                      'No seating map available',
+                      style: TextStyle(color: Colors.white70),
+                    ),
             ),
           ),
           const SizedBox(height: 12),
-          FutureBuilder<EventDetail>(
-            future: _detailFut,
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator(color: Colors.white);
-              }
-              if (snap.hasError) {
-                return const Text(
-                  'Error loading seats',
-                  style: TextStyle(color: Colors.redAccent),
-                );
-              }
-              final seats = snap.data!.availableSeats;
-              if (seats.isEmpty) {
-                return const Text(
-                  'No seats available',
-                  style: TextStyle(color: Colors.white70),
-                );
-              }
-              return DropdownButtonFormField<int>(
-                dropdownColor: Colors.white,
-                decoration: InputDecoration(
-                  labelText: 'Seat Number',
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
+
+          // Button that opens the overlay seat picker
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C85D0),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                style: const TextStyle(color: Colors.black),
-                value: _selectedSeat,
-                items:
-                    seats
-                        .map(
-                          (n) => DropdownMenuItem(
-                            value: n,
-                            child: Text(n.toString()),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (v) => setState(() => _selectedSeat = v),
-              );
-            },
+              ),
+              icon: const Icon(Icons.event_seat, color: Colors.white),
+              label: Text(
+                _selectedSeat == null
+                    ? 'Choose Seat'
+                    : 'Change Seat (Seat #$_selectedSeat)',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              onPressed: _openSeatPicker,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Tiny hint showing the current choice
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _selectedSeat == null
+                  ? 'No seat selected yet.'
+                  : 'Selected seat: $_selectedSeat',
+              style: const TextStyle(color: Colors.white70),
+            ),
           ),
         ],
       ),
     );
   }
+
+
 
   // ATTENDEE DETAILS
 
@@ -1038,3 +1051,301 @@ class _BookingFlowState extends State<BookingFlow> {
     );
   }
 }
+
+
+class _SeatPickerSheet extends StatefulWidget {
+  final Future<EventDetail> futureDetail;
+  final int? initialSelected;
+  final int eventTotalSeats; // from EventSummary (non-nullable)
+
+  const _SeatPickerSheet({
+    required this.futureDetail,
+    required this.initialSelected,
+    required this.eventTotalSeats,
+  });
+
+  @override
+  State<_SeatPickerSheet> createState() => _SeatPickerSheetState();
+}
+
+class _SeatPickerSheetState extends State<_SeatPickerSheet> {
+  int? _picked;
+
+  @override
+  void initState() {
+    super.initState();
+    _picked = widget.initialSelected;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Select a Seat',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.white24, height: 1),
+
+            // Content
+            Expanded(
+              child: FutureBuilder<EventDetail>(
+                future: widget.futureDetail,
+                builder: (ctx, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    );
+                  }
+                  if (snap.hasError || snap.data == null) {
+                    return const Center(
+                      child: Text('Error loading seats',
+                          style: TextStyle(color: Colors.redAccent)),
+                    );
+                  }
+
+                  final detail = snap.data!;
+                  final availableSeats = detail.availableSeats.toSet();
+
+                  // Determine total seats:
+                  // Prefer EventDetail.totalSeats (if present) → EventSummary.totalSeats (passed in) → highest available seat number
+                  int totalSeats = 0;
+                  final int? detailTotal = detail.totalSeats; // make sure your model includes this (int?)
+                  if (detailTotal != null && detailTotal > 0) {
+                    totalSeats = detailTotal;
+                  } else if (widget.eventTotalSeats > 0) {
+                    totalSeats = widget.eventTotalSeats;
+                  } else {
+                    totalSeats = availableSeats.isNotEmpty
+                        ? availableSeats.reduce((a, b) => a > b ? a : b)
+                        : 0;
+                  }
+
+                  if (totalSeats <= 0) {
+                    return const Center(
+                      child: Text('No seats available',
+                          style: TextStyle(color: Colors.white70)),
+                    );
+                  }
+
+                  final takenCount =
+                      totalSeats - availableSeats.length.clamp(0, totalSeats);
+
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Little summary
+                        Text(
+                          '${availableSeats.length} of $totalSeats seats available'
+                          '${_picked != null ? ' • selected: #$_picked' : ''}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Grid (scrolls independently)
+                        Expanded(
+                          child: GridView.builder(
+                            padding: EdgeInsets.zero,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 1.4,
+                            ),
+                            itemCount: totalSeats,
+                            itemBuilder: (_, idx) {
+                              final seat = idx + 1;
+                              final available = availableSeats.contains(seat);
+                              final selected = _picked == seat;
+
+                              return _SeatTile(
+                                seat: seat,
+                                available: available,
+                                selected: selected,
+                                onTap: available
+                                    ? () => setState(() => _picked = seat)
+                                    : null,
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Legend
+                        Row(
+                          children: const [
+                            _LegendSwatch(color: Colors.white, border: Colors.white24),
+                            SizedBox(width: 6),
+                            Text('Available', style: TextStyle(color: Colors.white70)),
+                            SizedBox(width: 16),
+                            _LegendSwatch(color: Colors.white10, border: Colors.white24),
+                            SizedBox(width: 6),
+                            Text('Taken', style: TextStyle(color: Colors.white70)),
+                            SizedBox(width: 16),
+                            _LegendSwatch(color: Color(0xFF4C85D0), border: Colors.transparent),
+                            SizedBox(width: 6),
+                            Text('Selected', style: TextStyle(color: Colors.white70)),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Actions
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9E9E9E),
+                                  side: BorderSide.none,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('CANCEL',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4C85D0),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _picked == null
+                                    ? null
+                                    : () => Navigator.of(context).pop(_picked),
+                                child: Text(
+                                  _picked == null
+                                      ? 'USE SELECTED'
+                                      : 'USE SEAT #$_picked',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// widgets used inside the sheet for the seat tiles and legend
+
+class _SeatTile extends StatelessWidget {
+  final int seat;
+  final bool available;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _SeatTile({
+    required this.seat,
+    required this.available,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = !available
+        ? Colors.white10
+        : (selected ? const Color(0xFF4C85D0) : Colors.white);
+    final fg = !available
+        ? Colors.white38
+        : (selected ? Colors.white : Colors.black87);
+    final border = selected ? const Color(0xFF4C85D0) : Colors.white24;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: border, width: selected ? 2 : 1),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!available)
+                const Icon(Icons.event_seat, size: 14, color: Colors.white38),
+              if (!available) const SizedBox(width: 6),
+              Text(
+                seat.toString(),
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendSwatch extends StatelessWidget {
+  final Color color;
+  final Color border;
+  const _LegendSwatch({required this.color, required this.border});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: border, width: 1),
+      ),
+    );
+  }
+}
+

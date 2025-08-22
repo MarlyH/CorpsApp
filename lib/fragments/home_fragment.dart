@@ -10,6 +10,8 @@ import '../models/event_summary.dart' as event_summary;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../views/reserve_flow.dart';
 import '../widgets/delayed_slide_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 /// Local model for /api/events/{id}
 class EventDetail {
@@ -745,11 +747,21 @@ class _EventTileState extends State<EventTile> {
 
   bool _isWaitlisted = false;         // local reflection after user taps
   bool _waitlistSubmitting = false;
+  late final String _waitlistPrefKey;
 
   @override
   void initState() {
     super.initState();
     _detailFut = widget.loadDetail(widget.summary.eventId);
+
+    // Build a stable per-user key so different users on the same device don't clash
+    final auth = context.read<AuthProvider>();
+    final uid = auth.userProfile?['email'] ??
+                auth.userProfile?['userName'] ??
+                'anon';
+    _waitlistPrefKey = 'waitlist_${uid}_${widget.summary.eventId}';
+
+    _loadWaitlistFlag();
   }
 
   Future<void> _cancelEvent() async {
@@ -783,6 +795,13 @@ class _EventTileState extends State<EventTile> {
       }
     }
   }
+  Future<void> _loadWaitlistFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool(_waitlistPrefKey) ?? false;
+    if (!mounted) return;
+    setState(() => _isWaitlisted = saved);
+  }
+
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -797,12 +816,14 @@ class _EventTileState extends State<EventTile> {
   Future<void> _toggleWaitlist() async {
     if (_waitlistSubmitting) return;
     setState(() => _waitlistSubmitting = true);
+    final prefs = await SharedPreferences.getInstance();
     try {
       if (!_isWaitlisted) {
         // opt-in
         final r = await AuthHttpClient.joinWaitlist(widget.summary.eventId);
-        // await AuthHttpClient.post('/api/events/${widget.summary.eventId}/waitlist');
         if (r.statusCode == 200) {
+          await prefs.setBool(_waitlistPrefKey, true);
+          if (!mounted) return;
           setState(() => _isWaitlisted = true);
           _snack("We’ll notify you when a seat opens for this event.");
         } else {
@@ -811,10 +832,17 @@ class _EventTileState extends State<EventTile> {
       } else {
         // opt-out
         final r = await AuthHttpClient.leaveWaitlist(widget.summary.eventId);
-        // await AuthHttpClient.delete('/api/events/${widget.summary.eventId}/waitlist');
         if (r.statusCode == 200) {
+          await prefs.remove(_waitlistPrefKey);
+          if (!mounted) return;
           setState(() => _isWaitlisted = false);
           _snack("You’ll no longer receive notifications for this event.");
+        } else if (r.statusCode == 404) {
+          // Backend says you’re not on the waitlist already — clear local flag anyway
+          await prefs.remove(_waitlistPrefKey);
+          if (!mounted) return;
+          setState(() => _isWaitlisted = false);
+          _snack("You’re no longer on the notification list for this event.");
         } else {
           _snack('Could not remove from waitlist (${r.statusCode}).', error: true);
         }
@@ -825,6 +853,9 @@ class _EventTileState extends State<EventTile> {
       if (mounted) setState(() => _waitlistSubmitting = false);
     }
   }
+
+
+
   // this is for showing a watermark that displayes a booked out event 
   bool get _isFull => widget.summary.availableSeatsCount <= 0;
 
@@ -865,7 +896,6 @@ class _EventTileState extends State<EventTile> {
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.summary;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -1156,6 +1186,7 @@ class _EventTileState extends State<EventTile> {
     }
 
     // Event is FULL -> NOTIFY ME (opt-in to waitlist)
+  
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blueGrey.shade700,
@@ -1175,10 +1206,12 @@ class _EventTileState extends State<EventTile> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
-          : Icon(_isWaitlisted ? Icons.notifications_off : Icons.notifications_active,
-              color: Colors.white),
+          : Icon(
+              _isWaitlisted ? Icons.notifications_off : Icons.notifications_active,
+              color: Colors.white,
+            ),
       label: Text(
-        _isWaitlisted ? 'STOP NOTIFYING ME' : 'NOTIFY ME',
+        _isWaitlisted ? 'STOP NOTIFYING ME' : 'GET NOTIFIED',
         style: const TextStyle(
           fontFamily: 'WinnerSans',
           color: Colors.white,
@@ -1187,6 +1220,7 @@ class _EventTileState extends State<EventTile> {
         ),
       ),
     );
+
   }
 
 

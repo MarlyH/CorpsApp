@@ -38,15 +38,15 @@ class ProfileFragment extends StatelessWidget {
     // Determine role labels
     String roleLabel;
     if (isAdmin) {
-      roleLabel = 'Admin';
+      roleLabel = 'Administrator';
     } else if (isManager) {
       roleLabel = 'Event Manager';
     } else if (isStaff) {
       roleLabel = 'Staff';
     } else if (isUser) {
-      roleLabel = 'User';
+      roleLabel = 'Member';
     } else {
-      roleLabel = 'Guest';
+      roleLabel = 'Guest Account';
     }
 
     return Container(

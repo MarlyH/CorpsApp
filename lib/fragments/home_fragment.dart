@@ -11,6 +11,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../views/reserve_flow.dart';
 import '../widgets/delayed_slide_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' as math;
+
 
 
 /// Local model for /api/events/{id}
@@ -744,8 +746,10 @@ class _EventTileState extends State<EventTile> {
   static const double _borderWidth = 4.0;
   static const double _outerRadius = 16.0;
   static const double _innerRadius = _outerRadius - _borderWidth;
-
-  bool _isWaitlisted = false;         // local reflection after user taps
+  bool get _isFull => widget.summary.availableSeatsCount <= 0;
+  // guard we only auto-clear once per “available” session render
+  
+  bool _isWaitlisted = false;
   bool _waitlistSubmitting = false;
   late final String _waitlistPrefKey;
 
@@ -763,6 +767,20 @@ class _EventTileState extends State<EventTile> {
 
     _loadWaitlistFlag();
   }
+
+  bool _autoClearedBecauseNowAvailable = false;
+
+  void _maybeAutoDisableWaitlist() {
+    if (_autoClearedBecauseNowAvailable) return;
+    if (!_isWaitlisted) return;
+    if (widget.summary.availableSeatsCount > 0) {
+      _autoClearedBecauseNowAvailable = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _setWaitlistEnabled(false);
+      });
+    }
+  }
+
 
   Future<void> _cancelEvent() async {
     final ctrl = TextEditingController();
@@ -802,100 +820,319 @@ class _EventTileState extends State<EventTile> {
     setState(() => _isWaitlisted = saved);
   }
 
-  void _snack(String msg, {bool error = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.black)),
-        backgroundColor: error ? Colors.redAccent : Colors.white,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  Future<void> _toggleWaitlist() async {
-    if (_waitlistSubmitting) return;
-    setState(() => _waitlistSubmitting = true);
+  Future<bool> _setWaitlistEnabled(bool enable) async {
     final prefs = await SharedPreferences.getInstance();
-    try {
-      if (!_isWaitlisted) {
-        // opt-in
+
+    // TURN ON
+    if (enable) {
+      try {
         final r = await AuthHttpClient.joinWaitlist(widget.summary.eventId);
-        if (r.statusCode == 200) {
+        // 200 = joined, 400 = already on waitlist on its success either way
+        if (r.statusCode == 200 || r.statusCode == 400) {
           await prefs.setBool(_waitlistPrefKey, true);
-          if (!mounted) return;
-          setState(() => _isWaitlisted = true);
-          _snack("We’ll notify you when a seat opens for this event.");
-        } else {
-          _snack('Could not add to waitlist (${r.statusCode}).', error: true);
+          if (mounted) setState(() => _isWaitlisted = true);
+          return true;
         }
-      } else {
-        // opt-out
-        final r = await AuthHttpClient.leaveWaitlist(widget.summary.eventId);
-        if (r.statusCode == 200) {
-          await prefs.remove(_waitlistPrefKey);
-          if (!mounted) return;
-          setState(() => _isWaitlisted = false);
-          _snack("You’ll no longer receive notifications for this event.");
-        } else if (r.statusCode == 404) {
-          // Backend says you’re not on the waitlist already — clear local flag anyway
-          await prefs.remove(_waitlistPrefKey);
-          if (!mounted) return;
-          setState(() => _isWaitlisted = false);
-          _snack("You’re no longer on the notification list for this event.");
-        } else {
-          _snack('Could not remove from waitlist (${r.statusCode}).', error: true);
-        }
+        return false;
+      } catch (_) {
+        return false; // joining shouldntsilently succeed on network errors
       }
-    } catch (e) {
-      _snack('Network error: $e', error: true);
-    } finally {
-      if (mounted) setState(() => _waitlistSubmitting = false);
+    }
+
+    // TURN off
+    // Optimistic local update first so the UI always lets the user opt out.
+    await prefs.remove(_waitlistPrefKey);
+    if (mounted) setState(() => _isWaitlisted = false);
+
+    try {
+      final r = await AuthHttpClient.leaveWaitlist(widget.summary.eventId);
+      // 200 = removed, 404/400 = not on list already, also success
+      return r.statusCode == 200 || r.statusCode == 404 || r.statusCode == 400;
+    } catch (_) {
+      // still keep the local “off”.
+      return true; // idempotent-opt-out to trereat as success
     }
   }
 
 
 
-  // this is for showing a watermark that displayes a booked out event 
-  bool get _isFull => widget.summary.availableSeatsCount <= 0;
+  void _showNotifySheet({required bool isOn}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: false,
+      builder: (ctx) {
+        bool working = false;
+        bool done = false;
+        String? error;
 
-  Widget _bookedOutWatermark() {
-    return IgnorePointer( // don’t block taps
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Align(
-          alignment: Alignment.center,
-          child: Opacity(
-            opacity: 0.2,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
+        return StatefulBuilder(
+          builder: (ctx, setSB) {
+            final s = widget.summary;
+
+            Future<void> _confirm() async {
+              setSB(() { working = true; error = null; });
+              final ok = await _setWaitlistEnabled(!isOn);
+              setSB(() {
+                working = false;
+                done = ok;
+                if (!ok) error = 'Could not update notifications. Please try again.';
+              });
+            }
+
+            // header icon
+            final icon = isOn ? Icons.notifications_off : Icons.notifications_active;
+            final title = isOn ? 'Stop notifications?' : 'Get notified?';
+            final mainBtn = isOn ? 'TURN OFF NOTIFICATIONS' : 'TURN ON NOTIFICATIONS';
+            final info = isOn
+                ? 'You will no longer receive alerts when a seat opens for this event.'
+                : 'We’ll notify you as soon as a seat opens for this event.';
+            final detail =
+                '${_weekdayFull(s.startDate)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}';
+
+            if (done) {
+              // success screen
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 36),
+                    const SizedBox(height: 8),
+                    Text(
+                      isOn ? 'Notifications turned off' : 'You’re on the list',
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      detail,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      isOn
+                          ? 'You won’t get alerts for this event anymore.'
+                          : 'We’ll ping you when a seat becomes available.',
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4C85D0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('OK', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              );
+            }
+
+            // normal confirm UI
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.event_busy, size: 120, color: Colors.redAccent),
-                  SizedBox(width: 12),
-                  Text(
-                    'BOOKED OUT',
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: Colors.white, size: 24),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(info, style: const TextStyle(color: Colors.white70)),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.event, size: 16, color: Colors.white70),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            detail,
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(error!, style: const TextStyle(color: Colors.redAccent)),
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: working ? null : () => Navigator.of(ctx).pop(),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: const Color(0xFF9E9E9E),
+                            side: BorderSide.none,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: working ? null : _confirm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4C85D0),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          child: working
+                              ? const SizedBox(
+                                  width: 18, height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  mainBtn,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+
+  // notify button on event booked out
+  Widget _notifyPill({
+    required bool isOn,
+    required bool busy,
+    required VoidCallback onTap,
+  }) {
+    final main = isOn ? 'STOP NOTIFYING ME' : 'GET NOTIFIED';
+    final sub  = isOn ? 'You won’t get alerts' : 'when seat is available';
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+        child: InkWell(
+          onTap: busy ? null : onTap,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4C85D0),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (busy)
+                  const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                else
+                  Icon(isOn ? Icons.notifications_off : Icons.notifications_active,
+                      color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      main,
+                      style: const TextStyle(
+                        color: Colors.white,fontFamily: 'winnersans', fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 16),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(sub,
+                      style: const TextStyle(color: Colors.white70, fontFamily: 'winnersans',fontSize: 10, height: 1.1)),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+  // A Big centered booked out watermark
+Widget _bookedOutWatermarkBig() {
+  return Positioned.fill(
+    child: IgnorePointer(
+      child: Center(
+        child: Opacity(
+          opacity: 0.18,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.event_busy, size: 140, color: Color(0xFFD01417)),
+                // SizedBox(width: 14),
+                // Text(
+                //   'BOOKED OUT',
+                //   style: TextStyle(
+                //     color: Colors.redAccent,
+                //     fontSize: 56,
+                //     fontWeight: FontWeight.w900,
+                //     letterSpacing: 2,
+                //   ),
+                // ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 
 
   @override
   Widget build(BuildContext context) {
+    _maybeAutoDisableWaitlist();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -920,8 +1157,6 @@ class _EventTileState extends State<EventTile> {
                 ),
               ),
             ),
-
-            // Content panels inset by borderWidth
             Padding(
               padding: const EdgeInsets.all(_borderWidth),
               child: _buildContentPanels(),
@@ -945,52 +1180,38 @@ class _EventTileState extends State<EventTile> {
         Padding(
           padding: const EdgeInsets.only(bottom: _halfPill),
           child: Stack(
-            clipBehavior: Clip.none,
+            clipBehavior: Clip.none, // so the 'More/Less' pill can stick out
             children: [
-              // Summary card with small centered image
-              
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      _expanded
-                          ? BorderRadius.vertical(
-                            top: Radius.circular(_innerRadius),
-                          )
-                          : BorderRadius.circular(_innerRadius),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: _innerPad,
-                  vertical: _innerPad,
-                ),
+              ClipRRect(
+                borderRadius: _expanded
+                    ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
+                    : BorderRadius.circular(_innerRadius),
                 child: Stack(
-                  alignment: Alignment.center,
+                  clipBehavior: Clip.hardEdge, // keep overlays inside the card
                   children: [
-                    // small, faint background logo, safe against missing asset
-                    // Opacity(
-                    //   opacity: 0.5,
-                    //   child: Image.asset(
-                    //     s.locationAssetPath,
-                    //     width: 100,
-                    //     fit: BoxFit.cover,
-                    //     errorBuilder: (ctx, error, stack) => const SizedBox.shrink(),
-                    //   ),
-                    // ),
-
-                    if (_isFull) _bookedOutWatermark(),
-                    // summary text
-                    Row(
-                      children: [
-                        Expanded(child: _summaryLeft(s)),
-                        Expanded(child: _summaryRight(s)),
-                      ],
+                    // Card content
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _innerPad,
+                        vertical: _innerPad,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _summaryLeft(s)),
+                          Expanded(child: _summaryRight(s)), 
+                        ],
+                      ),
                     ),
-                    
+
+                    // booked out status
+                    if (_isFull) _bookedOutWatermarkBig(),
+                    if (_isFull) const _CornerWedge(inset: 0, size: 76, padding: 12, perpPadding: 8),
                   ],
                 ),
               ),
 
-              // “More” / “Less” pill notch
+              // “More / Less” notch
               Positioned(
                 bottom: -_halfPill,
                 left: 0,
@@ -1001,10 +1222,7 @@ class _EventTileState extends State<EventTile> {
                   decoration: BoxDecoration(
                     color: Colors.black,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: _borderWidth,
-                    ),
+                    border: Border.all(color: Colors.white, width: _borderWidth),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -1016,6 +1234,8 @@ class _EventTileState extends State<EventTile> {
             ],
           ),
         ),
+
+
 
         // DETAILS PANEL (only when expanded)
         if (_expanded)
@@ -1069,24 +1289,21 @@ class _EventTileState extends State<EventTile> {
     ],
   );
 
-  Widget _summaryRight(event_summary.EventSummary s) => Column(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      Text(
-        friendlySession(s.sessionType),
-        style: const TextStyle(color: Colors.black54, fontSize: 12),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'Starts ${s.startTime}',
-        style: const TextStyle(color: Colors.black54),
-      ),
-      Text(
-        'Ends   ${s.endTime}',
-        style: const TextStyle(color: Colors.black54),
-      ),
-    ],
+  Widget _summaryRight(event_summary.EventSummary s) => Padding(
+    padding: EdgeInsets.only(right: _isFull ? 26 : 0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(friendlySession(s.sessionType),
+            style: const TextStyle(color: Colors.black54, fontSize: 12)),
+        const SizedBox(height: 8),
+        Text('Starts ${s.startTime}', style: const TextStyle(color: Colors.black54)),
+        Text('Ends   ${s.endTime}',   style: const TextStyle(color: Colors.black54)),
+      ],
+    ),
   );
+
+
 
   Widget _buildSeatsRow(event_summary.EventSummary s) => Row(
     children: [
@@ -1155,7 +1372,7 @@ class _EventTileState extends State<EventTile> {
   Widget _buildBookNowButton() {
     final s = widget.summary;
 
-    // If seats available -> BOOK NOW (your existing behavior)
+    // If seats available -> BOOK NOW
     if (s.availableSeatsCount > 0) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
@@ -1184,42 +1401,17 @@ class _EventTileState extends State<EventTile> {
         ),
       );
     }
-
-    // Event is FULL -> NOTIFY ME (opt-in to waitlist)
   
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blueGrey.shade700,
-        minimumSize: const Size.fromHeight(48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      ),
-      onPressed: () {
-        if (!widget.isUser) {
-          _showRequireLoginModal(context);
-          return;
-        }
-        _toggleWaitlist();
+    // Event is FULL -> notify pill (opt-in/opt-out)
+    return _notifyPill(
+      isOn: _isWaitlisted,
+      busy: _waitlistSubmitting,
+      onTap: () {
+        if (!widget.isUser) { _showRequireLoginModal(context); return; }
+        _showNotifySheet(isOn: _isWaitlisted);
       },
-      icon: _waitlistSubmitting
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            )
-          : Icon(
-              _isWaitlisted ? Icons.notifications_off : Icons.notifications_active,
-              color: Colors.white,
-            ),
-      label: Text(
-        _isWaitlisted ? 'STOP NOTIFYING ME' : 'GET NOTIFIED',
-        style: const TextStyle(
-          fontFamily: 'WinnerSans',
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
+
 
   }
 
@@ -1412,3 +1604,135 @@ class _CancellationDialog extends StatelessWidget {
     );
   }
 }
+
+
+class _CornerWedge extends StatelessWidget {
+  const _CornerWedge({
+    this.size = 92,
+    this.inset = 0,
+    this.padding = 14,
+    this.perpPadding = 6,
+    this.centerText = true,
+    this.color = const Color(0xFFD01417),
+    this.text = 'BOOKED OUT',
+    this.textStyle = const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w800,
+      letterSpacing: .6,
+      fontSize: 11,
+    ),
+  });
+
+  final double size, inset, padding, perpPadding;
+  final bool centerText;
+  final Color color;
+  final String text;
+  final TextStyle textStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: inset,
+      right: inset,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _CornerWedgePainter(
+            color: color,
+            text: text,
+            textStyle: textStyle,
+            padding: padding,
+            perpPadding: perpPadding,
+            centerText: centerText,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CornerWedgePainter extends CustomPainter {
+  _CornerWedgePainter({
+    required this.color,
+    required this.text,
+    required this.textStyle,
+    required this.padding,
+    this.perpPadding = 6,
+    this.centerText = true,
+  });
+
+  final Color color;
+  final String text;
+  final TextStyle textStyle;
+  final double padding;
+  final double perpPadding;
+  final bool centerText;
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final wedge = Path()
+      ..moveTo(s.width, 0)
+      ..lineTo(s.width, s.height)
+      ..lineTo(0, 0)
+      ..close();
+
+    final fill = Paint()..color = color;
+    canvas.drawPath(wedge, fill);
+
+    // Clipping
+    canvas.save();
+    canvas.clipPath(wedge);
+
+    // diagonal endpoints
+    final start = Offset(padding, padding);
+    final end = Offset(s.width - padding, s.height - padding);
+
+    // Vector along the diagonal
+    final vx = end.dx - start.dx;
+    final vy = end.dy - start.dy;
+    final len = math.sqrt(vx*vx + vy*vy);
+    final ux = vx / len;
+    final uy = vy / len;
+    final nx =  vy / len;
+    final ny = -vx / len;
+
+    // Shift away from the slope
+    final startShifted = Offset(
+      start.dx + nx * perpPadding,
+      start.dy + ny * perpPadding,
+    );
+
+    // Rotate canvas to align X with the slope
+    final angle = math.atan2(vy, vx);
+    canvas.translate(startShifted.dx, startShifted.dy);
+    canvas.rotate(angle);
+
+    // Layout text constrained to the usable diagonal length
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: textStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout(minWidth: 0, maxWidth: len);
+
+    // Center along the slope
+    final double xAlong = centerText ? (len - tp.width) / 2 : 0;
+
+    tp.paint(canvas, Offset(xAlong, -tp.height / 2));
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _CornerWedgePainter old) =>
+      old.color != color ||
+      old.text != text ||
+      old.textStyle != textStyle ||
+      old.padding != padding ||
+      old.perpPadding != perpPadding ||
+      old.centerText != centerText;
+}
+
+
+

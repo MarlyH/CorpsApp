@@ -1,8 +1,5 @@
-// lib/views/profile_fragment.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../providers/auth_provider.dart';
 import '../views/account_security_view.dart';
 import '../views/notifications_view.dart';
@@ -25,19 +22,31 @@ class ProfileFragment extends StatelessWidget {
     final isUser = auth.isUser || auth.isStaff;
     final isManager = auth.isEventManager;
     final isAdmin = auth.isAdmin;
+    final isStaff = auth.isStaff;
     final age = user['age'] as int? ?? 0;
     final showStrikes = auth.isUser;
     final strikeCount = (user['attendanceStrikeCount'] as int?) ?? 0; // 0..3
     final isSuspended = (user['isSuspended'] as bool?) ?? false;
+    final isGuest = !(isAdmin || isManager || isStaff || isUser);
 
-    // Determine role label
+    final first = (user['firstName'] ?? '').toString().trim();
+    final last = (user['lastName'] ?? '').toString().trim();
+    final handle = (user['userName'] ?? '').toString().trim();
+    final hasName = first.isNotEmpty || last.isNotEmpty;
+    final displayName = hasName ? ('$first $last').trim() : 'Guest';
+
+    // Determine role labels
     String roleLabel;
     if (isAdmin) {
-      roleLabel = "Admin";
+      roleLabel = 'Admin';
     } else if (isManager) {
-      roleLabel = "Event Manager";
+      roleLabel = 'Event Manager';
+    } else if (isStaff) {
+      roleLabel = 'Staff';
+    } else if (isUser) {
+      roleLabel = 'User';
     } else {
-      roleLabel = "User";
+      roleLabel = 'Guest';
     }
 
     return Container(
@@ -73,19 +82,32 @@ class ProfileFragment extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Name "Guest"
                   Text(
-                    "${user['firstName'] ?? ''} ${user['lastName'] ?? ''}",
+                    displayName,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "@${user['userName'] ?? ''}",
-                    style: const TextStyle(color: Colors.black54),
-                  ),
+
+                  // Username (only for signed-in users with a handle)
+                  if (!isGuest && handle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '@$handle',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                  ] else if (isGuest) ...[
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Not signed in',
+                      style: TextStyle(color: Colors.black45),
+                    ),
+                  ],
+
                   const SizedBox(height: 8),
                   Text(
                     roleLabel,
@@ -95,7 +117,26 @@ class ProfileFragment extends StatelessWidget {
                     ),
                   ),
 
-                  // Attendance Strikes
+                  // a gentle hint for guests
+                  if (isGuest) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F5F7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Limited access — sign in for full features',
+                        style: TextStyle(color: Colors.black54, fontSize: 12),
+                      ),
+                    ),
+                  ],
+
+                  // Attendance Strikes only for signed-in 'users'
                   if (showStrikes) ...[
                     const SizedBox(height: 12),
                     _StrikesBanner(
@@ -104,13 +145,12 @@ class ProfileFragment extends StatelessWidget {
                       onInfoTap: () => _showStrikesInfo(context),
                     ),
                   ],
-
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // ─── MENU ───────────────────────────────────────────────
+            // MENU
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -118,90 +158,124 @@ class ProfileFragment extends StatelessWidget {
                   _OptionTile(
                     icon: Icons.lock,
                     label: "Account & Security",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AccountSecurityView()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AccountSecurityView(),
+                          ),
+                        ),
                   ),
                   _OptionTile(
                     icon: Icons.notifications,
                     label: "Notifications",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NotificationsView()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsView(),
+                          ),
+                        ),
                   ),
                   if (isUser && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,
                       label: "My Children",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ManageChildrenView()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageChildrenView(),
+                            ),
+                          ),
                     ),
                   ],
                   if (isManager || isAdmin) ...[
                     _OptionTile(
                       icon: Icons.event,
                       label: "Manage My Events",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ManageEventsView()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageEventsView(),
+                            ),
+                          ),
                     ),
                     _OptionTile(
                       icon: Icons.history,
                       label: "Events History",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AccountSecurityView()),
-                        // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AccountSecurityView(),
+                            ),
+                            // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
+                          ),
                     ),
                   ],
                   if (isAdmin) ...[
                     _OptionTile(
                       icon: Icons.admin_panel_settings,
                       label: "Roles Management",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ChangeUserRoleView()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ChangeUserRoleView(),
+                            ),
+                          ),
                     ),
                     _OptionTile(
                       icon: Icons.location_on,
                       label: "Location Management",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ManageLocationsView()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageLocationsView(),
+                            ),
+                          ),
                     ),
                   ],
-                  const Divider(color: Colors.white30, indent: 24, endIndent: 24),
+                  const Divider(
+                    color: Colors.white30,
+                    indent: 24,
+                    endIndent: 24,
+                  ),
                   _OptionTile(
                     icon: Icons.info,
                     label: "About Corps",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AboutCorpsView()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AboutCorpsView(),
+                          ),
+                        ),
                   ),
                   _OptionTile(
                     icon: Icons.policy,
                     label: "Policies",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PoliciesView()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PoliciesView(),
+                          ),
+                        ),
                   ),
                   _OptionTile(
                     icon: Icons.support_agent,
                     label: "Support & Feedback",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SupportAndFeedbackView()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SupportAndFeedbackView(),
+                          ),
+                        ),
                   ),
                   const SizedBox(height: 16),
                   _OptionTile(
@@ -222,28 +296,38 @@ class ProfileFragment extends StatelessWidget {
   static void _showStrikesInfo(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Attendance Strikes', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "• A strike is issued when you don’t attend a booked event.\n"
-          "• If multiple children are booked for the same event and none attend, it counts as ONE strike (per event).\n"
-          "• 3 strikes = a 90-day suspension from making bookings.",
-          style: TextStyle(color: Colors.white70, height: 1.35),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+      builder:
+          (_) => AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Attendance Strikes',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              "• A strike is issued when you don’t attend a booked event.\n"
+              "• If multiple children are booked for the same event and none attend, it counts as ONE strike (per event).\n"
+              "• 3 strikes = a 90-day suspension from making bookings.",
+              style: TextStyle(color: Colors.white70, height: 1.35),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _confirmLogout(BuildContext context) async {
-    final ok = await showDialog<bool>(
+    final ok =
+        await showDialog<bool>(
           context: context,
           builder: (_) => const _ConfirmLogoutDialog(),
         ) ??
@@ -255,7 +339,6 @@ class ProfileFragment extends StatelessWidget {
   }
 }
 
-/// NEW: compact widget that draws 0–3 red flags + info, and shows a suspended badge when needed.
 class _StrikesBanner extends StatelessWidget {
   final int strikeCount; // 0..3
   final bool isSuspended;
@@ -300,7 +383,11 @@ class _StrikesBanner extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               child: const Padding(
                 padding: EdgeInsets.all(4),
-                child: Icon(Icons.info_outline, size: 20, color: Colors.black45),
+                child: Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: Colors.black45,
+                ),
               ),
             ),
           ],
@@ -385,7 +472,10 @@ class _ConfirmLogoutDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () => Navigator.pop(c, true),
-          child: const Text("LOG OUT", style: TextStyle(color: Colors.redAccent)),
+          child: const Text(
+            "LOG OUT",
+            style: TextStyle(color: Colors.redAccent),
+          ),
         ),
       ],
     );

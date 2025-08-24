@@ -856,190 +856,248 @@ class _EventTileState extends State<EventTile> {
 
 
 
-  void _showNotifySheet({required bool isOn}) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      isScrollControlled: false,
-      builder: (ctx) {
-        bool working = false;
-        bool done = false;
-        String? error;
+  void _showNotifyOverlay({required bool isOn}) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black.withOpacity(.8),
+    builder: (ctx) {
+      bool working = false;
+      bool done = false;
+      String? error;
+      final s = widget.summary;
 
-        return StatefulBuilder(
-          builder: (ctx, setSB) {
-            final s = widget.summary;
+      Future<void> _confirm(StateSetter setSB) async {
+        setSB(() { working = true; error = null; });
+        final ok = await _setWaitlistEnabled(!isOn);
+        setSB(() {
+          working = false;
+          done = ok;
+          if (!ok) error = 'Could not update notifications. Please try again.';
+        });
+      }
 
-            Future<void> _confirm() async {
-              setSB(() { working = true; error = null; });
-              final ok = await _setWaitlistEnabled(!isOn);
-              setSB(() {
-                working = false;
-                done = ok;
-                if (!ok) error = 'Could not update notifications. Please try again.';
-              });
-            }
+      const bgTop = Color(0xFF1A1B1E);
+      const bgBot = Color(0xFF111214);
+      const border = Color(0x14FFFFFF);
+      const titleStyle = TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        fontSize: 16,
+      );
+      const bodyStyle = TextStyle(color: Colors.white70, height: 1.35);
+      const primary = Color(0xFF4C85D0);
+      const danger  = Color(0xFFD01417);
 
-            // header icon
-            final icon = isOn ? Icons.notifications_off : Icons.notifications_active;
-            final title = isOn ? 'Stop notifications?' : 'Get notified?';
-            final mainBtn = isOn ? 'TURN OFF NOTIFICATIONS' : 'TURN ON NOTIFICATIONS';
-            final info = isOn
-                ? 'You will no longer receive alerts when a seat opens for this event.'
-                : 'We’ll notify you as soon as a seat opens for this event.';
-            final detail =
-                '${_weekdayFull(s.startDate)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}';
+      final detail =
+          '${_weekdayFull(s.startDate)} • ${_formatDate(s.startDate)} • '
+          '${s.startTime} @ ${s.locationName}';
 
-            if (done) {
-              // success screen
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, color: Colors.white, size: 36),
-                    const SizedBox(height: 8),
-                    Text(
-                      isOn ? 'Notifications turned off' : 'You’re on the list',
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+      return StatefulBuilder(
+        builder: (ctx, setSB) {
+          final joining = !isOn;
+          final iconData = joining ? Icons.block : Icons.notifications_off;
+          final ctaLabel = joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST';
+          final ctaColor = joining ? primary : danger;
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(255, 0, 0, 0)],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      detail,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      isOn
-                          ? 'You won’t get alerts for this event anymore.'
-                          : 'We’ll ping you when a seat becomes available.',
-                      style: const TextStyle(color: Colors.white70),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4C85D0),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('OK', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ),
-              );
-            }
-
-            // normal confirm UI
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, color: Colors.white, size: 24),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () => Navigator.of(ctx).pop(),
+                    border: Border.all(color: border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(.45),
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(info, style: const TextStyle(color: Colors.white70)),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white10,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.event, size: 16, color: Colors.white70),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            detail,
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(error!, style: const TextStyle(color: Colors.redAccent)),
-                    ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: working ? null : () => Navigator.of(ctx).pop(),
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: const Color(0xFF9E9E9E),
-                            side: BorderSide.none,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          ),
-                          child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: working ? null : _confirm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4C85D0),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          ),
-                          child: working
-                              ? const SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : Text(
-                                  mainBtn,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 160),
+                    child: done
+                        // SUCCESS
+                        ? Column(
+                            key: const ValueKey('success'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('OK',
+                                      style: TextStyle(color: Colors.white70)),
                                 ),
-                        ),
-                      ),
-                    ],
+                              ),
+                              const SizedBox(height: 6),
+                              // success icon
+                              Container(
+                                width: 64, height: 64,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: primary, width: 2),
+                                  color: primary.withOpacity(.08),
+                                ),
+                                child: Icon(
+                                  joining ? Icons.notifications_active : Icons.check_circle,
+                                  color: primary,
+                                  size: 34,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                joining ? 'You’re on the waitlist' : 'Notifications turned off',
+                                textAlign: TextAlign.center,
+                                style: titleStyle,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(detail, textAlign: TextAlign.center, style: bodyStyle),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primary,
+                                    shape: const StadiumBorder(),
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  child: const Text('CLOSE',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                      )),
+                                ),
+                              ),
+                            ],
+                          )
+                        // CONFIRM
+                        : Column(
+                            key: const ValueKey('confirm'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Cancel',
+                                      style: TextStyle(color: Colors.white70)),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // blue circle + slash icon
+                              Container(
+                                width: 64, height: 64,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: primary,
+                                    width: 2,
+                                  ),
+                                  color: primary.withOpacity(.08),
+                                ),
+                                child: Icon(iconData, color: primary, size: 34),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                joining ? 'No Seats Available' : 'Stop Notifications?',
+                                textAlign: TextAlign.center,
+                                style: titleStyle,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                joining
+                                    ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
+                                    : "You won’t receive alerts for this event anymore.",
+                                textAlign: TextAlign.center,
+                                style: bodyStyle,
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(.06),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.event,
+                                        size: 16, color: Colors.white70),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        detail,
+                                        style: const TextStyle(
+                                            color: Colors.white70, fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (error != null) ...[
+                                const SizedBox(height: 10),
+                                Text(error!,
+                                    style: const TextStyle(
+                                        color: danger, fontWeight: FontWeight.w600)),
+                              ],
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: working ? null : () => _confirm(setSB),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: ctaColor,
+                                    shape: const StadiumBorder(),
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  child: working
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          ctaLabel,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: .8,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+
 
 
 
@@ -1097,36 +1155,36 @@ class _EventTileState extends State<EventTile> {
     );
   }
   // A Big centered booked out watermark
-Widget _bookedOutWatermarkBig() {
-  return Positioned.fill(
-    child: IgnorePointer(
-      child: Center(
-        child: Opacity(
-          opacity: 0.18,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.event_busy, size: 140, color: Color(0xFFD01417)),
-                // SizedBox(width: 14),
-                // Text(
-                //   'BOOKED OUT',
-                //   style: TextStyle(
-                //     color: Colors.redAccent,
-                //     fontSize: 56,
-                //     fontWeight: FontWeight.w900,
-                //     letterSpacing: 2,
-                //   ),
-                // ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
+  // Widget _bookedOutWatermarkBig() {
+  //   return Positioned.fill(
+  //     child: IgnorePointer(
+  //       child: Center(
+  //         child: Opacity(
+  //           opacity: 0.18,
+  //           child: FittedBox(
+  //             fit: BoxFit.scaleDown,
+  //             child: Row(
+  //               mainAxisSize: MainAxisSize.min,
+  //               children: const [
+  //                 Icon(Icons.event_busy, size: 140, color: Color(0xFFD01417)),
+  //                 // SizedBox(width: 14),
+  //                 // Text(
+  //                 //   'BOOKED OUT',
+  //                 //   style: TextStyle(
+  //                 //     color: Colors.redAccent,
+  //                 //     fontSize: 56,
+  //                 //     fontWeight: FontWeight.w900,
+  //                 //     letterSpacing: 2,
+  //                 //   ),
+  //                 // ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
 
 
@@ -1204,10 +1262,21 @@ Widget _bookedOutWatermarkBig() {
                       ),
                     ),
 
-                    // booked out status
-                    if (_isFull) _bookedOutWatermarkBig(),
-                    if (_isFull) const _CornerWedge(inset: 0, size: 76, padding: 12, perpPadding: 8),
-                  ],
+                  // booked out status
+                  // if (_isFull) _bookedOutWatermarkBig(),
+                  if (_isFull)
+                    const _CornerWedge(
+                      inset: 0,
+                      size: 80,
+                      padding: 10,
+                      perpPadding: 20,
+                      text: 'BOOKED OUT',
+                      showIcon: true,
+                      icon: Icons.event_busy,
+                      iconSize: 18,
+                      iconTextGap: 4,
+                    ),
+                  ]
                 ),
               ),
 
@@ -1408,9 +1477,10 @@ Widget _bookedOutWatermarkBig() {
       busy: _waitlistSubmitting,
       onTap: () {
         if (!widget.isUser) { _showRequireLoginModal(context); return; }
-        _showNotifySheet(isOn: _isWaitlisted);
+        _showNotifyOverlay(isOn: _isWaitlisted); // <-- centered overlay
       },
     );
+
 
 
   }
@@ -1621,6 +1691,11 @@ class _CornerWedge extends StatelessWidget {
       letterSpacing: .6,
       fontSize: 11,
     ),
+    this.showIcon = true,
+    this.icon = Icons.event_busy,
+    this.iconSize = 18,
+    this.iconTextGap = 4,
+    this.iconColor, // defaults to textStyle.color
   });
 
   final double size, inset, padding, perpPadding;
@@ -1628,6 +1703,13 @@ class _CornerWedge extends StatelessWidget {
   final Color color;
   final String text;
   final TextStyle textStyle;
+
+  // NEW icon knobs
+  final bool showIcon;
+  final IconData? icon;
+  final double iconSize;
+  final double iconTextGap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1645,6 +1727,11 @@ class _CornerWedge extends StatelessWidget {
             padding: padding,
             perpPadding: perpPadding,
             centerText: centerText,
+            showIcon: showIcon,
+            icon: icon,
+            iconSize: iconSize,
+            iconTextGap: iconTextGap,
+            iconColor: iconColor ?? textStyle.color ?? Colors.white,
           ),
         ),
       ),
@@ -1660,6 +1747,12 @@ class _CornerWedgePainter extends CustomPainter {
     required this.padding,
     this.perpPadding = 6,
     this.centerText = true,
+    // NEW icon knobs
+    this.showIcon = true,
+    this.icon,
+    this.iconSize = 18,
+    this.iconTextGap = 4,
+    this.iconColor = Colors.white,
   });
 
   final Color color;
@@ -1669,46 +1762,51 @@ class _CornerWedgePainter extends CustomPainter {
   final double perpPadding;
   final bool centerText;
 
+  final bool showIcon;
+  final IconData? icon;
+  final double iconSize;
+  final double iconTextGap;
+  final Color iconColor;
+
   @override
   void paint(Canvas canvas, Size s) {
+    // Draw the triangular wedge in the top-right corner.
     final wedge = Path()
       ..moveTo(s.width, 0)
       ..lineTo(s.width, s.height)
       ..lineTo(0, 0)
       ..close();
 
-    final fill = Paint()..color = color;
-    canvas.drawPath(wedge, fill);
+    canvas.drawPath(wedge, Paint()..color = color);
 
-    // Clipping
+    // Keep all painting clipped inside the wedge.
     canvas.save();
     canvas.clipPath(wedge);
 
-    // diagonal endpoints
+    // Diagonal line endpoints (inset from both corners).
     final start = Offset(padding, padding);
-    final end = Offset(s.width - padding, s.height - padding);
+    final end   = Offset(s.width - padding, s.height - padding);
 
-    // Vector along the diagonal
     final vx = end.dx - start.dx;
     final vy = end.dy - start.dy;
     final len = math.sqrt(vx*vx + vy*vy);
-    final ux = vx / len;
-    final uy = vy / len;
-    final nx =  vy / len;
-    final ny = -vx / len;
 
-    // Shift away from the slope
+    // Unit directions: along the slope (u) and inward normal (n).
+    final ux = vx / len,  uy = vy / len;
+    final nx =  vy / len, ny = -vx / len;
+
+    // Shift inward away from the slope by `perpPadding`.
     final startShifted = Offset(
       start.dx + nx * perpPadding,
       start.dy + ny * perpPadding,
     );
 
-    // Rotate canvas to align X with the slope
+    // Rotate so +X runs along the slope.
     final angle = math.atan2(vy, vx);
     canvas.translate(startShifted.dx, startShifted.dy);
     canvas.rotate(angle);
 
-    // Layout text constrained to the usable diagonal length
+    // --- Layout text
     final tp = TextPainter(
       text: TextSpan(text: text, style: textStyle),
       textDirection: TextDirection.ltr,
@@ -1716,10 +1814,48 @@ class _CornerWedgePainter extends CustomPainter {
       ellipsis: '…',
     )..layout(minWidth: 0, maxWidth: len);
 
-    // Center along the slope
-    final double xAlong = centerText ? (len - tp.width) / 2 : 0;
+    // --- Layout icon (as a font glyph so we can paint on canvas)
+    TextPainter? ip;
+    if (showIcon && icon != null) {
+      ip = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(icon!.codePoint),
+          style: TextStyle(
+            fontFamily: icon!.fontFamily,
+            package: icon!.fontPackage,
+            fontSize: iconSize,
+            color: iconColor,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+    }
 
-    tp.paint(canvas, Offset(xAlong, -tp.height / 2));
+    final iconW = ip?.width ?? 0;
+    final iconH = ip?.height ?? 0;
+    final textW = tp.width;
+    final textH = tp.height;
+
+    // Group dimensions: stack icon above text (along +Y after rotation).
+    final groupW = math.max(iconW, textW);
+    final groupH = (ip != null ? iconH : 0) +
+                   (ip != null && text.isNotEmpty ? iconTextGap : 0) +
+                   (text.isNotEmpty ? textH : 0);
+
+    // Center the whole group along the diagonal.
+    final xGroup = centerText ? (len - groupW) / 2 : 0;
+
+    // Paint icon (if any), centered within the group width.
+    double yCursor = -groupH / 2;
+    if (ip != null) {
+      final xIcon = xGroup + (groupW - iconW) / 2;
+      ip.paint(canvas, Offset(xIcon, yCursor));
+      yCursor += iconH + iconTextGap;
+    }
+
+    // Paint text, centered within the group width.
+    final xText = xGroup + (groupW - textW) / 2;
+    tp.paint(canvas, Offset(xText, yCursor));
 
     canvas.restore();
   }
@@ -1731,8 +1867,14 @@ class _CornerWedgePainter extends CustomPainter {
       old.textStyle != textStyle ||
       old.padding != padding ||
       old.perpPadding != perpPadding ||
-      old.centerText != centerText;
+      old.centerText != centerText ||
+      old.showIcon != showIcon ||
+      old.icon != icon ||
+      old.iconSize != iconSize ||
+      old.iconTextGap != iconTextGap ||
+      old.iconColor != iconColor;
 }
+
 
 
 

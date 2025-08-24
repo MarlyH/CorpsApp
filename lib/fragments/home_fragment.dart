@@ -827,11 +827,21 @@ class _EventTileState extends State<EventTile> {
     if (enable) {
       try {
         final r = await AuthHttpClient.joinWaitlist(widget.summary.eventId);
-        // 200 = joined, 400 = already on waitlist on its success either way
-        if (r.statusCode == 200 || r.statusCode == 400) {
+        if (r.statusCode == 200) {
           await prefs.setBool(_waitlistPrefKey, true);
           if (mounted) setState(() => _isWaitlisted = true);
           return true;
+        }
+        if (r.statusCode == 400) {
+          final body = jsonDecode(r.body);
+          final msg = (body['message'] as String?)?.toLowerCase() ?? '';
+          final already = msg.contains('already') && msg.contains('waitlist');
+          if (already) {
+            await prefs.setBool(_waitlistPrefKey, true);
+            if (mounted) setState(() => _isWaitlisted = true);
+            return true;
+          }
+          // Seats still available (or other error) -> treat as failure
         }
         return false;
       } catch (_) {
@@ -1359,9 +1369,9 @@ class _EventTileState extends State<EventTile> {
   );
 
   Widget _summaryRight(event_summary.EventSummary s) => Padding(
-    padding: EdgeInsets.only(right: _isFull ? 26 : 0),
+    padding: EdgeInsets.only(right: _isFull ? 0 : 0),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.end, 
       children: [
         Text(friendlySession(s.sessionType),
             style: const TextStyle(color: Colors.black54, fontSize: 12)),
@@ -1874,7 +1884,3 @@ class _CornerWedgePainter extends CustomPainter {
       old.iconTextGap != iconTextGap ||
       old.iconColor != iconColor;
 }
-
-
-
-

@@ -25,7 +25,7 @@ class UserNavBar extends StatelessWidget {
 
         NavBarButton(
           icon: Icons.confirmation_number,
-          label: 'TICKETS',
+          label: 'BOOKINGS',
           isSelected: selectedIndex == 1,
           onTap: () => onTap(1),
         ),

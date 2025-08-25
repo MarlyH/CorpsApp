@@ -335,56 +335,59 @@ class _HomeFragmentState extends State<HomeFragment> {
               onRefresh: _refresh,
               child: CustomScrollView(
                 slivers: [
-                  // LOCATION HEADER
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String?>(
-                                value: _filterLocation,
-                                icon: const Icon(
-                                  Icons.keyboard_arrow_down,
+                  // STICKY FILTER BAR (hides on scroll down, snaps into view on slight up)
+                  SliverAppBar(
+                    backgroundColor: Colors.black,
+                    elevation: 8,
+                    shadowColor: Colors.black54,
+                    floating: true, // reveal on slight upward scroll
+                    snap: true,// snap fully into view
+                    pinned: false,// set to true if you want it always visible
+                    automaticallyImplyLeading: false,
+                    toolbarHeight: 72,
+
+                    // Top row: Location dropdown + Help
+                    titleSpacing: 16,
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String?>(
+                              value: _filterLocation,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                              dropdownColor: Colors.grey[900],
+                              isExpanded: true,
+                              onTap: () {
+                                setState(() {
+                                  _dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
+                                });
+                              },
+                              hint: const Text(
+                                'All Locations',
+                                style: TextStyle(
+                                  fontFamily: 'WinnerSans',
                                   color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                dropdownColor: Colors.grey[900],
-                                isExpanded: true,
-                                onTap: () {
-                                  setState(() {
-                                    _dropdownOpenTime =
-                                        DateTime.now().millisecondsSinceEpoch;
-                                  });
-                                },
-                                hint: const Text(
-                                  'All Locations',
-                                  style: const TextStyle(
-                                    fontFamily: 'WinnerSans',
-                                    color: Colors.white,
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                items: [
-                                  DropdownMenuItem<String?>(
-                                    value: null,
-                                    child: const Text(
-                                      'All Locations',
-                                      style: TextStyle(
-                                        fontFamily: 'WinnerSans',
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                              ),
+                              items: <DropdownMenuItem<String?>>
+                              [
+                                const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text(
+                                    'All Locations',
+                                    style: TextStyle(
+                                      fontFamily: 'WinnerSans',
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  ...allLocations.asMap().entries.map((entry) {
+                                ),
+                                ...allLocations.asMap().entries.map((entry) {
                                   final index = entry.key;
-                                  final value = entry.value;
+                                  final value = entry.value; // String
                                   return DropdownMenuItem<String?>(
                                     value: value,
                                     child: DelayedSlideIn(
@@ -407,73 +410,63 @@ class _HomeFragmentState extends State<HomeFragment> {
                                       ),
                                     ),
                                   );
-                                }
-                                )
-                                ],
-                                onChanged:
-                                    (v) => setState(() {
-                                      _filterLocation = v;
-                                    }),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.help_outline,
-                              color: Colors.white,
-                            ),
-                            onPressed: _showHelp,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                                }).toList(),
+                              ],
 
-                  // SESSIONS PILL
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: GestureDetector(
-                        onTap: _showFilters,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
+                              onChanged: (v) => setState(() => _filterLocation = v),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.help_outline, color: Colors.white),
+                          onPressed: _showHelp,
+                          tooltip: 'Help',
+                        ),
+                      ],
+                    ),
+
+                    // Bottom: “All Sessions / filter” pill
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(36),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: GestureDetector(
+                          onTap: _showFilters,
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.filter_list, color: Colors.black54),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _filterSessionType == null
+                                        ? 'All Sessions'
+                                        : friendlySession(_filterSessionType!),
+                                    style: const TextStyle(color: Colors.black54),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
+                              ],
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.filter_list,
-                                color: Colors.black54,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _filterSessionType == null
-                                    ? 'All Sessions'
-                                    : friendlySession(_filterSessionType!),
-                                style: const TextStyle(color: Colors.black54),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Colors.black54,
-                              ),
-                            ],
-                          ),
+
                         ),
                       ),
                     ),
                   ),
-
                   const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
 
                   // LOADING / ERROR / EMPTY
                   if (loading)

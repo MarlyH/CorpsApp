@@ -414,4 +414,15 @@ class AuthHttpClient {
   static Future<http.Response> getBannedUsers() =>
       get('/api/usermanagement/banned-users');
 
+
+  // for handling QR code scanning systems
+  static Future<http.Response> scanBookingInfo(String qr) =>
+    post('/api/booking/scan-info', body: {'qrCodeData': qr});
+
+  static Future<http.Response> bookingCheckIn(int bookingId) =>
+    post('/api/booking/check-in', body: {'bookingId': bookingId});
+
+  static Future<http.Response> bookingCheckOut(int bookingId) =>
+    post('/api/booking/check-out', body: {'bookingId': bookingId});
+
 }

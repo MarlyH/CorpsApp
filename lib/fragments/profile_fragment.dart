@@ -11,6 +11,8 @@ import '../views/manage_locations_view.dart';
 import '../views/about_corps_view.dart';
 import '../views/policies_view.dart';
 import '../views/support_and_feedback_view.dart';
+import '../views/ban_appeal_view.dart';
+import '../views/banned_users_view.dart';
 
 class ProfileFragment extends StatelessWidget {
   const ProfileFragment({super.key});
@@ -190,6 +192,24 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
+                  if (isSuspended) ...[
+                    _OptionTile(
+                      icon: Icons.gavel,
+                      label: "Appeal Ban",
+                      onTap: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => const BanAppealView())),
+                    ),
+                  ],
+
+                  if (isAdmin || isManager) ...[
+                    _OptionTile(
+                      icon: Icons.block,
+                      label: "Ban Management",
+                      onTap: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => const BannedUsersView())),
+                    ),
+                  ],
+
                   if (isManager || isAdmin) ...[
                     _OptionTile(
                       icon: Icons.event,

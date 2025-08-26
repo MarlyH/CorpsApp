@@ -251,6 +251,21 @@ class _HomeFragmentState extends State<HomeFragment> {
     final isUser = auth.isUser || auth.isStaff;
     final isGuest = !isUser || !canManage;
 
+    final user = auth.userProfile ?? {};
+    final bool isSuspended = (user['isSuspended'] as bool?) ?? false;
+
+    // Try a few common keys for the end date; keep null-safe.
+    DateTime? _readDate(dynamic v) {
+      if (v == null) return null;
+      if (v is String) return DateTime.tryParse(v);
+      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+      return null;
+    }
+    final DateTime? suspensionUntil = _readDate(
+      user['suspensionUntil'] ?? user['suspensionExpiresAt'] ?? user['suspensionEnd'],
+    );
+
+
     return Scaffold(
       backgroundColor: Colors.black,
       floatingActionButton:
@@ -500,6 +515,8 @@ class _HomeFragmentState extends State<HomeFragment> {
                         (ctx, i) => EventTile(
                           summary: events[i],
                           isUser: isUser,
+                          isSuspended: isSuspended,
+                          suspensionUntil: suspensionUntil,
                           canManage: canManage,
                           //isGuest: isGuest,
                           loadDetail:
@@ -708,6 +725,11 @@ class __FilterSheetState extends State<_FilterSheet> {
 class EventTile extends StatefulWidget {
   final event_summary.EventSummary summary;
   final bool isUser, canManage;
+
+  // NEW:
+  final bool isSuspended;
+  final DateTime? suspensionUntil;
+
   final Future<EventDetail> Function(int) loadDetail;
   final VoidCallback onAction;
 
@@ -716,14 +738,16 @@ class EventTile extends StatefulWidget {
     required this.summary,
     required this.isUser,
     required this.canManage,
-    // required this.isGuest,
     required this.loadDetail,
     required this.onAction,
+    required this.isSuspended,        // NEW
+    required this.suspensionUntil,    // NEW
   });
 
   @override
   _EventTileState createState() => _EventTileState();
 }
+
 
 class _EventTileState extends State<EventTile> {
   bool _expanded = false;
@@ -1443,8 +1467,28 @@ class _EventTileState extends State<EventTile> {
 
   Widget _buildBookNowButton() {
     final s = widget.summary;
+    final isSuspended =
+        context.read<AuthProvider>().userProfile?['isSuspended'] == true;
 
-    // If seats available -> BOOK NOW
+    if (isSuspended) {
+      return ElevatedButton(
+        onPressed: () => _showSuspensionOverlay(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.grey, // disabled style
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        child: const Text('BOOK NOW (LOCKED)', style: TextStyle(
+            fontFamily: 'WinnerSans',
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
+        ),
+      );
+    }
+
     if (s.availableSeatsCount > 0) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
@@ -1454,40 +1498,50 @@ class _EventTileState extends State<EventTile> {
         ),
         onPressed: () {
           if (widget.isUser) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)),
-            );
+            Navigator.push(context,
+              MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)));
           } else {
             _showRequireLoginModal(context);
           }
         },
-        child: const Text(
-          'BOOK NOW',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        child: const Text('BOOK NOW',
+          style: TextStyle(fontFamily: 'WinnerSans', color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
         ),
       );
     }
-  
-    // Event is FULL -> notify pill (opt-in/opt-out)
+
     return _notifyPill(
       isOn: _isWaitlisted,
       busy: _waitlistSubmitting,
       onTap: () {
         if (!widget.isUser) { _showRequireLoginModal(context); return; }
-        _showNotifyOverlay(isOn: _isWaitlisted); // <-- centered overlay
+        _showNotifyOverlay(isOn: _isWaitlisted);
       },
     );
-
-
-
   }
 
+  void _showSuspensionOverlay(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Bookings Locked', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Your account is suspended for 90 days due to 3 attendance strikes. '
+          'If you believe this is a mistake, you can submit an appeal from your Profile.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCancelReserveRow() => Row(
     children: [
@@ -1555,7 +1609,42 @@ class _EventTileState extends State<EventTile> {
     ];
     return week[d.weekday - 1];
   }
+
+
+  void _showSuspendedOverlay() {
+    final until = widget.suspensionUntil;
+    final now = DateTime.now();
+    final daysLeft = until != null ? (until.difference(now).inDays).clamp(0, 9999) : null;
+
+    final String details = until == null
+        ? "Booking is suspended for 90 days from the date you received your third strike."
+        : "Booking is suspended for 90 days from your third strike.\n"
+          "Access will be restored on ${_formatDate(until)}"
+          "${daysLeft != null ? " (${daysLeft} day${daysLeft == 1 ? '' : 's'} left)" : ""}.";
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Booking Locked', style: TextStyle(color: Colors.white)),
+        content: Text(
+          "You have reached 3 attendance strikes.\n\n$details",
+          style: const TextStyle(color: Colors.white70, height: 1.35),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 }
+
 
 
 void _showRequireLoginModal(BuildContext context) {

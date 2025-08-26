@@ -399,4 +399,19 @@ class AuthHttpClient {
       throw Exception('Failed to register device token: ${resp.body}');
     }
   }
+  ///////////////////////////////////////////////////////////////////////
+  // for handling Bans
+  // in AuthHttpClient
+  static Future<http.Response> unbanUser(String userId) =>
+      post('/api/usermanagement/unban/$userId');
+
+  static Future<http.Response> appealBanSelf() =>
+      post('/api/usermanagement/ban-appeal/self');
+
+  static Future<http.Response> appealBanForUser(String email) =>
+      post('/api/usermanagement/ban-appeal/for-user', body: {'email': email});
+
+  static Future<http.Response> getBannedUsers() =>
+      get('/api/usermanagement/banned-users');
+
 }

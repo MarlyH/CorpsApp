@@ -7,7 +7,6 @@ import '../providers/auth_provider.dart';
 import '../views/booking_flow.dart';
 import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../views/reserve_flow.dart';
 import '../widgets/delayed_slide_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,7 +64,7 @@ class HomeFragment extends StatefulWidget {
 
 class _HomeFragmentState extends State<HomeFragment> {
   late Future<List<event_summary.EventSummary>> _futureSummaries;
-  int _dropdownOpenTime = 0;
+  int dropdownOpenTime = 0;
 
   String? _filterLocation;
   event_summary.SessionType? _filterSessionType;
@@ -98,9 +97,9 @@ class _HomeFragmentState extends State<HomeFragment> {
     await _futureSummaries;
   }
 
-  DateTime _eventStartDateTime(event_summary.EventSummary e) {
+  DateTime eventStartDateTime(event_summary.EventSummary e) {
     // Be tolerant of formats like "09:30", "9:30", "9:30 AM"
-    final t = (e.startTime ?? '').trim();
+    final t = (e.startTime).trim();
     final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
 
     int hh = 0, mm = 0;
@@ -274,19 +273,19 @@ class _HomeFragmentState extends State<HomeFragment> {
     final auth = context.watch<AuthProvider>();
     final canManage = auth.isAdmin || auth.isEventManager;
     final isUser = auth.isUser || auth.isStaff;
-    final isGuest = !isUser || !canManage;
+    // final isGuest = !isUser || !canManage;
 
     final user = auth.userProfile ?? {};
     final bool isSuspended = (user['isSuspended'] as bool?) ?? false;
 
     // Try a few common keys for the end date; keep null-safe.
-    DateTime? _readDate(dynamic v) {
+    DateTime? readDate(dynamic v) {
       if (v == null) return null;
       if (v is String) return DateTime.tryParse(v);
       if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
       return null;
     }
-    final DateTime? suspensionUntil = _readDate(
+    final DateTime? suspensionUntil = readDate(
       user['suspensionUntil'] ?? user['suspensionExpiresAt'] ?? user['suspensionEnd'],
     );
 
@@ -342,14 +341,14 @@ class _HomeFragmentState extends State<HomeFragment> {
               if (_filterSessionType != null && e.sessionType != _filterSessionType) return false;
 
               // EXCLUDE events that have already started
-              if (!_eventStartDateTime(e).isAfter(now)) return false;
+              if (!eventStartDateTime(e).isAfter(now)) return false;
 
               return true;
             }).toList()
               // sort using full start DateTime (date + time)
               ..sort((a, b) {
-                final aStart = _eventStartDateTime(a);
-                final bStart = _eventStartDateTime(b);
+                final aStart = eventStartDateTime(a);
+                final bStart = eventStartDateTime(b);
 
                 if (_dateAsc) {
                   final c = aStart.compareTo(bStart);
@@ -402,7 +401,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                               isExpanded: true,
                               onTap: () {
                                 setState(() {
-                                  _dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
+                                  dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
                                 });
                               },
                               hint: const Text(
@@ -931,8 +930,8 @@ class _EventTileState extends State<EventTile> {
         });
       }
 
-      const bgTop = Color(0xFF1A1B1E);
-      const bgBot = Color(0xFF111214);
+      // const bgTop = Color(0xFF1A1B1E);
+      // const bgBot = Color(0xFF111214);
       const border = Color(0x14FFFFFF);
       const titleStyle = TextStyle(
         color: Colors.white,
@@ -1638,7 +1637,7 @@ class _EventTileState extends State<EventTile> {
   }
 
 
-  void _showSuspendedOverlay() {
+  void showSuspendedOverlay() {
     final until = widget.suspensionUntil;
     final now = DateTime.now();
     final daysLeft = until != null ? (until.difference(now).inDays).clamp(0, 9999) : null;

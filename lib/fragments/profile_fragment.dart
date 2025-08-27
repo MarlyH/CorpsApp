@@ -170,17 +170,19 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  _OptionTile(
-                    icon: Icons.notifications,
-                    label: "Notifications",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationsView(),
+                  if (!isGuest) ...[
+                    _OptionTile(
+                      icon: Icons.notifications,
+                      label: "Notifications",
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsView(),
+                            ),
                           ),
-                        ),
-                  ),
+                    ),
+                  ],
                   if (isUser && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,

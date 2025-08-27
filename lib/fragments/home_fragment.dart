@@ -1685,10 +1685,21 @@ void _showRequireLoginModal(BuildContext context) {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Text('Login Required'),
-              const Text('Please sign in to start booking events.'),
+              const Text('Login Required', style: TextStyle(
+                fontFamily: 'WinnerSans',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              )),
+              const SizedBox(height: 8),
+              const Text('Please sign in to start booking and'),
+              const Text('getting notified for events.'),
               ElevatedButton(
-                child: const Text('Sign In'),
+                child: const Text('Sign In', style: TextStyle(
+                  fontFamily: 'WinnerSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white
+                )),
                 onPressed: () {
                   Navigator.of(
                     context,

@@ -12,6 +12,9 @@ class BannedUsersView extends StatefulWidget {
 class _BannedUsersViewState extends State<BannedUsersView> {
   late Future<List<BannedUser>> _future;
 
+  // Track which rows are currently unbanning (prevents double taps)
+  final Set<String> _busyIds = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -19,13 +22,15 @@ class _BannedUsersViewState extends State<BannedUsersView> {
   }
 
   Future<List<BannedUser>> _load() async {
+    // If you want to be extra sure this isn't cached by proxies:
+    // final resp = await AuthHttpClient.get('/api/UserManagement/banned-users',
+    //   extraHeaders: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'});
     final resp = await AuthHttpClient.getBannedUsers();
     final list = (jsonDecode(resp.body) as List)
         .map((e) => BannedUser.fromJson(e as Map<String, dynamic>))
         .toList();
     return list;
   }
-
 
   Future<void> _refresh() async {
     setState(() => _future = _load());
@@ -42,17 +47,24 @@ class _BannedUsersViewState extends State<BannedUsersView> {
         content: Text('This will restore access for ${u.displayName}.',
             style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.pop(context, true),
-            child: const Text('CLEAR STRIKES', style: TextStyle(color: Colors.redAccent))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('CLEAR STRIKES', style: TextStyle(color: Colors.redAccent)),
+          ),
         ],
       ),
     ) ?? false;
+
     if (!ok) return;
 
+    // mark this row as busy to prevent double taps
+    setState(() => _busyIds.add(u.userId));
+
     try {
-      // use postRaw so we can read error instead of throwing
       final resp = await AuthHttpClient.postRaw(
         '/api/usermanagement/unban/${u.userId}',
         body: jsonEncode({}), // empty JSON body
@@ -63,29 +75,44 @@ class _BannedUsersViewState extends State<BannedUsersView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Unbanned ${u.displayName}')),
         );
+        await _refresh();           // <— refresh the list
+        return;
+      }
+
+      // if already unbanned elsewhere, clean up the list too
+      if (resp.statusCode == 404) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User already unbanned.')),
+        );
         await _refresh();
         return;
       }
 
-      // show server-provided message to see the real cause (403/404/etc)
       final msg = _tryGetMessage(resp.body) ??
           'Unban failed (HTTP ${resp.statusCode}).';
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Network error'), backgroundColor: Colors.redAccent),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _busyIds.remove(u.userId)); // release busy state
+      }
     }
   }
 
-
   String? _tryGetMessage(String b) {
-    try { return (jsonDecode(b) as Map<String,dynamic>)['message'] as String?; }
-    catch (_) { return null; }
+    try {
+      return (jsonDecode(b) as Map<String, dynamic>)['message'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -126,6 +153,8 @@ class _BannedUsersViewState extends State<BannedUsersView> {
                 separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
                 itemBuilder: (ctx, i) {
                   final u = users[i];
+                  final isBusy = _busyIds.contains(u.userId);
+
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: const Icon(Icons.person_off, color: Colors.white70),
@@ -138,14 +167,19 @@ class _BannedUsersViewState extends State<BannedUsersView> {
                       style: const TextStyle(color: Colors.white70, height: 1.25),
                     ),
                     trailing: ElevatedButton(
-                      onPressed: () => _unban(u),
+                      onPressed: isBusy ? null : () => _unban(u),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4C85D0),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       ),
-                      child: const Text('UNBAN',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      child: isBusy
+                          ? const SizedBox(
+                              width: 18, height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('UNBAN',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                     ),
                   );
                 },
@@ -192,12 +226,15 @@ class BannedUser {
       dt.toLocal().toIso8601String().split('T').first;
 
   factory BannedUser.fromJson(Map<String, dynamic> j) {
-    // Accept either 'userId' or 'id' from API
     final id = (j['userId'] ?? j['id'] ?? '') as String;
+
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
-      // DateOnly likely "yyyy-MM-dd"
-      try { return DateTime.parse(v.toString()); } catch (_) { return null; }
+      try {
+        return DateTime.parse(v.toString());
+      } catch (_) {
+        return null;
+      }
     }
 
     return BannedUser(

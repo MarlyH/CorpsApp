@@ -98,6 +98,31 @@ class _HomeFragmentState extends State<HomeFragment> {
     await _futureSummaries;
   }
 
+  DateTime _eventStartDateTime(event_summary.EventSummary e) {
+    // Be tolerant of formats like "09:30", "9:30", "9:30 AM"
+    final t = (e.startTime ?? '').trim();
+    final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
+
+    int hh = 0, mm = 0;
+    String? ampm;
+
+    if (m != null) {
+      hh = int.tryParse(m.group(1) ?? '0') ?? 0;
+      mm = int.tryParse(m.group(2) ?? '0') ?? 0;
+      ampm = m.group(3);
+    }
+
+    // Handle 12-hour suffix if present
+    if (ampm != null) {
+      final mer = ampm.toLowerCase();
+      if (mer == 'pm' && hh < 12) hh += 12;
+      if (mer == 'am' && hh == 12) hh = 0;
+    }
+
+    final d = e.startDate; // assumed local date (no TZ)
+    return DateTime(d.year, d.month, d.day, hh, mm);
+  }
+
   void _showHelp() {
     showDialog(
       context: context,
@@ -306,41 +331,44 @@ class _HomeFragmentState extends State<HomeFragment> {
             final all = snap.data ?? [];
 
             // APPLY FILTERS (rely solely on status from backend)
-            final events =
-                all.where((e) {
-                    if (e.status != event_summary.EventStatus.Available) {
-                      return false;
-                    }
-                    if (_filterLocation != null &&
-                        e.locationName != _filterLocation) {
-                      return false;
-                    }
-                    if (_filterSessionType != null &&
-                        e.sessionType != _filterSessionType) {
-                      return false;
-                    }
-                    return true;
-                  }).toList()
-                  // APPLY SORTS
-                  ..sort((a, b) {
-                    if (_dateAsc) {
-                      final c = a.startDate.compareTo(b.startDate);
-                      if (c != 0) return c;
-                    } else if (_dateDesc) {
-                      final c = b.startDate.compareTo(a.startDate);
-                      if (c != 0) return c;
-                    }
-                    if (_seatsAsc) {
-                      return a.availableSeatsCount.compareTo(
-                        b.availableSeatsCount,
-                      );
-                    } else if (_seatsDesc) {
-                      return b.availableSeatsCount.compareTo(
-                        a.availableSeatsCount,
-                      );
-                    }
-                    return 0;
-                  });
+            final now = DateTime.now();
+
+            final events = all.where((e) {
+              // keep only available events
+              if (e.status != event_summary.EventStatus.Available) return false;
+
+              // location/session filters
+              if (_filterLocation != null && e.locationName != _filterLocation) return false;
+              if (_filterSessionType != null && e.sessionType != _filterSessionType) return false;
+
+              // EXCLUDE events that have already started
+              if (!_eventStartDateTime(e).isAfter(now)) return false;
+
+              return true;
+            }).toList()
+              // sort using full start DateTime (date + time)
+              ..sort((a, b) {
+                final aStart = _eventStartDateTime(a);
+                final bStart = _eventStartDateTime(b);
+
+                if (_dateAsc) {
+                  final c = aStart.compareTo(bStart);
+                  if (c != 0) return c;
+                } else if (_dateDesc) {
+                  final c = bStart.compareTo(aStart);
+                  if (c != 0) return c;
+                }
+
+                if (_seatsAsc) {
+                  return a.availableSeatsCount.compareTo(b.availableSeatsCount);
+                } else if (_seatsDesc) {
+                  return b.availableSeatsCount.compareTo(a.availableSeatsCount);
+                }
+
+                return 0;
+              }
+            );
+
 
             final allLocations =
                 all.map((e) => e.locationName).toSet().toList()..sort();
@@ -726,7 +754,6 @@ class EventTile extends StatefulWidget {
   final event_summary.EventSummary summary;
   final bool isUser, canManage;
 
-  // NEW:
   final bool isSuspended;
   final DateTime? suspensionUntil;
 
@@ -740,8 +767,8 @@ class EventTile extends StatefulWidget {
     required this.canManage,
     required this.loadDetail,
     required this.onAction,
-    required this.isSuspended,        // NEW
-    required this.suspensionUntil,    // NEW
+    required this.isSuspended,
+    required this.suspensionUntil,
   });
 
   @override

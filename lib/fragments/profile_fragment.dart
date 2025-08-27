@@ -157,17 +157,19 @@ class ProfileFragment extends StatelessWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  _OptionTile(
-                    icon: Icons.lock,
-                    label: "Account & Security",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AccountSecurityView(),
+                  if(!isGuest)...[
+                    _OptionTile(
+                      icon: Icons.lock,
+                      label: "Account & Security",
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AccountSecurityView(),
+                            ),
                           ),
-                        ),
-                  ),
+                    ),
+                  ],
                   _OptionTile(
                     icon: Icons.notifications,
                     label: "Notifications",

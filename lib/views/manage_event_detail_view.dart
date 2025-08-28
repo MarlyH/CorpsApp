@@ -24,25 +24,17 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
   Future<void> _loadAttendees() async {
     setState(() => _loading = true);
     try {
-      final resp = await AuthHttpClient.get(
-        '/api/events/${widget.event.eventId}/attendees',
-      );
+      final resp = await AuthHttpClient.get('/api/events/${widget.event.eventId}/attendees');
       final data = jsonDecode(resp.body);
-
-      if (data is! List) {
-        throw 'Unexpected payload (expected List)';
-      }
+      if (data is! List) throw 'Unexpected payload (expected List)';
 
       _attendees = data.map<_Attendee>((m) {
-        // bookingId (allow number or string)
         final bookingId = (m['bookingId'] is num)
             ? (m['bookingId'] as num).toInt()
             : int.tryParse(m['bookingId']?.toString() ?? '') ?? 0;
 
-        // name (coerce to string)
         final name = (m['name'] == null) ? 'Unknown' : m['name'].toString();
 
-        // status may come as "CheckedIn" or 1, etc.
         final dynamic statusRaw = m['status'];
         final status = (statusRaw is String)
             ? _statusFromString(statusRaw)
@@ -50,7 +42,6 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
                 ? _statusFromInt(statusRaw.toInt())
                 : BookingStatusX.booked;
 
-        // seatNumber (number or string or null)
         final dynamic seatRaw = m['seatNumber'];
         final seatNumber = (seatRaw is num)
             ? seatRaw.toInt()
@@ -100,6 +91,30 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
     }
   }
 
+  Future<void> _openAttendeeDetail(_Attendee at) async {
+    try {
+      final resp = await AuthHttpClient.get('/api/BookingAdmin/detail/${at.bookingId}');
+      if (resp.statusCode != 200) {
+        _snack('Failed to load attendee detail (${resp.statusCode})', error: true);
+        return;
+      }
+      final js = jsonDecode(resp.body) as Map<String, dynamic>;
+      final detail = _AdminBookingDetail.fromJson(js);
+
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.grey[900],
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (_) => _AttendeeDetailSheet(detail: detail),
+      );
+    } catch (e) {
+      _snack('Failed to load attendee detail: $e', error: true);
+    }
+  }
 
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
@@ -139,7 +154,7 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Header card
+                  // header
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -157,8 +172,6 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
                           ],
                         ),
                         const SizedBox(height: 8),
-
-                        // day + date line
                         Text(
                           niceDayDate(e.startDate),
                           style: const TextStyle(
@@ -167,87 +180,75 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
                             color: Colors.black87,
                           ),
                         ),
-
                         const SizedBox(height: 4),
-                        Text(
-                          'Starts ${e.startTime} • Ends ${e.endTime}',
-                          style: const TextStyle(color: Colors.black54),
-                        ),
+                        Text('Starts ${e.startTime} • Ends ${e.endTime}', style: const TextStyle(color: Colors.black54)),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
                   const Text('Attendees', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 8),
-
                   if (_attendees.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text('No attendees yet',
-                            style: TextStyle(color: Colors.white54)),
-                      ),
+                      child: Center(child: Text('No attendees yet', style: TextStyle(color: Colors.white54))),
                     )
                   else
                     ..._attendees.asMap().entries.map((entry) {
                       final idx = entry.key;
                       final at = entry.value;
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Row(
-                          children: [
-                            // name + seat
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${idx + 1}. ${at.name}',
-                                      style:
-                                          const TextStyle(color: Colors.white)),
-                                  if (at.seatNumber != null)
-                                    Text('Seat ${at.seatNumber}',
-                                        style: const TextStyle(
-                                            color: Colors.white54, fontSize: 12)),
-                                ],
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => _openAttendeeDetail(at), // ← open sheet
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: Row(
+                            children: [
+                              // name + seat
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${idx + 1}. ${at.name}', style: const TextStyle(color: Colors.white)),
+                                    if (at.seatNumber != null)
+                                      Text('Seat ${at.seatNumber}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            // status dropdown
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white12,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white24),
+                              // status dropdown
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white12,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: DropdownButton<BookingStatusX>(
+                                  value: at.status,
+                                  underline: const SizedBox.shrink(),
+                                  dropdownColor: Colors.grey[900],
+                                  iconEnabledColor: Colors.white70,
+                                  items: BookingStatusX.values.map((s) {
+                                    return DropdownMenuItem(
+                                      value: s,
+                                      child: Text(_labelFor(s), style: const TextStyle(color: Colors.white)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (s) {
+                                    if (s != null && s != at.status) {
+                                      _updateStatus(at, s);
+                                    }
+                                  },
+                                ),
                               ),
-                              child: DropdownButton<BookingStatusX>(
-                                value: at.status,
-                                underline: const SizedBox.shrink(),
-                                dropdownColor: Colors.grey[900],
-                                iconEnabledColor: Colors.white70,
-                                items: BookingStatusX.values.map((s) {
-                                  return DropdownMenuItem(
-                                    value: s,
-                                    child: Text(_labelFor(s),
-                                        style:
-                                            const TextStyle(color: Colors.white)),
-                                  );
-                                }).toList(),
-                                onChanged: (s) {
-                                  if (s != null && s != at.status) {
-                                    _updateStatus(at, s);
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     }),
@@ -258,10 +259,157 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
   }
 }
 
-// Local model & helpers
+// ==============================
+// Models for admin detail sheet
+// ==============================
 
-/// Local booking status used by the UI
-enum BookingStatusX { booked, checkedIn, checkedOut, cancelled }
+class _AdminBookingDetail {
+  final int bookingId;
+  final int eventId;
+  final String? eventName;
+  final DateTime? eventDate;
+  final int? seatNumber;
+  final BookingStatusX status;
+  final bool canBeLeftAlone;
+  final String qrCodeData;
+  final bool isForChild;
+  final String attendeeName;
+
+  final _AdminUserMini? user;
+  final _ChildDto? child;
+
+  _AdminBookingDetail({
+    required this.bookingId,
+    required this.eventId,
+    required this.eventName,
+    required this.eventDate,
+    required this.seatNumber,
+    required this.status,
+    required this.canBeLeftAlone,
+    required this.qrCodeData,
+    required this.isForChild,
+    required this.attendeeName,
+    required this.user,
+    required this.child,
+  });
+
+  factory _AdminBookingDetail.fromJson(Map<String, dynamic> j) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      try {
+        final s = v.toString();
+        if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) {
+          final p = s.split('-').map(int.parse).toList();
+          return DateTime(p[0], p[1], p[2]);
+        }
+        return DateTime.parse(s);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return _AdminBookingDetail(
+      bookingId: (j['bookingId'] ?? 0) as int,
+      eventId: (j['eventId'] ?? 0) as int,
+      eventName: j['eventName']?.toString(),
+      eventDate: parseDate(j['eventDate']),
+      seatNumber: j['seatNumber'] as int?,
+      status: _statusFromInt((j['status'] as int?) ?? 0),
+      canBeLeftAlone: j['canBeLeftAlone'] == true,
+      qrCodeData: (j['qrCodeData'] ?? '').toString(),
+      isForChild: j['isForChild'] == true,
+      attendeeName: (j['attendeeName'] ?? '').toString(),
+      user: j['user'] == null ? null : _AdminUserMini.fromJson(j['user'] as Map<String, dynamic>),
+      child: j['child'] == null ? null : _ChildDto.fromJson(j['child'] as Map<String, dynamic>),
+    );
+  }
+}
+
+class _AdminUserMini {
+  final String id;
+  final String? email;
+  final String firstName;
+  final String lastName;
+  final int strikes;
+  final String? dateOfLastStrike;
+  final bool isSuspended;
+
+  _AdminUserMini({
+    required this.id,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+    required this.strikes,
+    required this.dateOfLastStrike,
+    required this.isSuspended,
+  });
+
+  factory _AdminUserMini.fromJson(Map<String, dynamic> j) => _AdminUserMini(
+        id: (j['id'] ?? '').toString(),
+        email: j['email']?.toString(),
+        firstName: (j['firstName'] ?? '').toString(),
+        lastName: (j['lastName'] ?? '').toString(),
+        strikes: (j['attendanceStrikeCount'] as int?) ?? 0,
+        dateOfLastStrike: j['dateOfLastStrike']?.toString(),
+        isSuspended: j['isSuspended'] == true,
+      );
+
+  String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
+}
+
+class _ChildDto {
+  final int childId;
+  final String firstName;
+  final String lastName;
+  final DateTime? dateOfBirth;
+  final String emergencyContactName;
+  final String emergencyContactPhone;
+  final int age;
+
+  _ChildDto({
+    required this.childId,
+    required this.firstName,
+    required this.lastName,
+    required this.dateOfBirth,
+    required this.emergencyContactName,
+    required this.emergencyContactPhone,
+    required this.age,
+  });
+
+  factory _ChildDto.fromJson(Map<String, dynamic> j) {
+    DateTime? parseDob(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString();
+      try {
+        if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) {
+          final p = s.split('-').map(int.parse).toList();
+          return DateTime(p[0], p[1], p[2]);
+        }
+        return DateTime.parse(s);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return _ChildDto(
+      childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
+      firstName: (j['firstName'] ?? j['FirstName'] ?? '').toString(),
+      lastName: (j['lastName'] ?? j['LastName'] ?? '').toString(),
+      dateOfBirth: parseDob(j['dateOfBirth'] ?? j['DateOfBirth']),
+      emergencyContactName: (j['emergencyContactName'] ?? j['EmergencyContactName'] ?? '').toString(),
+      emergencyContactPhone: (j['emergencyContactPhone'] ?? j['EmergencyContactPhone'] ?? '').toString(),
+      age: (j['age'] ?? j['Age'] ?? 0) as int,
+    );
+  }
+
+  String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
+}
+
+// ==============================
+// Local model & helpers (existing)
+// ==============================
+
+enum BookingStatusX { booked, checkedIn, checkedOut, cancelled, striked }
 
 BookingStatusX _statusFromString(String s) {
   switch (s.toLowerCase()) {
@@ -271,53 +419,49 @@ BookingStatusX _statusFromString(String s) {
       return BookingStatusX.checkedOut;
     case 'cancelled':
       return BookingStatusX.cancelled;
+    case 'striked':
+      return BookingStatusX.striked;
     case 'booked':
     default:
       return BookingStatusX.booked;
   }
 }
+
 int _statusToInt(BookingStatusX s) {
   switch (s) {
-    case BookingStatusX.booked:return 0; // Booked
-    case BookingStatusX.checkedIn:return 1; // CheckedIn
-    case BookingStatusX.checkedOut:return 2; // CheckedOut
-    case BookingStatusX.cancelled:return 3; // Cancelled
+    case BookingStatusX.booked: return 0;
+    case BookingStatusX.checkedIn: return 1;
+    case BookingStatusX.checkedOut: return 2;
+    case BookingStatusX.cancelled: return 3;
+    case BookingStatusX.striked: return 4;
   }
 }
 
-
-/// backend sends an enum as int (C# default: Booked=0, CheckedIn=1, CheckedOut=2, Cancelled=3)
 BookingStatusX _statusFromInt(int v) {
   switch (v) {
-    case 1:
-      return BookingStatusX.checkedIn;
-    case 2:
-      return BookingStatusX.checkedOut;
-    case 3:
-      return BookingStatusX.cancelled;
+    case 1: return BookingStatusX.checkedIn;
+    case 2: return BookingStatusX.checkedOut;
+    case 3: return BookingStatusX.cancelled;
+    case 4: return BookingStatusX.striked;
     case 0:
-    default:
-      return BookingStatusX.booked;
+    default: return BookingStatusX.booked;
   }
 }
 
 String _labelFor(BookingStatusX s) {
   switch (s) {
-    case BookingStatusX.booked:
-      return 'Not Arrived';
-    case BookingStatusX.checkedIn:
-      return 'Checked In';
-    case BookingStatusX.checkedOut:
-      return 'Checked Out';
-    case BookingStatusX.cancelled:
-      return 'Cancelled';
+    case BookingStatusX.booked: return 'Not Arrived';
+    case BookingStatusX.checkedIn: return 'Checked In';
+    case BookingStatusX.checkedOut: return 'Checked Out';
+    case BookingStatusX.cancelled: return 'Cancelled';
+    case BookingStatusX.striked: return 'Strike';
   }
 }
 
 class _Attendee {
   final int bookingId;
   final String name;
-  BookingStatusX status; // mutable so we can update in-place
+  BookingStatusX status;
   final int? seatNumber;
   final bool isForChild;
 
@@ -330,7 +474,10 @@ class _Attendee {
   });
 }
 
-// view helpers
+// ==============================
+// View helpers
+// ==============================
+
 String friendlySession(SessionType type) {
   switch (type) {
     case SessionType.Ages8to11:
@@ -341,10 +488,100 @@ String friendlySession(SessionType type) {
       return 'Ages 16+';
   }
 }
-// a nice formatted date string
+
 String niceDayDate(DateTime d) {
-  const week = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const mon  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   final local = d.toLocal();
   return '${week[local.weekday - 1]} • ${local.day.toString().padLeft(2, '0')} ${mon[local.month - 1]} ${local.year}';
+}
+
+// ==============================
+// Detail bottom sheet
+// ==============================
+
+class _AttendeeDetailSheet extends StatelessWidget {
+  final _AdminBookingDetail detail;
+  const _AttendeeDetailSheet({required this.detail});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = detail.user;
+    final child = detail.child;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // header
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  detail.attendeeName,
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white70),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          Text(
+            'Status: ${_labelFor(detail.status)}'
+            '${detail.seatNumber != null ? ' • Seat ${detail.seatNumber}' : ''}',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+
+          if (user != null) ...[
+            const Text('User', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 6),
+            _kv('Name', user.fullName),
+            _kv('Email', user.email ?? '—'),
+            _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),
+            const SizedBox(height: 12),
+          ],
+
+          if (child != null) ...[
+            const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 6),
+            _kv('Name', child.fullName),
+            _kv('DOB', _fmtDob(child.dateOfBirth)),
+            _kv('Age', '${child.age}'),
+            _kv('Emergency Contact', '${child.emergencyContactName} • ${child.emergencyContactPhone}'),
+            const SizedBox(height: 12),
+          ],
+
+          const Text('Booking', style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 6),
+          _kv('Event', detail.eventName ?? '—'),
+          _kv('Event Date', _fmtDob(detail.eventDate)),
+          _kv('Can be left alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
+          // you could add a button here to open the QR or copy it if you want
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      children: [
+        SizedBox(width: 140, child: Text(k, style: const TextStyle(color: Colors.white60, fontSize: 12))),
+        Expanded(child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 13))),
+      ],
+    ),
+  );
+
+  String _fmtDob(DateTime? d) {
+    if (d == null) return '—';
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
 }

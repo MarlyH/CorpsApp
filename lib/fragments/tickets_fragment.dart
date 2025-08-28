@@ -22,7 +22,6 @@ class _BookingWithTime {
 
   _BookingWithTime(this.booking, this.time) {
     DateTime _parse(String? hhmm) {
-      // Accept: HH:mm, HH:mm:ss, null/empty
       if (hhmm == null || hhmm.trim().isEmpty) {
         final d = booking.eventDate;
         return DateTime(d.year, d.month, d.day); // midnight
@@ -38,7 +37,6 @@ class _BookingWithTime {
     startDateTime = _parse(time.startTime);
     final parsedEnd = _parse(time.endTime);
 
-    // If end is the same as start or clearly zero, fallback to +15m
     final isZero = (time.endTime == null) ||
                    time.endTime == '00:00' ||
                    time.endTime == '00:00:00';
@@ -48,7 +46,8 @@ class _BookingWithTime {
   }
 }
 
-enum _Bucket { upcoming, completed, cancelled }
+// now supports Striked
+enum _Bucket { upcoming, completed, cancelled, striked }
 
 class TicketsFragment extends StatefulWidget {
   const TicketsFragment({super.key});
@@ -64,13 +63,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this); // now 4 tabs
     _loadAll();
   }
 
   void _loadAll() {
     final f = _fetchAllWithTimes();
-    // IMPORTANT: setState is NOT async
     setState(() {
       _futureBookings = f;
     });
@@ -81,7 +79,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
     setState(() {
       _futureBookings = f;
     });
-    await f; // let the pull-to-refresh spinner wait for data
+    await f;
   }
 
   Future<List<_BookingWithTime>> _fetchAllWithTimes() async {
@@ -93,13 +91,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
     return Future.wait(list.map((b) async {
       EventTime t;
-      if (b.status == BookingStatus.Cancelled) {
+      if (b.status == BookingStatus.Cancelled || b.status == BookingStatus.Striked) {
         t = EventTime('00:00', '00:00');
       } else {
         try {
           final evtResp = await AuthHttpClient.get('/api/events/${b.eventId}');
           final js = jsonDecode(evtResp.body) as Map<String, dynamic>;
-          // Be tolerant to different casing/paths
           t = EventTime(
             (js['startTime'] ?? js['StartTime']) as String?,
             (js['endTime'] ?? js['EndTime']) as String?,
@@ -114,13 +111,14 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   _Bucket _classify(_BookingWithTime bt) {
     final s = bt.booking.status;
+
     if (s == BookingStatus.Cancelled) return _Bucket.cancelled;
+    if (s == BookingStatus.Striked) return _Bucket.striked;
 
     final now = DateTime.now();
     if (s == BookingStatus.CheckedOut || now.isAfter(bt.endDateTime)) {
       return _Bucket.completed;
     }
-    // Booked or CheckedIn, and not past end
     return _Bucket.upcoming;
   }
 
@@ -163,7 +161,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.black,
-                dividerColor: Colors.transparent,// remove devider bottom line fixxed
+                dividerColor: Colors.transparent,
                 dividerHeight: 0,
                 indicator: BoxDecoration(
                   color: Colors.black,
@@ -174,12 +172,13 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   Tab(text: 'Upcoming'),
                   Tab(text: 'Completed'),
                   Tab(text: 'Cancelled'),
+                  Tab(text: 'Striked'),
                 ],
-              )
+              ),
             ),
 
             const SizedBox(height: 12),
-            
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -204,7 +203,6 @@ class _TicketsFragmentState extends State<TicketsFragment>
                     );
                   }
                   if (snap.hasError) {
-                    // Show a scrollable error so PageView/Viewport stays happy
                     return RefreshIndicator(
                       onRefresh: _refresh,
                       child: ListView(
@@ -221,46 +219,29 @@ class _TicketsFragmentState extends State<TicketsFragment>
                       ),
                     );
                   }
-                  final data = snap.data;
-                  if (data == null) {
-                    return RefreshIndicator(
-                      onRefresh: _refresh,
-                      child: ListView(
-                        children: const [
-                          SizedBox(height: 80),
-                          Center(
-                            child: Text('No data', style: TextStyle(color: Colors.white)),
-                          ),
-                          SizedBox(height: 400),
-                        ],
-                      ),
-                    );
-                  }
 
+                  final data = snap.data ?? [];
                   final upcoming = <_BookingWithTime>[];
                   final completed = <_BookingWithTime>[];
                   final cancelled = <_BookingWithTime>[];
+                  final striked = <_BookingWithTime>[];
 
                   for (final bt in data) {
                     switch (_classify(bt)) {
-                      case _Bucket.upcoming:
-                        upcoming.add(bt);
-                        break;
-                      case _Bucket.completed:
-                        completed.add(bt);
-                        break;
-                      case _Bucket.cancelled:
-                        cancelled.add(bt);
-                        break;
+                      case _Bucket.upcoming: upcoming.add(bt); break;
+                      case _Bucket.completed: completed.add(bt); break;
+                      case _Bucket.cancelled: cancelled.add(bt); break;
+                      case _Bucket.striked: striked.add(bt); break;
                     }
                   }
 
                   return TabBarView(
                     controller: _tabs,
                     children: [
-                      _buildList(upcoming, allowCancel: true,  dateFmtHeader: dateFmtHeader),
+                      _buildList(upcoming, allowCancel: true, dateFmtHeader: dateFmtHeader),
                       _buildList(completed, allowCancel: false, dateFmtHeader: dateFmtHeader),
                       _buildList(cancelled, allowCancel: false, dateFmtHeader: dateFmtHeader),
+                      _buildList(striked, allowCancel: false, dateFmtHeader: dateFmtHeader),
                     ],
                   );
                 },
@@ -272,9 +253,6 @@ class _TicketsFragmentState extends State<TicketsFragment>
     );
   }
 
- 
-
-  // Flattened + keyed list model to keep children stable
   Widget _buildList(
     List<_BookingWithTime> list, {
     required bool allowCancel,
@@ -295,21 +273,19 @@ class _TicketsFragmentState extends State<TicketsFragment>
       );
     }
 
-    // Group by pure date and sort keys NEWEST first
     final Map<DateTime, List<_BookingWithTime>> byDate = {};
     for (final bt in list) {
-      final d = bt.booking.eventDate; // DateTime on the Flutter model
-      final dateKey = DateTime(d.year, d.month, d.day); // strip time
+      final d = bt.booking.eventDate;
+      final dateKey = DateTime(d.year, d.month, d.day);
       byDate.putIfAbsent(dateKey, () => []).add(bt);
     }
 
     final dateKeys = byDate.keys.toList()
-      ..sort((a, b) => b.compareTo(a)); // newest date first
+      ..sort((a, b) => b.compareTo(a));
 
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
       final day = byDate[key]!..sort(
-        // newest start time first (desc)
         (a, b) => b.startDateTime.compareTo(a.startDateTime),
       );
       items.add(_Header(headerLabel));
@@ -336,12 +312,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
             );
           }
           final bt = (it as _Row).bt;
-          final canCancelNow =
-              allowCancel && DateTime.now().isBefore(bt.startDateTime);
           return _BookingCard(
             key: ValueKey('b:${bt.booking.bookingId}'),
             bt: bt,
-            allowCancel: canCancelNow,
+            allowCancel: allowCancel,
             onCancelled: (_) => _loadAll(),
             bucket: _classify(bt),
           );
@@ -436,18 +410,6 @@ class _BookingCard extends StatelessWidget {
                   ),
                 ],
               ),
-              // if (isMissed)
-              //   Padding(
-              //     padding: const EdgeInsets.only(top: 8),
-              //     child: Text(
-              //       'Did not attend',
-              //       style: TextStyle(
-              //         color: Colors.red.shade700,
-              //         fontSize: 12,
-              //         fontWeight: FontWeight.w600,
-              //       ),
-              //     ),
-              //   ),
             ],
           ),
         ),
@@ -469,17 +431,16 @@ class _BookingCard extends StatelessWidget {
         }
         break;
       case _Bucket.completed:
-        if (missed) {
-          label = 'MISSED';
-          bg = Colors.grey.shade800;
-        } else {
-          label = 'COMPLETED';
-          bg = Colors.grey.shade800;
-        }
+        label = missed ? 'MISSED' : 'COMPLETED';
+        bg = Colors.grey.shade800;
         break;
       case _Bucket.cancelled:
         label = 'CANCELLED';
         bg = Colors.grey.shade800;
+        break;
+      case _Bucket.striked:
+        label = 'STRIKED';
+        bg = Colors.red.shade700;
         break;
     }
     return Container(

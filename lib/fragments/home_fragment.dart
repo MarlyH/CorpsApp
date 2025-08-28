@@ -97,9 +97,9 @@ class _HomeFragmentState extends State<HomeFragment> {
     await _futureSummaries;
   }
 
-  DateTime eventStartDateTime(event_summary.EventSummary e) {
+    DateTime eventEndDateTime(event_summary.EventSummary e) {
     // Be tolerant of formats like "09:30", "9:30", "9:30 AM"
-    final t = (e.startTime).trim();
+    final t = (e.endTime).trim();
     final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
 
     int hh = 0, mm = 0;
@@ -340,15 +340,15 @@ class _HomeFragmentState extends State<HomeFragment> {
               if (_filterLocation != null && e.locationName != _filterLocation) return false;
               if (_filterSessionType != null && e.sessionType != _filterSessionType) return false;
 
-              // EXCLUDE events that have already started
-              if (!eventStartDateTime(e).isAfter(now)) return false;
+              // EXCLUDE events that have finished
+              if (!eventEndDateTime(e).isAfter(now)) return false;
 
               return true;
             }).toList()
               // sort using full start DateTime (date + time)
               ..sort((a, b) {
-                final aStart = eventStartDateTime(a);
-                final bStart = eventStartDateTime(b);
+                final aStart = eventEndDateTime(a);
+                final bStart = eventEndDateTime(b);
 
                 if (_dateAsc) {
                   final c = aStart.compareTo(bStart);

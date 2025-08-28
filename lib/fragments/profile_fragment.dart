@@ -13,6 +13,7 @@ import '../views/policies_view.dart';
 import '../views/support_and_feedback_view.dart';
 import '../views/ban_appeal_view.dart';
 import '../views/banned_users_view.dart';
+import '../views/show_account_users.dart';
 
 class ProfileFragment extends StatelessWidget {
   const ProfileFragment({super.key});
@@ -204,7 +205,14 @@ class ProfileFragment extends StatelessWidget {
                         context, MaterialPageRoute(builder: (_) => const BanAppealView())),
                     ),
                   ],
-
+                  if (isAdmin || isManager) ...[
+                    _OptionTile(
+                      icon: Icons.person_2_outlined,
+                      label: "View Users",
+                      onTap: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => const ManageUsersView())),
+                    ),
+                  ],
                   if (isAdmin || isManager) ...[
                     _OptionTile(
                       icon: Icons.block,

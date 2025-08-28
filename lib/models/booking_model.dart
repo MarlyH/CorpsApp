@@ -5,6 +5,7 @@ enum BookingStatus {
   CheckedIn,
   CheckedOut,
   Cancelled,
+  Striked,
 }
 
 class Booking {

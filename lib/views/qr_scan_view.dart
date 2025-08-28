@@ -458,10 +458,10 @@ class _QrScanViewState extends State<QrScanView> {
                             children: [
                               const Text('Child', style: TextStyle(fontWeight: FontWeight.w800)),
                               const SizedBox(height: 8),
-                              _kvRow('Name', current.child!.fullName),
+                              _kvRow('Childs Name', current.child!.fullName),
                               _kvRow('DOB', current.child!.dobText),
                               _kvRow('Age', '${current.child!.age}'),
-                              _kvRow('Emergency', '${current.child!.emergencyContactName} • ${current.child!.emergencyContactPhone}'),
+                              _kvRow('Emergency Contact', '${current.child!.emergencyContactName} • ${current.child!.emergencyContactPhone}'),
                             ],
                           ),
                         ),
@@ -479,12 +479,12 @@ class _QrScanViewState extends State<QrScanView> {
                             children: [
                               const Text('User', style: TextStyle(fontWeight: FontWeight.w800)),
                               const SizedBox(height: 8),
-                              _kvRow('Name', current.user!.fullName),
+                              _kvRow('Parent/Guardian Name', current.user!.fullName),
                               _kvRow('Email', current.user!.email ?? '—'),
                               _kvRow('Strikes', '${current.user!.attendanceStrikeCount}'
                                   '${current.user!.isSuspended ? ' (SUSPENDED)' : ''}'),
                               if (current.user!.dateOfLastStrike != null)
-                                _kvRow('Last Strike', current.user!.dateOfLastStrike!),
+                                _kvRow('Last Strike Recieved On', current.user!.dateOfLastStrike!),
                             ],
                           ),
                         ),
@@ -570,13 +570,13 @@ class _QrScanViewState extends State<QrScanView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Text(k, style: const TextStyle(color: Colors.black54, fontFamily: 'WinnerSans')),
+          child: Text(k, style: const TextStyle(color: Colors.black54, fontFamily: 'WinnerSans', fontSize: 12)),
         ),
-        const SizedBox(width: 8),
+        
         Expanded(
           child: Text(
             v,
-            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700, fontFamily: 'WinnerSans'),
+            style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w600),
             textAlign: TextAlign.right,
           ),
         ),

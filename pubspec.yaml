@@ -42,6 +42,13 @@ dependencies:
   email_validator: ^2.0.1
   intl: ^0.18.1
   file_picker: ^10.2.0
+
+  pdf: ^3.10.8
+  printing: ^5.13.4
+  barcode: ^2.2.7
+  file_saver: ^0.2.11
+  open_filex: ^4.5.0
+  flutter_file_dialog: ^3.0.2
   connectivity_plus: ^4.0.0
   # Shared prefs currently will save state of waitlist notif state on a per UID basis
   shared_preferences: ^2.2.2

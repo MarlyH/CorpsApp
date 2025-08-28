@@ -508,19 +508,24 @@ class _AttendeeDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = detail.user;
     final child = detail.child;
+    final isChildBooking = detail.isForChild;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // header
+          // Header
           Row(
             children: [
               Expanded(
                 child: Text(
                   detail.attendeeName,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               IconButton(
@@ -536,15 +541,22 @@ class _AttendeeDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // If there is a related user, label changes with booking type.
           if (user != null) ...[
-            const Text('User', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            Text(
+              isChildBooking ? 'Parent/Guardian' : 'User',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
             const SizedBox(height: 6),
             _kv('Name', user.fullName),
-            _kv('Email', user.email ?? '—'),
+            _kv(isChildBooking ? 'Parent Email' : 'Email', user.email ?? '—'),
             _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),
+            // (Optional) Explicit role row if you want it spelled out:
+            // _kv('Role', isChildBooking ? 'Parent/Guardian' : 'User'),
             const SizedBox(height: 12),
           ],
 
+          // Child block only when present
           if (child != null) ...[
             const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 6),
@@ -559,8 +571,9 @@ class _AttendeeDetailSheet extends StatelessWidget {
           const SizedBox(height: 6),
           _kv('Event', detail.eventName ?? '—'),
           _kv('Event Date', _fmtDob(detail.eventDate)),
-          _kv('Can be left alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
-          // you could add a button here to open the QR or copy it if you want
+          if (isChildBooking)
+            _kv('Can Be Left Alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
+
           const Spacer(),
         ],
       ),
@@ -568,14 +581,19 @@ class _AttendeeDetailSheet extends StatelessWidget {
   }
 
   Widget _kv(String k, String v) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Row(
-      children: [
-        SizedBox(width: 140, child: Text(k, style: const TextStyle(color: Colors.white60, fontSize: 12))),
-        Expanded(child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 13))),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 140,
+              child: Text(k, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ),
+            Expanded(
+              child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
 
   String _fmtDob(DateTime? d) {
     if (d == null) return '—';

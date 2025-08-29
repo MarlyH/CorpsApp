@@ -261,6 +261,8 @@ class ProfileFragment extends StatelessWidget {
                             ),
                           ),
                     ),
+                  ],
+                  if (isAdmin) ...[
                     _OptionTile(
                       icon: Icons.location_on,
                       label: "Location Management",

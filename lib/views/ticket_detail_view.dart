@@ -166,21 +166,22 @@ class _TicketDetailViewState extends State<TicketDetailView> {
               children: [
                 pw.Text(
                   widget.booking.attendeeName.toUpperCase(),
-                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
                   textAlign: pw.TextAlign.center,
                 ),
                 pw.SizedBox(height: 6),
                 pw.Text(
                   session,
-                  style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
+                  style: pw.TextStyle(fontSize: 20, color: PdfColors.grey700),
                   textAlign: pw.TextAlign.center,
                 ),
                 pw.SizedBox(height: 16),
 
-                _pdfDetailRow('Location', detail.address),
+                _pdfDetailRow('Location', widget.booking.eventName),
+                _pdfDetailRow('Address', detail.address),
                 _pdfDetailRow('Date', dateLabel),
                 _pdfDetailRow('Time', '${detail.startTime} – ${detail.endTime}'),
-                _pdfDetailRow('Seat', widget.booking.seatNumber.toString().padLeft(2, '0')),
+                _pdfDetailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                 // Only show for child bookings:
                 if (widget.booking.isForChild)
                   _pdfDetailRow('Can be left alone?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
@@ -190,9 +191,9 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 pw.Divider(color: PdfColors.grey300),
                 pw.SizedBox(height: 8),
 
-                pw.Text('Description', style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                pw.Text('Description', style: pw.TextStyle(fontSize: 20, color: PdfColors.grey700)),
                 pw.SizedBox(height: 4),
-                pw.Text(detail.description, style: const pw.TextStyle(fontSize: 12)),
+                pw.Text(detail.description, style: const pw.TextStyle(fontSize: 20)),
 
                 pw.SizedBox(height: 16),
                 pw.Divider(color: PdfColors.grey300),
@@ -202,7 +203,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 pw.Align(
                   alignment: pw.Alignment.center,
                   child: pw.BarcodeWidget(
-                    barcode: Barcode.qrCode(), // ✅ QR format
+                    barcode: Barcode.qrCode(),
                     data: widget.booking.qrCodeData,
                     width: 200,
                     height: 200,
@@ -229,7 +230,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
             flex: 2,
             child: pw.Text(
               label,
-              style: pw.TextStyle(color: PdfColors.grey600, fontSize: 12),
+              style: pw.TextStyle(color: PdfColors.grey600, fontSize: 20),
             ),
           ),
           pw.Expanded(
@@ -237,7 +238,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
             child: pw.Text(
               value,
               textAlign: pw.TextAlign.right,
-              style: const pw.TextStyle(fontSize: 12),
+              style: const pw.TextStyle(fontSize: 20),
             ),
           ),
         ],
@@ -314,7 +315,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         backgroundColor: Colors.black,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Ticket', style: TextStyle(color: Colors.white)),
+        title: const Text('Ticket', style: TextStyle(color: Colors.white,)),
         actions: [
           FutureBuilder<EventDetail>(
             future: _detailFuture,
@@ -376,7 +377,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    widget.booking.attendeeName.toUpperCase(),
+                    widget.booking.attendeeName,
                     style: const TextStyle(
                       fontFamily: 'WinnerSans',
                       color: Colors.white,
@@ -405,10 +406,11 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _detailRow('Location', detail.address),
+                          _detailRow('Location', widget.booking.eventName),
+                          _detailRow('Address', detail.address),
                           _detailRow('Date', dateLabel),
                           _detailRow('Time', '${detail.startTime} – ${detail.endTime}'),
-                          _detailRow('Seat', widget.booking.seatNumber.toString().padLeft(2, '0')),
+                          _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                           // Only show for child bookings:
                           if (widget.booking.isForChild)
                             _detailRow('Can be left alone?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
@@ -476,7 +478,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                         minimumSize: const Size(double.infinity, 0),
                       ),
                       child: const Text(
-                        'VIEW ALL TICKETS',
+                        'VIEW ALL BOOKINGS',
                         style: TextStyle(
                           fontFamily: 'WinnerSans',
                           color: Colors.white,

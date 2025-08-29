@@ -153,8 +153,8 @@ class _BookingFlowState extends State<BookingFlow> {
     // labels per step
     final labels =
         _needsFullFlow
-            ? ['Terms', 'Seat', 'Attendee', 'Confirm']
-            : ['Terms', 'Seat', 'Confirm'];
+            ? ['Terms', 'Ticket Select', 'Attendee', 'Confirm']
+            : ['Terms', 'Ticket Select', 'Confirm'];
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -483,20 +483,20 @@ class _BookingFlowState extends State<BookingFlow> {
       child: Column(
         children: [
           // Seating map preview (more room by default)
-          Expanded(
-            child: Center(
-              child: (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
-                  ? Image.network(
-                      widget.event.seatingMapImgSrc!,
-                      fit: BoxFit.contain,
-                    )
-                  : const Text(
-                      'No seating map available',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Expanded(
+          //   child: Center(
+          //     child: (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
+          //         ? Image.network(
+          //             widget.event.seatingMapImgSrc!,
+          //             fit: BoxFit.contain,
+          //           )
+          //         : const Text(
+          //             'No seating map available',
+          //             style: TextStyle(color: Colors.white70),
+          //           ),
+          //   ),
+          // ),
+          // const SizedBox(height: 12),
 
           // Button that opens the overlay seat picker
           SizedBox(
@@ -509,11 +509,12 @@ class _BookingFlowState extends State<BookingFlow> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: const Icon(Icons.event_seat, color: Colors.white),
+              // icon: const Icon(Icons.event_seat, color: Colors.white),
+              icon: const Icon(Icons.select_all_outlined, color: Colors.white),
               label: Text(
                 _selectedSeat == null
-                    ? 'Choose Seat'
-                    : 'Change Seat (Seat #$_selectedSeat)',
+                    ? 'Choose Ticket'
+                    : 'Change Ticket (Ticket #$_selectedSeat)',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               onPressed: _openSeatPicker,
@@ -527,8 +528,8 @@ class _BookingFlowState extends State<BookingFlow> {
             alignment: Alignment.centerLeft,
             child: Text(
               _selectedSeat == null
-                  ? 'No seat selected yet.'
-                  : 'Selected seat: $_selectedSeat',
+                  ? 'No ticket selected yet.'
+                  : 'Selected Ticket: $_selectedSeat',
               style: const TextStyle(color: Colors.white70),
             ),
           ),
@@ -675,7 +676,7 @@ class _BookingFlowState extends State<BookingFlow> {
       padding: const EdgeInsets.all(16),
       child: Center(
         child: Text(
-          'About to book seat #$_selectedSeat\nfor ${widget.event.locationName}',
+          'About to book ticket #$_selectedSeat\nfor ${widget.event.locationName}',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
@@ -1093,7 +1094,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Select a Seat',
+                      'Select a Ticket',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -1122,7 +1123,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                   }
                   if (snap.hasError || snap.data == null) {
                     return const Center(
-                      child: Text('Error loading seats',
+                      child: Text('Error loading Tickets',
                           style: TextStyle(color: Colors.redAccent)),
                     );
                   }
@@ -1146,7 +1147,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
 
                   if (totalSeats <= 0) {
                     return const Center(
-                      child: Text('No seats available',
+                      child: Text('No tickets available',
                           style: TextStyle(color: Colors.white70)),
                     );
                   }
@@ -1161,7 +1162,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                       children: [
                         // Little summary
                         Text(
-                          '${availableSeats.length} of $totalSeats seats available'
+                          '${availableSeats.length} of $totalSeats tickets available'
                           '${_picked != null ? ' • selected: #$_picked' : ''}',
                           style: const TextStyle(color: Colors.white70),
                         ),
@@ -1205,7 +1206,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                             SizedBox(width: 6),
                             Text('Available', style: TextStyle(color: Colors.white70)),
                             SizedBox(width: 16),
-                            _LegendSwatch(color: Colors.white10, border: Colors.white24),
+                            _LegendSwatch(color: Color(0xFFD01417), border: Colors.white24),
                             SizedBox(width: 6),
                             Text('Taken', style: TextStyle(color: Colors.white70)),
                             SizedBox(width: 16),
@@ -1253,7 +1254,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                                 child: Text(
                                   _picked == null
                                       ? 'USE SELECTED'
-                                      : 'USE SEAT #$_picked',
+                                      : 'USE TICKET #$_picked',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -1291,10 +1292,10 @@ class _SeatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = !available
-        ? Colors.white10
+        ? const Color(0xFFD01417)
         : (selected ? const Color(0xFF4C85D0) : Colors.white);
     final fg = !available
-        ? Colors.white38
+        ? const Color.fromARGB(255, 255, 255, 255)
         : (selected ? Colors.white : Colors.black87);
     final border = selected ? const Color(0xFF4C85D0) : Colors.white24;
 
@@ -1312,8 +1313,8 @@ class _SeatTile extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!available)
-                const Icon(Icons.event_seat, size: 14, color: Colors.white38),
+              // if (!available)
+              //   const Icon(Icons.event_seat, size: 14, color: Colors.white38),
               if (!available) const SizedBox(width: 6),
               Text(
                 seat.toString(),

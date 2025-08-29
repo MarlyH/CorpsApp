@@ -38,16 +38,19 @@ class _BookingWithTime {
     final parsedEnd = _parse(time.endTime);
 
     final isZero = (time.endTime == null) ||
-                   time.endTime == '00:00' ||
-                   time.endTime == '00:00:00';
+        time.endTime == '00:00' ||
+        time.endTime == '00:00:00';
     endDateTime = (isZero || !parsedEnd.isAfter(startDateTime))
         ? startDateTime.add(const Duration(minutes: 15))
         : parsedEnd;
   }
 }
 
-// now supports Striked
-enum _Bucket { upcoming, completed, cancelled, striked }
+// Buckets: striked now lives under "concluded"
+enum _Bucket { upcoming, concluded, cancelled }
+
+// Concluded filter choices
+enum _ConcludedFilter { all, checkedOut, striked }
 
 class TicketsFragment extends StatefulWidget {
   const TicketsFragment({super.key});
@@ -60,10 +63,13 @@ class _TicketsFragmentState extends State<TicketsFragment>
   late TabController _tabs;
   late Future<List<_BookingWithTime>> _futureBookings;
 
+  // filter state for "Concluded" tab
+  _ConcludedFilter _concludedFilter = _ConcludedFilter.all;
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this); // now 4 tabs
+    _tabs = TabController(length: 3, vsync: this); // 3 tabs now
     _loadAll();
   }
 
@@ -113,11 +119,11 @@ class _TicketsFragmentState extends State<TicketsFragment>
     final s = bt.booking.status;
 
     if (s == BookingStatus.Cancelled) return _Bucket.cancelled;
-    if (s == BookingStatus.Striked) return _Bucket.striked;
+    if (s == BookingStatus.Striked) return _Bucket.concluded; // moved here
 
     final now = DateTime.now();
     if (s == BookingStatus.CheckedOut || now.isAfter(bt.endDateTime)) {
-      return _Bucket.completed;
+      return _Bucket.concluded;
     }
     return _Bucket.upcoming;
   }
@@ -170,17 +176,16 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 tabs: const [
                   Tab(text: 'Upcoming'),
-                  Tab(text: 'Completed'),
+                  Tab(text: 'Concluded'), // renamed
                   Tab(text: 'Cancelled'),
-                  Tab(text: 'Striked'),
                 ],
               ),
             ),
 
             const SizedBox(height: 12),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Tap a booking to view details. Your entry QR code is inside.',
                 textAlign: TextAlign.center,
@@ -222,16 +227,20 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
                   final data = snap.data ?? [];
                   final upcoming = <_BookingWithTime>[];
-                  final completed = <_BookingWithTime>[];
+                  final concluded = <_BookingWithTime>[];
                   final cancelled = <_BookingWithTime>[];
-                  final striked = <_BookingWithTime>[];
 
                   for (final bt in data) {
                     switch (_classify(bt)) {
-                      case _Bucket.upcoming: upcoming.add(bt); break;
-                      case _Bucket.completed: completed.add(bt); break;
-                      case _Bucket.cancelled: cancelled.add(bt); break;
-                      case _Bucket.striked: striked.add(bt); break;
+                      case _Bucket.upcoming:
+                        upcoming.add(bt);
+                        break;
+                      case _Bucket.concluded:
+                        concluded.add(bt);
+                        break;
+                      case _Bucket.cancelled:
+                        cancelled.add(bt);
+                        break;
                     }
                   }
 
@@ -239,9 +248,8 @@ class _TicketsFragmentState extends State<TicketsFragment>
                     controller: _tabs,
                     children: [
                       _buildList(upcoming, allowCancel: true, dateFmtHeader: dateFmtHeader),
-                      _buildList(completed, allowCancel: false, dateFmtHeader: dateFmtHeader),
+                      _buildConcludedList(concluded, dateFmtHeader: dateFmtHeader),
                       _buildList(cancelled, allowCancel: false, dateFmtHeader: dateFmtHeader),
-                      _buildList(striked, allowCancel: false, dateFmtHeader: dateFmtHeader),
                     ],
                   );
                 },
@@ -253,6 +261,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
     );
   }
 
+  /// Generic list builder used by Upcoming and Cancelled
   Widget _buildList(
     List<_BookingWithTime> list, {
     required bool allowCancel,
@@ -280,14 +289,13 @@ class _TicketsFragmentState extends State<TicketsFragment>
       byDate.putIfAbsent(dateKey, () => []).add(bt);
     }
 
-    final dateKeys = byDate.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final dateKeys = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
 
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
       final day = byDate[key]!..sort(
-        (a, b) => b.startDateTime.compareTo(a.startDateTime),
-      );
+          (a, b) => b.startDateTime.compareTo(a.startDateTime),
+        );
       items.add(_Header(headerLabel));
       for (final bt in day!) {
         items.add(_Row(bt));
@@ -323,6 +331,143 @@ class _TicketsFragmentState extends State<TicketsFragment>
       ),
     );
   }
+
+  /// Concluded list with filter controls
+  Widget _buildConcludedList(
+    List<_BookingWithTime> list, {
+    required DateFormat dateFmtHeader,
+  }) {
+    // Apply filter
+    final filtered = switch (_concludedFilter) {
+      _ConcludedFilter.checkedOut =>
+        list.where((bt) => bt.booking.status == BookingStatus.CheckedOut).toList(),
+      _ConcludedFilter.striked =>
+        list.where((bt) => bt.booking.status == BookingStatus.Striked).toList(),
+      _ => List<_BookingWithTime>.from(list),
+    };
+
+    if (filtered.isEmpty) {
+      return Column(
+        children: [
+          _ConcludedFilterBar(
+            selected: _concludedFilter,
+            onChanged: (val) => setState(() => _concludedFilter = val),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+                children: const [
+                  SizedBox(height: 80),
+                  Center(child: Text('No concluded bookings', style: TextStyle(color: Colors.white))),
+                  SizedBox(height: 400),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Group by date and reuse the card UI
+    final Map<DateTime, List<_BookingWithTime>> byDate = {};
+    for (final bt in filtered) {
+      final d = bt.booking.eventDate;
+      final dateKey = DateTime(d.year, d.month, d.day);
+      byDate.putIfAbsent(dateKey, () => []).add(bt);
+    }
+
+    final items = <_Item>[];
+    final dateKeys = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
+    for (final key in dateKeys) {
+      final headerLabel = dateFmtHeader.format(key);
+      final day = byDate[key]!..sort(
+          (a, b) => b.startDateTime.compareTo(a.startDateTime),
+        );
+      items.add(_Header(headerLabel));
+      for (final bt in day!) {
+        items.add(_Row(bt));
+      }
+    }
+
+    return Column(
+      children: [
+        _ConcludedFilterBar(
+          selected: _concludedFilter,
+          onChanged: (val) => setState(() => _concludedFilter = val),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final it = items[index];
+                if (it is _Header) {
+                  return Padding(
+                    key: ValueKey('h:${it.label}'),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      it.label,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  );
+                }
+                final bt = (it as _Row).bt;
+                return _BookingCard(
+                  key: ValueKey('b:${bt.booking.bookingId}'),
+                  bt: bt,
+                  allowCancel: false,
+                  onCancelled: (_) => _loadAll(),
+                  bucket: _Bucket.concluded,
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConcludedFilterBar extends StatelessWidget {
+  final _ConcludedFilter selected;
+  final ValueChanged<_ConcludedFilter> onChanged;
+
+  const _ConcludedFilterBar({
+    super.key,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          ChoiceChip(
+            label: const Text('All'),
+            selected: selected == _ConcludedFilter.all,
+            onSelected: (_) => onChanged(_ConcludedFilter.all),
+          ),
+          ChoiceChip(
+            label: const Text('Checked Out'),
+            selected: selected == _ConcludedFilter.checkedOut,
+            onSelected: (_) => onChanged(_ConcludedFilter.checkedOut),
+          ),
+          ChoiceChip(
+            label: const Text('Striked'),
+            selected: selected == _ConcludedFilter.striked,
+            onSelected: (_) => onChanged(_ConcludedFilter.striked),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BookingCard extends StatelessWidget {
@@ -346,8 +491,9 @@ class _BookingCard extends StatelessWidget {
 
     final now = DateTime.now();
     final isLive = now.isAfter(bt.startDateTime) && now.isBefore(bt.endDateTime);
-    final isMissed = bucket == _Bucket.completed &&
-        booking.status != BookingStatus.CheckedOut;
+    final isMissed = bucket == _Bucket.concluded &&
+        booking.status != BookingStatus.CheckedOut &&
+        booking.status != BookingStatus.Striked;
 
     final chip = _statusChip(bucket, booking.status, isLive, isMissed);
 
@@ -420,6 +566,7 @@ class _BookingCard extends StatelessWidget {
   Widget _statusChip(_Bucket b, BookingStatus s, bool isLive, bool missed) {
     String label;
     Color bg;
+
     switch (b) {
       case _Bucket.upcoming:
         if (s == BookingStatus.CheckedIn) {
@@ -430,19 +577,26 @@ class _BookingCard extends StatelessWidget {
           bg = Colors.black87;
         }
         break;
-      case _Bucket.completed:
-        label = missed ? 'MISSED' : 'COMPLETED';
-        bg = Colors.grey.shade800;
+
+      case _Bucket.concluded:
+        if (s == BookingStatus.Striked) {
+          label = 'STRIKED';
+          bg = Colors.red.shade700;
+        } else if (s == BookingStatus.CheckedOut) {
+          label = 'CHECKED OUT';
+          bg = Colors.grey.shade800;
+        } else {
+          label = missed ? 'MISSED' : 'COMPLETED';
+          bg = Colors.grey.shade800;
+        }
         break;
+
       case _Bucket.cancelled:
         label = 'CANCELLED';
         bg = Colors.grey.shade800;
         break;
-      case _Bucket.striked:
-        label = 'STRIKED';
-        bg = Colors.red.shade700;
-        break;
     }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
@@ -452,6 +606,16 @@ class _BookingCard extends StatelessWidget {
   }
 }
 
-abstract class _Item { const _Item(); }
-class _Header extends _Item { final String label; const _Header(this.label); }
-class _Row extends _Item { final _BookingWithTime bt; const _Row(this.bt); }
+abstract class _Item {
+  const _Item();
+}
+
+class _Header extends _Item {
+  final String label;
+  const _Header(this.label);
+}
+
+class _Row extends _Item {
+  final _BookingWithTime bt;
+  const _Row(this.bt);
+}

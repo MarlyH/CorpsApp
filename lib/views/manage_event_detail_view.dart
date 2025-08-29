@@ -443,7 +443,6 @@ BookingStatusX _statusFromInt(int v) {
     case 2: return BookingStatusX.checkedOut;
     case 3: return BookingStatusX.cancelled;
     case 4: return BookingStatusX.striked;
-    case 0:
     default: return BookingStatusX.booked;
   }
 }

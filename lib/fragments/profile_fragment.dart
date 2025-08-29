@@ -27,7 +27,7 @@ class ProfileFragment extends StatelessWidget {
     final isAdmin = auth.isAdmin;
     final isStaff = auth.isStaff;
     final age = user['age'] as int? ?? 0;
-    final showStrikes = auth.isUser;
+    final showStrikes = auth.isUser||auth.isStaff;
     final strikeCount = (user['attendanceStrikeCount'] as int?) ?? 0; // 0..3
     final isSuspended = (user['isSuspended'] as bool?) ?? false;
     final isGuest = !(isAdmin || isManager || isStaff || isUser);
@@ -184,7 +184,7 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  if (isUser && age >= 16) ...[
+                  if (isUser && age >= 16 || isStaff && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,
                       label: "My Children",

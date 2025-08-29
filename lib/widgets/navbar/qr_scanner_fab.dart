@@ -16,8 +16,8 @@ class QrScanFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: diameter + borderWidth * 2,
-      height: diameter + borderWidth * 2,
+      width: diameter + borderWidth * 1,
+      height: diameter + borderWidth * 1,
       child: FloatingActionButton(
         backgroundColor: const Color(0xFFD01417),
         elevation: 4,
@@ -29,7 +29,7 @@ class QrScanFab extends StatelessWidget {
           );
         },
         shape: CircleBorder(
-          side: BorderSide(color: Colors.black, width: borderWidth),
+          side: BorderSide(color: Colors.black, width: 5),
         ),
         child: const Icon(Icons.qr_code_scanner, size: 32, color: Colors.white),
       ),

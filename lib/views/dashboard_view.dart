@@ -11,6 +11,7 @@ import '../widgets/navbar/admin_navbar.dart';
 import '../widgets/navbar/guest_navbar.dart';
 import '../widgets/navbar/qr_scanner_fab.dart';
 import '../widgets/navbar/user_navbar.dart';
+import '../widgets/navbar/staff_navbar.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -24,9 +25,9 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Sizes
   static const double _fabDiameter = 64.0;
-  static const double _fabBorder   = 16.0;   // black border around FAB
-  static const double _bottomPad   = 8.0;   // extra bottom padding
-  static const double _sideGap     = 16.0;  // extra horizontal gap around FAB
+  static const double _fabBorder = 16.0; // black border around FAB
+  static const double _bottomPad = 8.0; // extra bottom padding
+  static const double _sideGap = 16.0; // extra horizontal gap around FAB
 
   @override
   void initState() {
@@ -71,10 +72,7 @@ class _DashboardViewState extends State<DashboardView> {
         final body = notification.body ?? '';
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(body),
-            duration: Duration(seconds: 10),
-          ),
+          SnackBar(content: Text(body), duration: Duration(seconds: 10)),
         );
       }
     });
@@ -91,33 +89,48 @@ class _DashboardViewState extends State<DashboardView> {
   Future<bool> _onWillPop() async {
     final exit = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('EXIT APP',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text('Do you want to exit the app?',
-            style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('EXIT',
-                  style: TextStyle(color: Colors.redAccent))),
-        ],
-      ),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'EXIT APP',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: const Text(
+              'Do you want to exit the app?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text(
+                  'EXIT',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
+          ),
     );
     if (exit == true) SystemNavigator.pop();
     return false;
   }
 
   bool _hasRole(String role) {
-    final roles = context
-            .read<AuthProvider>()
-            .userProfile?['roles'] as List<dynamic>? ??
+    final roles =
+        context.read<AuthProvider>().userProfile?['roles'] as List<dynamic>? ??
         [];
     return roles.contains(role);
   }
@@ -130,17 +143,32 @@ class _DashboardViewState extends State<DashboardView> {
   @override
   Widget build(BuildContext context) {
     final isManagerOrAdmin = _hasRole('Event Manager') || _hasRole('Admin');
+    final isStaff = _hasRole('Staff');
     final isGuest = context.watch<AuthProvider>().isGuest;
 
-    // Build pages list depending on role
+    final usesCenterDocked = isManagerOrAdmin; // only admins/managers get the notch layout
+    final inset = MediaQuery.of(context).padding.bottom;
+    final barH  = kBottomNavigationBarHeight + _bottomPad;
+
+    // Extra body bottom clearance only when the FAB is center-docked
+    final extraFabClearance = usesCenterDocked ? (_fabDiameter / 2) : 0.0;
+
+    // Staff always gets Tickets. Regular users get Tickets. Guests don’t.
+    final showTickets = isStaff || (!isGuest && !isManagerOrAdmin);
+    final fab = QrScanFab(diameter: _fabDiameter, borderWidth: _fabBorder);
+
+    // Pages
     final pages = <Widget>[
       const HomeFragment(),
-      if (!isGuest && !isManagerOrAdmin) const TicketsFragment(),
+      if (showTickets) const TicketsFragment(),
       const ProfileFragment(),
     ];
 
-    final inset = MediaQuery.of(context).padding.bottom;
-    final barH  = kBottomNavigationBarHeight + _bottomPad;
+    // Keep index valid if tab count changed (e.g., after login/role load)
+    if (_selectedIndex >= pages.length) {
+      _selectedIndex = 0;
+      _pageController.jumpToPage(0);
+    }
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -148,11 +176,8 @@ class _DashboardViewState extends State<DashboardView> {
         backgroundColor: Colors.black,
         extendBody: true,
 
-        // BODY: padded so content stops above notch
         body: Padding(
-          padding: EdgeInsets.only(
-            bottom: barH + inset + (_fabDiameter / 2),
-          ),
+          padding: EdgeInsets.only(bottom: barH + inset + extraFabClearance),
           child: PageView(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
@@ -160,46 +185,73 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ),
 
-        // Display QR scanner FAB only for privileged users
-        // Positioned centrally above the bottom navigation bar with a notch
-        floatingActionButton: isManagerOrAdmin
-            ? QrScanFab(diameter: _fabDiameter, borderWidth: _fabBorder)
-            : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-        bottomNavigationBar: BottomAppBar(
-          color: Colors.black,
-          // Use a notched shape to accommodate the FAB for privileged users
-          shape: isManagerOrAdmin ? const CircularNotchedRectangle() : null,
-          notchMargin: isManagerOrAdmin ? _fabBorder : 0,
-          child: SizedBox(
-            height: barH + inset,
-            child: Builder(builder: (_) {
-              if (isManagerOrAdmin) {
-                return AdminNavBar(
-                  selectedIndex: _selectedIndex,
-                  onTap: _goTo,
-                  fabDiameter: _fabDiameter,
-                  fabBorder: _fabBorder,
-                  sideGap: _sideGap,
-                );
-              }
-              else if (isGuest) {
-                return GuestNavBar(
-                  selectedIndex: _selectedIndex,
-                  onTap: _goTo,
-                );
-              }
-              else {
-                return UserNavBar(
-                  selectedIndex: _selectedIndex,
-                  onTap: _goTo,
-                );
-              }
-            }),
+        
+
+        floatingActionButton: (isManagerOrAdmin || isStaff)
+          ? (isStaff
+              ? Transform.translate( 
+                  offset: const Offset(-5, 10),
+                  child: fab,
+                )
+              : fab)
+          : null,
+
+      floatingActionButtonLocation: usesCenterDocked
+          ? FloatingActionButtonLocation.centerDocked
+          : FloatingActionButtonLocation.endFloat,
+
+      bottomNavigationBar: BottomAppBar(
+        color: Colors.black,
+        shape: usesCenterDocked ? const CircularNotchedRectangle() : null,
+        notchMargin: usesCenterDocked ? _fabBorder : 0,
+        child: SizedBox(
+          height: barH + inset,
+          child: _buildBottomNav(
+            isManagerOrAdmin: isManagerOrAdmin,
+            isGuest: isGuest,
+            isStaff: isStaff,
           ),
         ),
       ),
+      ),
     );
   }
+
+  Widget _buildBottomNav({
+    required bool isManagerOrAdmin,
+    required bool isGuest,
+    required bool isStaff,
+  }) {
+    if (isManagerOrAdmin) {
+      return AdminNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: _goTo,
+        fabDiameter: _fabDiameter,
+        fabBorder: _fabBorder,
+        sideGap: _sideGap,
+      );
+    }
+    if (isGuest) {
+      return GuestNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: _goTo,
+      );
+    }
+    if (isStaff) {
+      return StaffNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: _goTo,
+        fabDiameter: _fabDiameter,
+        fabBorder: _fabBorder,
+        sideGap: _sideGap,
+      );
+    }
+    return UserNavBar(
+      selectedIndex: _selectedIndex,
+      onTap: _goTo,
+    );
+  }
+
+
 }

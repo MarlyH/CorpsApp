@@ -33,19 +33,13 @@ class _ManageEventsViewState extends State<ManageEventsView> {
   Future<void> _loadEvents() async {
     setState(() => _loading = true);
     try {
-      final resp = await AuthHttpClient.get('/api/events');
+      final resp = await AuthHttpClient.get('/api/events/manage');
       final list = jsonDecode(resp.body) as List<dynamic>;
-      _allEvents = list
-          .cast<Map<String, dynamic>>()
-          .map(EventSummary.fromJson)
-          .toList();
+      _allEvents = list.cast<Map<String, dynamic>>().map(EventSummary.fromJson).toList();
       _filtered = List.from(_allEvents);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load events: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
+        SnackBar(content: Text('Failed to load events: $e'), backgroundColor: Colors.redAccent),
       );
     } finally {
       setState(() => _loading = false);

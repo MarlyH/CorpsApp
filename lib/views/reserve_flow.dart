@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_http_client.dart';
 
 class ReserveFlow extends StatefulWidget {
@@ -17,11 +18,12 @@ class _ReserveFlowState extends State<ReserveFlow> {
   final _formKey  = GlobalKey<FormState>();
   final _seatCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController(); // NEW
 
   bool _loading = false;
   String? _error;
 
-  // NEW: keep the selected seat in state (mirrors the text field)
+  // keep the selected seat in state (mirrors the text field)
   int? _selectedSeat;
 
   // brand color used for selected state
@@ -38,6 +40,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     _seatCtrl.removeListener(_syncTypedSeat);
     _seatCtrl.dispose();
     _nameCtrl.dispose();
+    _phoneCtrl.dispose(); // NEW
     super.dispose();
   }
 
@@ -46,12 +49,18 @@ class _ReserveFlowState extends State<ReserveFlow> {
     setState(() => _selectedSeat = n);
   }
 
+  // Allow only digits and '+'; strip spaces etc before sending
+  String _cleanPhone(String s) =>
+      String.fromCharCodes(
+        s.trim().runes.where((c) => (c >= 0x30 && c <= 0x39) || c == 0x2B),
+      );
+
   // ────────────────────────────────────────────────────────────────────────────
   // API helpers
 
   Future<_SeatData> _fetchSeatData() async {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final r = await AuthHttpClient.get('/api/events/${widget.eventId}?_=$ts'); // <— bust caches
+    final r = await AuthHttpClient.get('/api/events/${widget.eventId}?_=$ts'); // bust caches
     final json = jsonDecode(r.body) as Map<String, dynamic>;
 
     final available = (json['availableSeats'] as List<dynamic>?)
@@ -64,7 +73,6 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
     return _SeatData(totalSeats: total, availableSeats: available);
   }
-
 
   // ────────────────────────────────────────────────────────────────────────────
   // Seat picker dialog
@@ -98,7 +106,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Original reserve submit logic (unchanged)
+  // Reserve submit
 
   Future<void> _reserve() async {
     if (!_formKey.currentState!.validate()) return;
@@ -109,45 +117,98 @@ class _ReserveFlowState extends State<ReserveFlow> {
     });
 
     try {
-      final resp = await AuthHttpClient.post(
+      final cleanedPhone = _cleanPhone(_phoneCtrl.text);
+      if (cleanedPhone.length < 7) {
+        setState(() => _error = 'Please enter a valid phone number.');
+        return;
+      }
+
+      final body = jsonEncode({
+        'eventId': widget.eventId,
+        'seatNumber': int.parse(_seatCtrl.text.trim()),
+        'attendeeName': _nameCtrl.text.trim(),
+        'phoneNumber': cleanedPhone,
+      });
+
+      // Prefer JSON explicitly
+      final resp = await AuthHttpClient.postRaw(
         '/api/booking/reserve',
-        body: {
-          'eventId': widget.eventId,
-          'seatNumber': int.parse(_seatCtrl.text.trim()),
-          'attendeeName': _nameCtrl.text.trim(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        body: body,
       );
 
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'] ?? 'Reserved successfully')),
-      );
-      Navigator.of(context).pop(true);
-    } on Exception catch (e) {
-      final msg = e.toString();
-      if (msg.startsWith('HTTP 401')) {
-        setState(() => _error = 'Unauthorized. Please sign in.');
-      } else {
-        final m = RegExp(r'HTTP (\d+): (.*)').firstMatch(msg);
-        if (m != null) {
-          final code = m.group(1);
-          final body = m.group(2);
-          try {
-            final json = jsonDecode(body!);
-            setState(() => _error = json['message']?.toString() ?? 'Error $code');
-          } catch (_) {
-            setState(() => _error = 'Error $code');
+      // Handle non-2xx without relying on thrown exceptions
+      final status = resp.statusCode ?? 0;
+      final text = resp.body?.toString() ?? '';
+
+      if (status >= 200 && status < 300) {
+        final data = (text.isNotEmpty)
+            ? (jsonDecode(text) as Map<String, dynamic>)
+            : const <String, dynamic>{};
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message']?.toString() ?? 'Reserved successfully')),
+          );
+          Navigator.of(context).pop(true);
+        }
+        return;
+      }
+
+      // Non-2xx: try to surface server message
+      String msg = 'Error $status';
+      if (text.isNotEmpty) {
+        try {
+          final json = jsonDecode(text);
+          if (json is Map && json['message'] != null) {
+            msg = json['message'].toString();
+          } else {
+            msg = text; // plain text error
           }
-        } else {
-          setState(() => _error = 'Unexpected error');
+        } catch (_) {
+          msg = text; // not JSON
         }
       }
+
+      setState(() => _error = msg);
+    } catch (e) {
+      // More robust: match "HTTP 500" and optional ": body"
+      final s = e.toString();
+      final m = RegExp(r'^HTTP\s+(\d{3})(?::\s*(.*))?$').firstMatch(s);
+
+      if (m != null) {
+        final code = m.group(1) ?? '500';
+        final raw = m.group(2) ?? '';
+        String msg = 'Error $code';
+
+        if (raw.isNotEmpty) {
+          try {
+            final j = jsonDecode(raw);
+            if (j is Map && j['message'] != null) {
+              msg = j['message'].toString();
+            } else {
+              msg = raw;
+            }
+          } catch (_) {
+            msg = raw;
+          }
+        }
+        setState(() => _error = msg);
+      } else {
+        // Show the exception string so we see what's going on
+        setState(() => _error = s);
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
+
 
   // ────────────────────────────────────────────────────────────────────────────
   // UI helpers
@@ -158,6 +219,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters, // NEW (optional)
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,6 +231,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters, // NEW
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
@@ -234,15 +297,17 @@ class _ReserveFlowState extends State<ReserveFlow> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Seat number (you can keep this editable or make it readOnly)
+                  // Seat number (editable or readOnly; keep editable here)
                   _boxedField(
                     label: 'Seat Number',
                     hint: 'Tap “Choose Seat”',
                     controller: _seatCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (v) {
                       final n = int.tryParse((v ?? '').trim());
                       if (n == null) return 'Please pick a seat';
+                      if (n <= 0) return 'Seat must be >= 1';
                       return null;
                     },
                   ),
@@ -254,6 +319,24 @@ class _ReserveFlowState extends State<ReserveFlow> {
                     controller: _nameCtrl,
                     validator: (v) =>
                         v == null || v.trim().isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // NEW: Phone number
+                  _boxedField(
+                    label: 'Phone Number',
+                    hint: '+64 21 123 4567',
+                    controller: _phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
+                    ],
+                    validator: (v) {
+                      final cleaned = _cleanPhone(v ?? '');
+                      if (cleaned.isEmpty) return 'Required';
+                      if (cleaned.length < 7) return 'Enter a valid phone number';
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 

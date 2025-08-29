@@ -236,99 +236,103 @@ class _ManageUsersViewState extends State<ManageUsersView> {
           minChildSize: 0.4,
           maxChildSize: 0.95,
           builder: (ctx, scrollCtrl) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          u.fullName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+            return SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            u.fullName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  Text(u.email, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                  const SizedBox(height: 12),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white70),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    Text(u.email, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                    const SizedBox(height: 12),
 
-                  Text('Children', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                  const SizedBox(height: 8),
+                    const Text('Children', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 8),
 
-                  if (kids.isEmpty)
-                    const Text('No children on file.', style: TextStyle(color: Colors.white54))
-                  else
-                    Expanded(
-                      child: ListView.separated(
-                        controller: scrollCtrl,
-                        itemCount: kids.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) {
-                          final c = kids[i];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white10,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white12),
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  c.fullName,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.cake, size: 14, color: Colors.white70),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      c.dobLabel,
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    if (kids.isEmpty)
+                      const Text('No children on file.', style: TextStyle(color: Colors.white54))
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollCtrl,
+                          itemCount: kids.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final c = kids[i];
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.fullName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Text('Age: ${c.age}',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.phone, size: 14, color: Colors.white70),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        '${c.emergencyContactName} • ${c.emergencyContactPhone}',
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.cake, size: 14, color: Colors.white70),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        c.dobLabel,
                                         style: const TextStyle(color: Colors.white70, fontSize: 12),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                      const SizedBox(width: 12),
+                                      Text('Age: ${c.age}',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.phone, size: 14, color: Colors.white70),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '${c.emergencyContactName} • ${c.emergencyContactPhone}',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -376,97 +380,106 @@ class _ManageUsersViewState extends State<ManageUsersView> {
         ],
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // Search
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Colors.black54),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'Search by name or email',
-                        border: InputBorder.none,
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: Column(
+          children: [
+            // Search
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.black54),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField
+                        (
+                          controller: _searchCtrl,
+                          style: const TextStyle(color: Colors.black),
+                          cursorColor: Colors.black,
+                          decoration: const InputDecoration(
+                            hintText: 'Search by name or email',
+                            hintStyle: TextStyle(color: Colors.black),
+                            border: InputBorder.none,
+                          ),
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) {
+                            _query = _searchCtrl.text;
+                            _fetchFirstPage();
+                          },
+                        ),
+
+                    ),
+                    if (_searchCtrl.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.black54),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          _query = '';
+                          _fetchFirstPage();
+                        },
                       ),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) {
-                        _query = _searchCtrl.text;
-                        _fetchFirstPage();
-                      },
-                    ),
-                  ),
-                  if (_searchCtrl.text.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.black54),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        _query = '';
-                        _fetchFirstPage();
-                      },
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
-          Expanded(
-            child: _loadingFirstPage
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : RefreshIndicator(
-                    color: Colors.white,
-                    onRefresh: _refresh,
-                    child: _users.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
-                              SizedBox(height: 80),
-                              Center(
-                                child: Text('No users found', style: TextStyle(color: Colors.white54)),
-                              ),
-                              SizedBox(height: 400),
-                            ],
-                          )
-                        : ListView.separated(
-                            controller: _scroll,
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                            itemCount: _users.length + (_loadingMore || _hasMore ? 1 : 0),
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, i) {
-                              if (i >= _users.length) {
-                                // Loader at the end
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  child: Center(
-                                    child: _hasMore
-                                        ? const CircularProgressIndicator(color: Colors.white)
-                                        : const Text('No more users',
-                                            style: TextStyle(color: Colors.white54)),
-                                  ),
+            Expanded(
+              child: _loadingFirstPage
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                  : RefreshIndicator(
+                      color: Colors.white,
+                      onRefresh: _refresh,
+                      child: _users.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 80),
+                                Center(
+                                  child: Text('No users found', style: TextStyle(color: Colors.white54)),
+                                ),
+                                SizedBox(height: 400),
+                              ],
+                            )
+                          : ListView.separated(
+                              controller: _scroll,
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              itemCount: _users.length + (_loadingMore || _hasMore ? 1 : 0),
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, i) {
+                                if (i >= _users.length) {
+                                  // Loader at the end
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: _hasMore
+                                          ? const CircularProgressIndicator(color: Colors.white)
+                                          : const Text('No more users',
+                                              style: TextStyle(color: Colors.white54)),
+                                    ),
+                                  );
+                                }
+                                final u = _users[i];
+                                return _UserTile(
+                                  user: u,
+                                  busy: _updating,
+                                  onAddStrike: () => _changeStrike(u, 1),
+                                  onRemoveStrike: () => _changeStrike(u, -1),
+                                  onTap: () => _openUserDetail(u),
                                 );
-                              }
-                              final u = _users[i];
-                              return _UserTile(
-                                user: u,
-                                busy: _updating,
-                                onAddStrike: () => _changeStrike(u, 1),
-                                onRemoveStrike: () => _changeStrike(u, -1),
-                                onTap: () => _openUserDetail(u),
-                              );
-                            },
-                          ),
-                  ),
-          ),
-        ],
+                              },
+                            ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -648,7 +661,7 @@ class _Child {
     final m = dateOfBirth!.month.toString().padLeft(2, '0');
     final d = dateOfBirth!.day.toString().padLeft(2, '0');
     return '$y-$m-$d';
-    }
+  }
 
   factory _Child.fromJson(Map<String, dynamic> j) {
     DateTime? parseDob(dynamic v) {

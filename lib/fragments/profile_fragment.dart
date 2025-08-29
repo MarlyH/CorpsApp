@@ -197,7 +197,7 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  if (isSuspended) ...[
+                  if (isSuspended && isUser || isStaff) ...[
                     _OptionTile(
                       icon: Icons.gavel,
                       label: "Appeal Ban",
@@ -234,6 +234,8 @@ class ProfileFragment extends StatelessWidget {
                             ),
                           ),
                     ),
+                  ],
+                  if (isAdmin) ...[
                     _OptionTile(
                       icon: Icons.history,
                       label: "Events History",
@@ -247,7 +249,7 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  if (isAdmin) ...[
+                  if (isAdmin || isManager) ...[
                     _OptionTile(
                       icon: Icons.admin_panel_settings,
                       label: "Roles Management",
@@ -309,7 +311,12 @@ class ProfileFragment extends StatelessWidget {
                           ),
                         ),
                   ),
-                  const SizedBox(height: 16),
+                  const Divider(
+                    color: Colors.white30,
+                    indent: 24,
+                    endIndent: 24,
+                  ),
+                  // const SizedBox(height: 16),
                   _OptionTile(
                     icon: Icons.logout,
                     label: "Log Out",

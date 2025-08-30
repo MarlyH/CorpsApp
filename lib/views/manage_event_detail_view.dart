@@ -275,6 +275,12 @@ class _AdminBookingDetail {
   final bool isForChild;
   final String attendeeName;
 
+  // Reservation-related
+  final bool isReserved;
+  final String? reservedAttendeeName;
+  final String? reservedPhone;
+  final String? reservedGuardianName;
+
   final _AdminUserMini? user;
   final _ChildDto? child;
 
@@ -289,6 +295,10 @@ class _AdminBookingDetail {
     required this.qrCodeData,
     required this.isForChild,
     required this.attendeeName,
+    required this.isReserved,
+    required this.reservedAttendeeName,
+    required this.reservedPhone,
+    required this.reservedGuardianName,
     required this.user,
     required this.child,
   });
@@ -319,10 +329,23 @@ class _AdminBookingDetail {
       qrCodeData: (j['qrCodeData'] ?? '').toString(),
       isForChild: j['isForChild'] == true,
       attendeeName: (j['attendeeName'] ?? '').toString(),
+
+      // Reservation fields
+      isReserved: j['isReserved'] == true,
+      reservedAttendeeName: j['reservedAttendeeName']?.toString(),
+      reservedPhone: j['reservedPhone']?.toString(),
+      reservedGuardianName: j['reservedGuardianName']?.toString(),
+
       user: j['user'] == null ? null : _AdminUserMini.fromJson(j['user'] as Map<String, dynamic>),
       child: j['child'] == null ? null : _ChildDto.fromJson(j['child'] as Map<String, dynamic>),
     );
   }
+
+  // Use reserved name if present
+  String get displayName =>
+      isReserved && (reservedAttendeeName?.isNotEmpty ?? false)
+          ? reservedAttendeeName!
+          : attendeeName;
 }
 
 class _AdminUserMini {
@@ -519,7 +542,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  detail.attendeeName,
+                  detail.displayName, // uses reserved name when present
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -535,27 +558,39 @@ class _AttendeeDetailSheet extends StatelessWidget {
           ),
           Text(
             'Status: ${_labelFor(detail.status)}'
-            '${detail.seatNumber != null ? ' • Seat ${detail.seatNumber}' : ''}',
+            '${detail.seatNumber != null ? ' • Seat ${detail.seatNumber}' : ''}'
+            '${detail.isReserved ? ' • Reservation' : ''}',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 12),
 
-          // If there is a related user, label changes with booking type.
+          // Reservation block
+          if (detail.isReserved) ...[
+            const Text('Reservation', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 6),
+            _kv('Name', detail.displayName),
+            _kv('Phone', detail.reservedPhone?.trim().isNotEmpty == true ? detail.reservedPhone! : '—'),
+            _kv('Can Be Left Alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
+            if (!detail.canBeLeftAlone)
+              _kv('Parent/Guardian',
+                  (detail.reservedGuardianName?.trim().isNotEmpty ?? false)
+                      ? detail.reservedGuardianName!.trim()
+                      : '—'),
+            const SizedBox(height: 12),
+          ],
+
+          // Related user block
           if (user != null) ...[
-            Text(
-              isChildBooking ? 'Parent/Guardian' : 'User',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
+            Text(isChildBooking ? 'Parent/Guardian' : 'User',
+                style: const TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 6),
             _kv('Name', user.fullName),
             _kv(isChildBooking ? 'Parent Email' : 'Email', user.email ?? '—'),
             _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),
-            // (Optional) Explicit role row if you want it spelled out:
-            // _kv('Role', isChildBooking ? 'Parent/Guardian' : 'User'),
             const SizedBox(height: 12),
           ],
 
-          // Child block only when present
+          // Child block when present
           if (child != null) ...[
             const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 6),
@@ -566,6 +601,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
+          // Booking block (for child bookings we also show canBeLeftAlone already)
           const Text('Booking', style: TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 6),
           _kv('Event', detail.eventName ?? '—'),

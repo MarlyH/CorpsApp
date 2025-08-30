@@ -18,13 +18,17 @@ class _ReserveFlowState extends State<ReserveFlow> {
   final _formKey  = GlobalKey<FormState>();
   final _seatCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController(); // NEW
+  final _phoneCtrl = TextEditingController();
+  final _guardianCtrl = TextEditingController(); // NEW
 
   bool _loading = false;
   String? _error;
 
   // keep the selected seat in state (mirrors the text field)
   int? _selectedSeat;
+
+  // UX toggle (inverse of API's canBeLeftAlone)
+  bool _cannotBeLeftAlone = false; // NEW
 
   // brand color used for selected state
   static const _brandBlue = Color(0xFF4C85D0);
@@ -40,7 +44,8 @@ class _ReserveFlowState extends State<ReserveFlow> {
     _seatCtrl.removeListener(_syncTypedSeat);
     _seatCtrl.dispose();
     _nameCtrl.dispose();
-    _phoneCtrl.dispose(); // NEW
+    _phoneCtrl.dispose();
+    _guardianCtrl.dispose(); // NEW
     super.dispose();
   }
 
@@ -54,6 +59,8 @@ class _ReserveFlowState extends State<ReserveFlow> {
       String.fromCharCodes(
         s.trim().runes.where((c) => (c >= 0x30 && c <= 0x39) || c == 0x2B),
       );
+
+  bool _needsGuardian() => _cannotBeLeftAlone; // NEW
 
   // ────────────────────────────────────────────────────────────────────────────
   // API helpers
@@ -99,6 +106,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
         });
       }
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not load seats')),
       );
@@ -123,11 +131,20 @@ class _ReserveFlowState extends State<ReserveFlow> {
         return;
       }
 
+      final guardian = _guardianCtrl.text.trim();
+      if (_needsGuardian() && guardian.isEmpty) {
+        setState(() => _error = 'Parent/Guardian name is required.');
+        return;
+      }
+
       final body = jsonEncode({
         'eventId': widget.eventId,
         'seatNumber': int.parse(_seatCtrl.text.trim()),
         'attendeeName': _nameCtrl.text.trim(),
         'phoneNumber': cleanedPhone,
+        // NEW: API expects canBeLeftAlone (inverse of the toggle)
+        'canBeLeftAlone': !_cannotBeLeftAlone,
+        'reservedBookingParentGuardianName': _cannotBeLeftAlone ? guardian : null,
       });
 
       // Prefer JSON explicitly
@@ -148,12 +165,11 @@ class _ReserveFlowState extends State<ReserveFlow> {
         final data = (text.isNotEmpty)
             ? (jsonDecode(text) as Map<String, dynamic>)
             : const <String, dynamic>{};
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message']?.toString() ?? 'Reserved successfully')),
-          );
-          Navigator.of(context).pop(true);
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message']?.toString() ?? 'Reserved successfully')),
+        );
+        Navigator.of(context).pop(true);
         return;
       }
 
@@ -209,7 +225,6 @@ class _ReserveFlowState extends State<ReserveFlow> {
     }
   }
 
-
   // ────────────────────────────────────────────────────────────────────────────
   // UI helpers
 
@@ -219,7 +234,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters, // NEW (optional)
+    List<TextInputFormatter>? inputFormatters, // optional
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +246,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          inputFormatters: inputFormatters, // NEW
+          inputFormatters: inputFormatters,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
@@ -322,7 +337,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
                   ),
                   const SizedBox(height: 16),
 
-                  // NEW: Phone number
+                  // Phone number
                   _boxedField(
                     label: 'Phone Number',
                     hint: '+64 21 123 4567',
@@ -339,6 +354,38 @@ class _ReserveFlowState extends State<ReserveFlow> {
                     },
                   ),
                   const SizedBox(height: 16),
+
+                  // NEW: Cannot be left alone toggle
+                  SwitchListTile.adaptive(
+                    value: _cannotBeLeftAlone,
+                    onChanged: (v) => setState(() => _cannotBeLeftAlone = v),
+                    title: const Text(
+                      'Cannot be left alone',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text(
+                      'If enabled, a Parent/Guardian name is required',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    activeColor: _brandBlue,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // NEW: Parent/Guardian Name (conditional)
+                  if (_cannotBeLeftAlone)
+                    _boxedField(
+                      label: 'Parent/Guardian Name',
+                      hint: 'Full name',
+                      controller: _guardianCtrl,
+                      validator: (v) {
+                        if (_needsGuardian() && (v == null || v.trim().isEmpty)) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                  if (_cannotBeLeftAlone) const SizedBox(height: 16),
 
                   if (_error != null) ...[
                     Text(_error!, style: const TextStyle(color: Colors.red)),

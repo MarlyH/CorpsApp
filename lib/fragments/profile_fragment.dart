@@ -197,7 +197,7 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  if (isSuspended && isUser || isStaff) ...[
+                  if (isSuspended && isUser || isSuspended && isStaff) ...[
                     _OptionTile(
                       icon: Icons.gavel,
                       label: "Appeal Ban",

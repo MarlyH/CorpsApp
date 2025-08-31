@@ -176,7 +176,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 tabs: const [
                   Tab(text: 'Upcoming'),
-                  Tab(text: 'Concluded'), // renamed
+                  Tab(text: 'Concluded'),
                   Tab(text: 'Cancelled'),
                 ],
               ),
@@ -442,32 +442,104 @@ class _ConcludedFilterBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+Widget build(BuildContext context) {
+  final baseTheme = Theme.of(context);
+  final baseChip = ChipTheme.of(context);
+
+  // State-based background color
+  final MaterialStateProperty<Color?> chipFill =
+      MaterialStateProperty.resolveWith((states) {
+    if (states.contains(MaterialState.disabled)) {
+      return Colors.transparent;
+    }
+    if (states.contains(MaterialState.selected)) {
+      return Colors.white;
+    }
+    return Colors.transparent;
+  });
+
+  // State-based border
+  final MaterialStateProperty<BorderSide?> chipBorder =
+      MaterialStateProperty.resolveWith((states) {
+    if (states.contains(MaterialState.selected)) {
+      return const BorderSide(color: Colors.black, width: 1.2);
+    }
+    return BorderSide(color: Colors.grey[400]!, width: 1.0);
+  });
+
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+    child: Theme(
+      data: baseTheme.copyWith(
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        chipTheme: baseChip.copyWith(
+          backgroundColor: Colors.transparent,
+          selectedColor: Colors.white,
+          secondarySelectedColor: Colors.white,
+          disabledColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+        ),
+      ),
       child: Wrap(
         spacing: 8,
-        runSpacing: 4,
         children: [
           ChoiceChip(
-            label: const Text('All'),
+            label: Text(
+              'All',
+              style: TextStyle(
+                color: selected == _ConcludedFilter.all
+                    ? Colors.black
+                    : const Color.fromARGB(255, 255, 255, 255),
+              ),
+            ),
             selected: selected == _ConcludedFilter.all,
+            showCheckmark: true,
+            surfaceTintColor: Colors.transparent,
+            color: chipFill,
             onSelected: (_) => onChanged(_ConcludedFilter.all),
           ),
           ChoiceChip(
-            label: const Text('Checked Out'),
+            label: Text(
+              'Checked Out',
+              style: TextStyle(
+                color: selected == _ConcludedFilter.checkedOut
+                    ? Colors.black
+                    : const Color.fromARGB(255, 255, 255, 255),
+              ),
+            ),
             selected: selected == _ConcludedFilter.checkedOut,
+            showCheckmark: true,
+            surfaceTintColor: Colors.transparent,
+            color: chipFill,
+            
             onSelected: (_) => onChanged(_ConcludedFilter.checkedOut),
           ),
           ChoiceChip(
-            label: const Text('Striked'),
+            label: Text(
+              'Striked',
+              style: TextStyle(
+                color: selected == _ConcludedFilter.striked
+                    ? Colors.black
+                    : const Color.fromARGB(255, 255, 255, 255),
+              ),
+            ),
             selected: selected == _ConcludedFilter.striked,
+            showCheckmark: true,
+            surfaceTintColor: Colors.transparent,
+            color: chipFill,
+            
             onSelected: (_) => onChanged(_ConcludedFilter.striked),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+
 }
 
 class _BookingCard extends StatelessWidget {

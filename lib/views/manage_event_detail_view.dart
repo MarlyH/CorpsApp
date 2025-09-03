@@ -2,14 +2,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/event_summary.dart';
 import '../services/auth_http_client.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
+
 
 class ManageEventDetailView extends StatefulWidget {
   final EventSummary event;
   const ManageEventDetailView({super.key, required this.event});
+  
 
   @override
   _ManageEventDetailViewState createState() => _ManageEventDetailViewState();
 }
+enum _ActionKind { email, phone }
 
 class _ManageEventDetailViewState extends State<ManageEventDetailView> {
   bool _loading = true;
@@ -525,12 +530,15 @@ String niceDayDate(DateTime d) {
 class _AttendeeDetailSheet extends StatelessWidget {
   final _AdminBookingDetail detail;
   const _AttendeeDetailSheet({required this.detail});
+  
+
 
   @override
   Widget build(BuildContext context) {
     final user = detail.user;
     final child = detail.child;
     final isChildBooking = detail.isForChild;
+    
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -569,7 +577,12 @@ class _AttendeeDetailSheet extends StatelessWidget {
             const Text('Reservation', style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 6),
             _kv('Name', detail.displayName),
-            _kv('Phone', detail.reservedPhone?.trim().isNotEmpty == true ? detail.reservedPhone! : '—'),
+            _kvAction(context,
+              label: 'Phone',
+              value: (detail.reservedPhone?.trim().isNotEmpty == true) ? detail.reservedPhone!.trim() : '—',
+              kind: _ActionKind.phone,
+            ),
+
             _kv('Can Be Left Alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
             if (!detail.canBeLeftAlone)
               _kv('Parent/Guardian',
@@ -585,7 +598,15 @@ class _AttendeeDetailSheet extends StatelessWidget {
                 style: const TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 6),
             _kv('Name', user.fullName),
-            _kv(isChildBooking ? 'Parent Email' : 'Email', user.email ?? '—'),
+            () {
+              final email = (user.email ?? '').trim();
+              return _kvAction(
+                context,
+                label: isChildBooking ? 'Parent Email' : 'Email',
+                value: email.isNotEmpty ? email : '—',
+                kind: _ActionKind.email,
+              );
+            }(),
             _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),
             const SizedBox(height: 12),
           ],
@@ -597,7 +618,16 @@ class _AttendeeDetailSheet extends StatelessWidget {
             _kv('Name', child.fullName),
             _kv('DOB', _fmtDob(child.dateOfBirth)),
             _kv('Age', '${child.age}'),
-            _kv('Emergency Contact', '${child.emergencyContactName} • ${child.emergencyContactPhone}'),
+            _kv('Emergency Contact', child.emergencyContactName),
+            () {
+              final phone = (child.emergencyContactPhone).trim();
+              return _kvAction(
+                context,
+                label: 'Emergency Phone',
+                value: phone.isNotEmpty ? phone : '—',
+                kind: _ActionKind.phone,
+              );
+            }(),
             const SizedBox(height: 12),
           ],
 
@@ -615,7 +645,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _kv(String k, String v) => Padding(
+    Widget _kv(String k, String v) => Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(
           children: [
@@ -630,6 +660,66 @@ class _AttendeeDetailSheet extends StatelessWidget {
         ),
       );
 
+  // New: actionable row — tap to open, long-press to copy
+  Widget _kvAction(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required _ActionKind kind, // email or phone
+  }) {
+    final isDisabled = value.trim().isEmpty || value == '—';
+    final style = TextStyle(
+      color: isDisabled ? Colors.white38 : const Color(0xFF4A90E2),
+      fontSize: 13,
+      decoration: isDisabled ? TextDecoration.none : TextDecoration.underline,
+      decorationColor: const Color(0xFF4A90E2),
+    );
+
+    Future<void> _launch() async {
+      if (isDisabled) return;
+      final uri = switch (kind) {
+        _ActionKind.email => Uri(scheme: 'mailto', path: value.trim()),
+        _ActionKind.phone => Uri(scheme: 'tel', path: value.trim()),
+      };
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _copy(context, value);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: _launch,
+              onLongPress: () => _copy(context, value),
+              child: Text(value.isEmpty ? '—' : value, style: style),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copy(BuildContext context, String text) {
+    if (text.trim().isEmpty || text == '—') return;
+    Clipboard.setData(ClipboardData(text: text.trim()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Copied to clipboard'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+  
   String _fmtDob(DateTime? d) {
     if (d == null) return '—';
     final y = d.year.toString().padLeft(4, '0');

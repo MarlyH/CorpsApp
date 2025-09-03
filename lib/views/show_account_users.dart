@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/auth_http_client.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
+
 
 class ManageUsersView extends StatefulWidget {
   const ManageUsersView({super.key});
@@ -263,7 +266,8 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                         ),
                       ],
                     ),
-                    Text(u.email, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                    _ActionableEmail(email: u.email),
+
                     const SizedBox(height: 12),
 
                     const Text('Children', style: TextStyle(color: Colors.white70, fontSize: 14)),
@@ -488,6 +492,52 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 // ---------------------------
 // Widgets
 // ---------------------------
+
+class _ActionableEmail extends StatelessWidget {
+  final String email;
+  const _ActionableEmail({required this.email});
+
+  @override
+    Widget build(BuildContext context) {
+      final trimmed = email.trim();
+      final isEmpty = trimmed.isEmpty;
+
+      final style = TextStyle(
+        color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
+        fontSize: 12,
+        decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
+        decorationColor: const Color(0xFF4A90E2),
+      );
+
+      Future<void> _launch() async {
+        if (isEmpty) return;
+        final uri = Uri(scheme: 'mailto', path: trimmed);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          _copy(context);
+        }
+      }
+
+      return GestureDetector(
+        onTap: _launch,
+        onLongPress: () => _copy(context),
+        child: Text(isEmpty ? '—' : trimmed, style: style),
+      );
+    }
+
+    void _copy(BuildContext context) {
+      if (email.trim().isEmpty) return;
+      Clipboard.setData(ClipboardData(text: email.trim()));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email copied to clipboard'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
 class _UserTile extends StatelessWidget {
   final _User user;

@@ -52,6 +52,9 @@ dependencies:
   connectivity_plus: ^4.0.0
   # Shared prefs currently will save state of waitlist notif state on a per UID basis
   shared_preferences: ^2.2.2
+  #for pulling device infor and app info in the support and feedback view
+  package_info_plus: ^8.0.2
+  device_info_plus: ^10.1.0
 
   flutter:
     sdk: flutter

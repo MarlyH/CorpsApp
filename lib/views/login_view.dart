@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../services/token_service.dart';
 import '../providers/auth_provider.dart';
+import '../services/token_service.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -15,13 +16,13 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  final _formKey   = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _pwCtrl    = TextEditingController();
+  final _pwCtrl = TextEditingController();
 
   bool _isLoading = false;
   bool _canResend = false;
-  bool _obscure   = true;
+  bool _obscure = true;
   String? _error;
 
   @override
@@ -33,58 +34,84 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _isLoading = true;
-      _error     = null;
+      _error = null;
       _canResend = false;
     });
 
     final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final res = await http.post(
-      Uri.parse('$base/api/auth/login'),
-      headers: {'Content-Type':'application/json'},
-      body: jsonEncode({
-        'Email':    _emailCtrl.text.trim(),
-        'Password': _pwCtrl.text,
-      }),
-    );
 
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) {
-      await TokenService.saveTokens(
-        data['accessToken'], data['refreshToken']);
-      await context.read<AuthProvider>().loadUser();
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    } else {
+    try {
+      final res = await http.post(
+        Uri.parse('$base/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'Email': _emailCtrl.text.trim(),
+          'Password': _pwCtrl.text,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200) {
+        // Save tokens and load user
+        await TokenService.saveTokens(data['accessToken'], data['refreshToken']);
+        await context.read<AuthProvider>().loadUser();
+
+        // Let OS consider saving these credentials
+        TextInput.finishAutofillContext(shouldSave: true);
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        setState(() {
+          _error = data['message'] ?? 'Login failed';
+          _canResend = res.statusCode == 401 && (data['canResend'] == true);
+        });
+      }
+    } catch (_) {
       setState(() {
-        _error     = data['message'] ?? 'Login failed';
-        _canResend = res.statusCode == 401 && (data['canResend'] == true);
+        _error = 'Something went wrong. Please try again.';
       });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _resendEmail() async {
     setState(() => _isLoading = true);
     final base = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    final res = await http.post(
-      Uri.parse('$base/api/auth/resend-confirmation-email'),
-      headers: {'Content-Type':'application/json'},
-      body: jsonEncode({'email': _emailCtrl.text.trim()}),
-    );
-    final msg = jsonDecode(res.body)['message'] ?? 'Check your inbox';
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
-      setState(() {
-        _canResend = false;
-        _isLoading = false;
-      });
+
+    try {
+      final res = await http.post(
+        Uri.parse('$base/api/auth/resend-confirmation-email'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': _emailCtrl.text.trim()}),
+      );
+      final msg = jsonDecode(res.body)['message'] ?? 'Check your inbox';
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not send email. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _canResend = false;
+          _isLoading = false;
+        });
+      }
     }
   }
 
+  // Reusable field builder with autofill support and password toggle
   Widget _boxField({
     required String label,
     required TextEditingController ctrl,
@@ -92,11 +119,15 @@ class _LoginViewState extends State<LoginView> {
     Widget? suffix,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
+    Iterable<String>? autofillHints,
+    TextInputAction textInputAction = TextInputAction.next,
+    void Function(String)? onFieldSubmitted,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(
+          label,
           style: const TextStyle(
             fontFamily: 'WinnerSans',
             color: Colors.white,
@@ -111,13 +142,17 @@ class _LoginViewState extends State<LoginView> {
           keyboardType: keyboardType,
           validator: validator,
           style: const TextStyle(color: Colors.black),
+          autofillHints: autofillHints,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
+          enableSuggestions: !obscure, // best practice for password fields
+          autocorrect: !obscure, // best practice for password fields
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
             hintText: 'Enter your ${label.toLowerCase()}',
             hintStyle: const TextStyle(color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             suffixIcon: suffix,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -132,12 +167,11 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // default resizeToAvoidBottomInset = true
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           children: [
-            // ——— fixed top bar ———
+            // top bar
             Align(
               alignment: Alignment.topLeft,
               child: IconButton(
@@ -146,13 +180,12 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
 
-            // ——— scrollable form area ———
+            // form area
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
                   const SizedBox(height: 24),
-
                   const Text(
                     'WELCOME BACK',
                     textAlign: TextAlign.center,
@@ -167,147 +200,146 @@ class _LoginViewState extends State<LoginView> {
 
                   Form(
                     key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _boxField(
-                          label: 'EMAIL',
-                          ctrl: _emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        _boxField(
-                          label: 'PASSWORD',
-                          ctrl: _pwCtrl,
-                          obscure: _obscure,
-                          suffix: IconButton(
-                            icon: Icon(
-                              _obscure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                              color: Colors.grey,
-                            ),
-                            onPressed: () =>
-                              setState(() => _obscure = !_obscure),
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _boxField(
+                            label: 'EMAIL',
+                            ctrl: _emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [
+                              AutofillHints.username,
+                              AutofillHints.email
+                            ],
+                            textInputAction: TextInputAction.next,
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                           ),
-                          validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 4),
+                          const SizedBox(height: 16),
 
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero),
-                            onPressed: () =>
-                              Navigator.pushNamed(context, '/forgot-password'),
-                            child: const Text(
-                              'Forgot password?',
-                              style: TextStyle(
-                                color: Colors.white, fontSize: 12),
+                          _boxField(
+                            label: 'PASSWORD',
+                            ctrl: _pwCtrl,
+                            obscure: _obscure,
+                            suffix: IconButton(
+                              icon: Icon(
+                                _obscure ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () => setState(() => _obscure = !_obscure),
+                              tooltip: _obscure ? 'Show password' : 'Hide password',
                             ),
+                            autofillHints: const [AutofillHints.password],
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _login(),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                           ),
-                        ),
+                          const SizedBox(height: 4),
 
-                        if (_error != null) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _error!,
-                                    style: const TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        if (_canResend) ...[
-                          const SizedBox(height: 8),
-                          Center(
+                          Align(
+                            alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: _resendEmail,
+                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
                               child: const Text(
-                                'Resend Confirmation Email',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
-                                  fontSize: 12,
-                                ),
+                                'Forgot password?',
+                                style: TextStyle(color: Colors.white, fontSize: 12),
                               ),
                             ),
                           ),
-                        ],
 
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4A90E2),
-                              shape: RoundedRectangleBorder(
+                          if (_error != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                            ),
-                            child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text(
-                                  'LOGIN',
-                                  style: TextStyle(
-                                    fontFamily: 'WinnerSans',
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error, color: Colors.red),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _error!,
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
                                   ),
-                                ),
-                          ),
-                        ),
+                                ],
+                              ),
+                            ),
+                          ],
 
-                        const SizedBox(height: 16),
-
-                        Center(
-                          child: RichText(
-                            text: TextSpan(
-                              text: "Don't have an account? ",
-                              style: const TextStyle(
-                                color: Colors.white70, fontSize: 12),
-                              children: [
-                                TextSpan(
-                                  text: 'Register',
-                                  style: const TextStyle(
+                          if (_canResend) ...[
+                            const SizedBox(height: 8),
+                            Center(
+                              child: TextButton(
+                                onPressed: _resendEmail,
+                                child: const Text(
+                                  'Resend Confirmation Email',
+                                  style: TextStyle(
                                     color: Colors.white,
                                     decoration: TextDecoration.underline,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                   ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      Navigator.pushNamed(context, '/register');
-                                    },
                                 ),
-                              ],
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+
+                          SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4A90E2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text(
+                                      'LOGIN',
+                                      style: TextStyle(
+                                        fontFamily: 'WinnerSans',
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 32),
-                      ],
+                          const SizedBox(height: 16),
+
+                          Center(
+                            child: RichText(
+                              text: TextSpan(
+                                text: "Don't have an account? ",
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                children: [
+                                  TextSpan(
+                                    text: 'Register',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () =>
+                                          Navigator.pushNamed(context, '/register'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
                     ),
                   ),
                 ],

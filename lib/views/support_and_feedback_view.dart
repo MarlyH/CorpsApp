@@ -14,7 +14,7 @@ class SupportAndFeedbackView extends StatefulWidget {
 
 class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
   // TODO: change this to the actual support address
-  static const String supportEmail = 'admin@admin.com';
+  static const String supportEmail = 'yourcorps@yourcorps.co.nz';
 
   final _formKey = GlobalKey<FormState>();
   final _subjectCtrl = TextEditingController(text: 'Support & Feedback');

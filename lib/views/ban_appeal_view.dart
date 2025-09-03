@@ -17,7 +17,7 @@ class _BanAppealViewState extends State<BanAppealView> {
   static String get _appealsEmail =>
       dotenv.env['APPEALS_EMAIL'] ??
       dotenv.env['SUPPORT_EMAIL'] ??
-      'admin@admin.com';
+      'yourcorps@yourcorps.co.nz';
 
   final _formKey = GlobalKey<FormState>();
   final _subjectCtrl = TextEditingController(text: 'Ban Appeal');

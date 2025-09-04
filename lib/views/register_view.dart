@@ -1,69 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart' as launcher;
-
-/// Dialog shown when the user is under 13.
-class ParentGuardianRequiredDialog extends StatelessWidget {
-  const ParentGuardianRequiredDialog({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: EdgeInsets.zero,
-      backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox.expand(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.info_outline, size: 64, color: Colors.white),
-              const SizedBox(height: 24),
-              const Text(
-                'Parent or Guardian Required',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Accounts for users under 13 must be created by a parent or legal guardian. '
-                'Please ask them to register their own account to make bookings for you.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('OK',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Two-step registration + success flow with resend countdown.
 class RegisterView extends StatefulWidget {
@@ -147,8 +90,11 @@ class _RegisterViewState extends State<RegisterView> {
       if (age < 13) {
         await showDialog(
           context: context,
-          barrierDismissible: false,
-          builder: (_) => const ParentGuardianRequiredDialog(),
+          builder: (context) => CustomAlertDialog(
+            title: 'Parent or Guardian Required',
+            info: 'Accounts for users under the age of 13 must be created by a parent or legal guardian. '
+                  'Please have them register their own account to make bookings on your behalf.'
+          ),
         );
         return;
       }

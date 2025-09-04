@@ -6,6 +6,7 @@ class Button extends StatelessWidget {
   final Color buttonColor;
   final Color textColor;
   final Color borderColor;
+  final double? buttonWidth;
 
   const Button({
     super.key,
@@ -14,12 +15,13 @@ class Button extends StatelessWidget {
     this.buttonColor = const Color(0xFF4C85D0),
     this.textColor = const Color(0xFFFFFFFF),
     this.borderColor = Colors.transparent,
+    this.buttonWidth = double.infinity,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 280,
+      width: buttonWidth,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -42,7 +44,7 @@ class Button extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-      ),
-    );
+      )
+    );    
   }
 }

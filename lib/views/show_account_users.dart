@@ -509,7 +509,7 @@ class _ActionableEmail extends StatelessWidget {
         decorationColor: const Color(0xFF4A90E2),
       );
 
-      Future<void> launch() async {
+      Future<void> _launch() async {
         if (isEmpty) return;
         final uri = Uri(scheme: 'mailto', path: trimmed);
         if (await canLaunchUrl(uri)) {
@@ -520,7 +520,7 @@ class _ActionableEmail extends StatelessWidget {
       }
 
       return GestureDetector(
-        onTap: launch,
+        onTap: _launch,
         onLongPress: () => _copy(context),
         child: Text(isEmpty ? '—' : trimmed, style: style),
       );

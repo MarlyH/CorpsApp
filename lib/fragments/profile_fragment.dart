@@ -5,6 +5,7 @@ import '../views/account_security_view.dart';
 import '../views/notifications_view.dart';
 import '../views/manage_children_view.dart';
 import '../views/manage_events_view.dart';
+import '../views/events_history_view.dart';
 import '../views/change_user_role_view.dart';
 import '../views/manage_locations_view.dart';
 import '../views/about_corps_view.dart';

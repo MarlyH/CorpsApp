@@ -21,7 +21,7 @@ class _BookingWithTime {
   late final DateTime endDateTime;
 
   _BookingWithTime(this.booking, this.time) {
-    DateTime parse(String? hhmm) {
+    DateTime _parse(String? hhmm) {
       if (hhmm == null || hhmm.trim().isEmpty) {
         final d = booking.eventDate;
         return DateTime(d.year, d.month, d.day); // midnight
@@ -34,8 +34,8 @@ class _BookingWithTime {
       return DateTime(d.year, d.month, d.day, h, m);
     }
 
-    startDateTime = parse(time.startTime);
-    final parsedEnd = parse(time.endTime);
+    startDateTime = _parse(time.startTime);
+    final parsedEnd = _parse(time.endTime);
 
     final isZero = (time.endTime == null) ||
         time.endTime == '00:00' ||
@@ -297,7 +297,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
           (a, b) => b.startDateTime.compareTo(a.startDateTime),
         );
       items.add(_Header(headerLabel));
-      for (final bt in day) {
+      for (final bt in day!) {
         items.add(_Row(bt));
       }
     }
@@ -385,7 +385,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
           (a, b) => b.startDateTime.compareTo(a.startDateTime),
         );
       items.add(_Header(headerLabel));
-      for (final bt in day) {
+      for (final bt in day!) {
         items.add(_Row(bt));
       }
     }
@@ -436,6 +436,7 @@ class _ConcludedFilterBar extends StatelessWidget {
   final ValueChanged<_ConcludedFilter> onChanged;
 
   const _ConcludedFilterBar({
+    super.key,
     required this.selected,
     required this.onChanged,
   });
@@ -446,21 +447,21 @@ Widget build(BuildContext context) {
   final baseChip = ChipTheme.of(context);
 
   // State-based background color
-  final WidgetStateProperty<Color?> chipFill =
-      WidgetStateProperty.resolveWith((states) {
-    if (states.contains(WidgetState.disabled)) {
+  final MaterialStateProperty<Color?> chipFill =
+      MaterialStateProperty.resolveWith((states) {
+    if (states.contains(MaterialState.disabled)) {
       return Colors.transparent;
     }
-    if (states.contains(WidgetState.selected)) {
+    if (states.contains(MaterialState.selected)) {
       return Colors.white;
     }
     return Colors.transparent;
   });
 
   // State-based border
-  final WidgetStateProperty<BorderSide?> chipBorder =
-      WidgetStateProperty.resolveWith((states) {
-    if (states.contains(WidgetState.selected)) {
+  final MaterialStateProperty<BorderSide?> chipBorder =
+      MaterialStateProperty.resolveWith((states) {
+    if (states.contains(MaterialState.selected)) {
       return const BorderSide(color: Colors.black, width: 1.2);
     }
     return BorderSide(color: Colors.grey[400]!, width: 1.0);

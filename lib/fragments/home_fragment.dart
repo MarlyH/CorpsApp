@@ -452,7 +452,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                                       ),
                                     ),
                                   );
-                                }),
+                                }).toList(),
                               ],
 
                               onChanged: (v) => setState(() => _filterLocation = v),
@@ -793,7 +793,7 @@ class _EventTileState extends State<EventTile> {
   // guard we only auto-clear once per “available” session render
   
   bool _isWaitlisted = false;
-  final bool _waitlistSubmitting = false;
+  bool _waitlistSubmitting = false;
   late final String _waitlistPrefKey;
 
   @override
@@ -920,7 +920,7 @@ class _EventTileState extends State<EventTile> {
       String? error;
       final s = widget.summary;
 
-      Future<void> confirm(StateSetter setSB) async {
+      Future<void> _confirm(StateSetter setSB) async {
         setSB(() { working = true; error = null; });
         final ok = await _setWaitlistEnabled(!isOn);
         setSB(() {
@@ -1111,7 +1111,7 @@ class _EventTileState extends State<EventTile> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: working ? null : () => confirm(setSB),
+                                  onPressed: working ? null : () => _confirm(setSB),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: ctaColor,
                                     shape: const StadiumBorder(),
@@ -1583,7 +1583,7 @@ class _EventTileState extends State<EventTile> {
           ),
           onPressed: _cancelEvent,
           child: const Text('CANCEL', 
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'WinnerSans',
               color: Colors.white,
               fontSize: 16,
@@ -1611,7 +1611,7 @@ class _EventTileState extends State<EventTile> {
             );
           },
           child: const Text('RESERVE', 
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'WinnerSans',
               color: Colors.white,
               fontSize: 16,
@@ -1646,7 +1646,7 @@ class _EventTileState extends State<EventTile> {
         ? "Booking is suspended for 90 days from the date you received your third strike."
         : "Booking is suspended for 90 days from your third strike.\n"
           "Access will be restored on ${_formatDate(until)}"
-          "${daysLeft != null ? " ($daysLeft day${daysLeft == 1 ? '' : 's'} left)" : ""}.";
+          "${daysLeft != null ? " (${daysLeft} day${daysLeft == 1 ? '' : 's'} left)" : ""}.";
 
     showDialog(
       context: context,
@@ -1811,11 +1811,20 @@ class _CornerWedge extends StatelessWidget {
     this.inset = 0,
     this.padding = 14,
     this.perpPadding = 6,
+    this.centerText = true,
+    this.color = const Color(0xFFD01417),
     this.text = 'BOOKED OUT',
+    this.textStyle = const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w800,
+      letterSpacing: .6,
+      fontSize: 11,
+    ),
     this.showIcon = true,
     this.icon = Icons.event_busy,
     this.iconSize = 18,
-    this.iconTextGap = 4, // defaults to textStyle.color
+    this.iconTextGap = 4,
+    this.iconColor, // defaults to textStyle.color
   });
 
   final double size, inset, padding, perpPadding;

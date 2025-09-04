@@ -34,7 +34,7 @@ class _QrScanViewState extends State<QrScanView> {
           fontSize: 12,
         ),
       ).merge(
-        ButtonStyle(minimumSize: WidgetStateProperty.all(const Size.fromHeight(44))),
+        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
       );
 
   ButtonStyle _pillMuted() => ElevatedButton.styleFrom(
@@ -48,7 +48,7 @@ class _QrScanViewState extends State<QrScanView> {
           fontSize: 12,
         ),
       ).merge(
-        ButtonStyle(minimumSize: WidgetStateProperty.all(const Size.fromHeight(44))),
+        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
       );
 
   ButtonStyle _pillOutline() => OutlinedButton.styleFrom(
@@ -62,7 +62,7 @@ class _QrScanViewState extends State<QrScanView> {
           fontSize: 12,
         ),
       ).merge(
-        ButtonStyle(minimumSize: WidgetStateProperty.all(const Size.fromHeight(44))),
+        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
       );
 
   // Hot-reload camera fix

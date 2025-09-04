@@ -68,7 +68,7 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
       } else if (Platform.isMacOS) {
         final info = await di.macOsInfo;
         deviceModel = info.model ?? 'Mac';
-        osVersion = info.osRelease;
+        osVersion = '${info.osRelease}';
       } else if (Platform.isWindows) {
         final info = await di.windowsInfo;
         deviceModel = 'Windows PC';

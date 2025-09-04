@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../main.dart';
 
 class NoInternetOverlay extends StatelessWidget {
-  const NoInternetOverlay({super.key});
+  const NoInternetOverlay({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class NoInternetOverlay extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () {},
             child: Container(
-              color: colors.surface.withOpacity(0.75),
+              color: colors.background.withOpacity(0.75),
             ),
           ),
         ),

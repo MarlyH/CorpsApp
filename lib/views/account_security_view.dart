@@ -289,6 +289,7 @@ class _SingleFieldDialog extends StatefulWidget {
   final String hint;
   final bool isEmail;
   const _SingleFieldDialog({
+    super.key,
     required this.title,
     required this.initial,
     required this.hint,
@@ -353,7 +354,7 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteConfirmDialog extends StatefulWidget {
-  const _DeleteConfirmDialog();
+  const _DeleteConfirmDialog({super.key});
   @override
   __DeleteConfirmDialogState createState() => __DeleteConfirmDialogState();
 }

@@ -536,7 +536,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteLocationConfirmDialog extends StatefulWidget {
-  const _DeleteLocationConfirmDialog({super.key});
+  const _DeleteLocationConfirmDialog({Key? key}) : super(key: key);
 
   @override
   State<_DeleteLocationConfirmDialog> createState() =>

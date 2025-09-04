@@ -242,7 +242,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                     value: loc,
                     child: Text(loc.name, style: const TextStyle(color: Colors.black)),
                   )).toList(),
-                  value: _location,
+                  initialValue: _location,
                   onChanged: (v) => setState(() => _location = v),
                   validator: (v) => v == null ? 'Please select a location' : null,
                 ),

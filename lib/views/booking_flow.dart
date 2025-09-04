@@ -588,7 +588,7 @@ class _BookingFlowState extends State<BookingFlow> {
                     ),
                   ),
                   style: const TextStyle(color: Colors.black),
-                  value: _selectedChildId,
+                  initialValue: _selectedChildId,
                   items: [
                     ..._children.map(
                       (c) => DropdownMenuItem(

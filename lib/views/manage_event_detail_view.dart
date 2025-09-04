@@ -675,7 +675,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
       decorationColor: const Color(0xFF4A90E2),
     );
 
-    Future<void> _launch() async {
+    Future<void> launch() async {
       if (isDisabled) return;
       final uri = switch (kind) {
         _ActionKind.email => Uri(scheme: 'mailto', path: value.trim()),
@@ -698,7 +698,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: _launch,
+              onTap: launch,
               onLongPress: () => _copy(context, value),
               child: Text(value.isEmpty ? '—' : value, style: style),
             ),

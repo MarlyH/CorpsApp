@@ -159,7 +159,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
       // Handle non-2xx without relying on thrown exceptions
       final status = resp.statusCode ?? 0;
-      final text = resp.body?.toString() ?? '';
+      final text = resp.body.toString() ?? '';
 
       if (status >= 200 && status < 300) {
         final data = (text.isNotEmpty)

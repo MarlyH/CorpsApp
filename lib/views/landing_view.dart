@@ -17,6 +17,7 @@ class LandingView extends StatefulWidget {
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   bool _loading = true;
   late VoidCallback _connListener;
+  late ConnectivityProvider _connProvider;
 
   @override
   void initState() {
@@ -71,8 +72,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    Provider.of<ConnectivityProvider>(context, listen: false)
-        .removeListener(_connListener);
+    _connProvider.removeListener(_connListener);
     super.dispose();
   }
 

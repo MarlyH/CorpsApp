@@ -54,7 +54,6 @@ class _DashboardViewState extends State<DashboardView> {
 
     // get the FCM token and register it with API -> Azure Notification Hubs
     final token = await messaging.getToken();
-
     if (token != null) {
       try {
         await AuthHttpClient.registerDeviceToken(token);

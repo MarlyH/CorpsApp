@@ -17,7 +17,6 @@ class LandingView extends StatefulWidget {
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   bool _loading = true;
   late VoidCallback _connListener;
-  late ConnectivityProvider _connProvider;
 
   @override
   void initState() {
@@ -72,7 +71,8 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _connProvider.removeListener(_connListener);
+    Provider.of<ConnectivityProvider>(context, listen: false)
+            .removeListener(_connListener);    
     super.dispose();
   }
 
@@ -111,6 +111,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                           Button(
                             label: 'LOGIN',
                             onPressed: () => Navigator.pushNamed(context, '/login'),
+                            buttonWidth: 280,
                           ),
 
                           const SizedBox(height: 12),
@@ -121,6 +122,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
                             onPressed: () => Navigator.pushNamed(context, '/register'),
                             buttonColor: const Color(0xFF121212),
                             borderColor: Colors.white,
+                            buttonWidth: 280,
                           ),
                           const SizedBox(height: 32),
 

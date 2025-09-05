@@ -111,11 +111,17 @@ class _RegisterViewState extends State<RegisterView> {
       _error = null;
     });
 
+    //Capitalsie names
+    String capitalize(String input) {
+      if (input.isEmpty) return input;
+      return input[0].toUpperCase() + input.substring(1).toLowerCase();
+    }
+
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url     = Uri.parse('$baseUrl/api/auth/register');
     final body    = jsonEncode({
-      'firstName':   firstNameCtrl.text.trim(),
-      'lastName':    lastNameCtrl.text.trim(),
+      'firstName':   capitalize(firstNameCtrl.text.trim()),
+      'lastName':    capitalize(lastNameCtrl.text.trim()),
       'userName':    userNameCtrl.text.trim(),
       'email':       emailCtrl.text.trim(),
       'dateOfBirth': dobCtrl.text.trim(),
@@ -234,7 +240,11 @@ class _RegisterViewState extends State<RegisterView> {
               const SizedBox(width: 8),
               const Text('REGISTER',
                   style: TextStyle(
-                      color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                      color: Colors.white, 
+                      fontSize: 24, 
+                      fontFamily: 'WinnerSans', 
+                      fontWeight: FontWeight.bold)
+                      ),
             ]),
             const SizedBox(height: 8),
             RichText(

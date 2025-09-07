@@ -31,7 +31,7 @@ class InputField extends StatelessWidget {
           label,
             style: const TextStyle(
                 color: Colors.white, 
-                fontSize: 12, 
+                fontSize: 14, 
                 fontWeight: FontWeight.bold)
         ),
 
@@ -53,7 +53,7 @@ class InputField extends StatelessWidget {
             fillColor: Colors.white,
             suffixIcon: iconLook,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             border: OutlineInputBorder(
               borderSide: BorderSide.none,
               borderRadius: BorderRadius.circular(8),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
@@ -194,9 +195,12 @@ class _RegisterViewState extends State<RegisterView> {
         child: Form(
           key: _formKey,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const SizedBox(height: 32),
             Row(children: [
+              if (Platform.isAndroid) 
+                const BackButton(color: Colors.white),
+
               const SizedBox(width: 8),
+
               const Text('REGISTER',
                   style: TextStyle(
                       color: Colors.white, 
@@ -205,7 +209,9 @@ class _RegisterViewState extends State<RegisterView> {
                       fontWeight: FontWeight.bold)
                       ),
             ]),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 4),
+
             RichText(
               text: TextSpan(
                 style: const TextStyle(color: Colors.white, fontSize: 14),

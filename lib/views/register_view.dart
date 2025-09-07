@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -185,58 +187,15 @@ class _RegisterViewState extends State<RegisterView> {
     }
   }
 
-  Widget _boxedField({
-    required String label,
-    required String hint,
-    required TextEditingController ctrl,
-    TextInputType? keyboard,
-    bool obscure = false,
-    VoidCallback? onTap,
-    Widget? suffix,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: ctrl,
-          keyboardType: keyboard,
-          obscureText: obscure,
-          onTap: onTap,
-          style: const TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            suffixIcon: suffix,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          validator: validator ?? (v) => v == null || v.isEmpty ? 'Required' : null,
-        ),
-      ],
-    );
-  }
-
   Widget _buildForm() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: AppPadding.screen,
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 32),
             Row(children: [
-              BackButton(color: Colors.white),
               const SizedBox(width: 8),
               const Text('REGISTER',
                   style: TextStyle(
@@ -267,30 +226,36 @@ class _RegisterViewState extends State<RegisterView> {
             const SizedBox(height: 24),
             Row(children: [
               Expanded(
-                child: _boxedField(
-                    label: 'First Name', hint: 'Your first name', ctrl: firstNameCtrl),
+                child: InputField(
+                    label: 'First Name', 
+                    hintText: 'Your first name', 
+                    controller: firstNameCtrl),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _boxedField(
-                    label: 'Last Name', hint: 'Your last name', ctrl: lastNameCtrl),
+                child: InputField(
+                    label: 'Last Name', 
+                    hintText: 'Your last name', 
+                    controller: lastNameCtrl),
               ),
             ]),
             const SizedBox(height: 16),
-            _boxedField(
-                label: 'Username', hint: 'Choose a username', ctrl: userNameCtrl),
+            InputField(
+                label: 'Username', 
+                hintText: 'Choose a username', 
+                controller: userNameCtrl),
             const SizedBox(height: 16),
-            _boxedField(
+            InputField(
                 label: 'Email',
-                hint: 'you@example.com',
-                ctrl: emailCtrl,
-                keyboard: TextInputType.emailAddress,
+                hintText: 'you@example.com',
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
                 validator: (v) => v != null && v.contains('@') ? null : 'Enter a valid email'),
             const SizedBox(height: 16),
-            _boxedField(
+            InputField(
               label: 'Date of Birth',
-              hint: 'YYYY-MM-DD',
-              ctrl: dobCtrl,
+              hintText: 'YYYY-MM-DD',
+              controller: dobCtrl,
               onTap: () async {
                 final dt = await showDatePicker(
                   context: context,
@@ -302,15 +267,15 @@ class _RegisterViewState extends State<RegisterView> {
                   dobCtrl.text = dt.toIso8601String().split('T').first;
                 }
               },
-              suffix: const Icon(Icons.calendar_today, color: Colors.grey),
+              iconLook: const Icon(Icons.calendar_today, color: Colors.grey),
             ),
             const SizedBox(height: 16),
-            _boxedField(
+            InputField(
               label: 'Password',
-              hint: 'Enter password',
-              ctrl: passwordCtrl,
-              obscure: _obscure,
-              suffix: IconButton(
+              hintText: 'Enter password',
+              controller: passwordCtrl,
+              obscureText: _obscure,
+              iconLook: IconButton(
                 icon: Icon(
                   _obscure ? Icons.visibility_off : Icons.visibility,
                   color: Colors.grey,
@@ -319,11 +284,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ),
             const SizedBox(height: 16),
-            _boxedField(
+            InputField(
                 label: 'Confirm Password',
-                hint: 'Re-enter password',
-                ctrl: confirmCtrl,
-                obscure: _obscure),
+                hintText: 'Re-enter password',
+                controller: confirmCtrl,
+                obscureText: _obscure),
             const SizedBox(height: 16),
             if (_error != null) ...[
               Text(_error!, style: const TextStyle(color: Colors.red)),

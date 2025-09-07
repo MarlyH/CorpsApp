@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:corpsapp/theme/spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -82,7 +83,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: AppPadding.screen,
           child: Column(
             children: [
               Expanded(

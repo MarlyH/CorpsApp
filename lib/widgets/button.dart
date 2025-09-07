@@ -7,6 +7,7 @@ class Button extends StatelessWidget {
   final Color textColor;
   final Color borderColor;
   final double? buttonWidth;
+  final bool loading;
 
   const Button({
     super.key,
@@ -16,6 +17,7 @@ class Button extends StatelessWidget {
     this.textColor = const Color(0xFFFFFFFF),
     this.borderColor = Colors.transparent,
     this.buttonWidth = double.infinity,
+    this.loading = false,
   });
 
   @override
@@ -34,17 +36,26 @@ class Button extends StatelessWidget {
             ),
           ),
         ),
-        onPressed: onPressed, 
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      )
-    );    
+        onPressed: loading ? null : onPressed, 
+        child: loading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'WinnerSans',
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
   }
 }

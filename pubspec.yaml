@@ -55,6 +55,7 @@ dependencies:
   #for pulling device infor and app info in the support and feedback view
   package_info_plus: ^8.0.2
   device_info_plus: ^10.1.0
+  flutter_svg: ^2.0.7
 
   flutter:
     sdk: flutter
@@ -127,6 +128,8 @@ flutter:
     - assets/otp.jpg
     - assets/change_password.jpg
     - assets/success.jpg
+    - assets/icons/calendar.svg
+    - assets/icons/sent.svg
     
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -27,9 +27,13 @@ class InputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(
+          label,
             style: const TextStyle(
-                color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                color: Colors.white, 
+                fontSize: 12, 
+                fontWeight: FontWeight.bold)
+        ),
 
         const SizedBox(height: 4),
         
@@ -41,7 +45,10 @@ class InputField extends StatelessWidget {
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Colors.grey),
+            hintStyle: const TextStyle(
+              color: Colors.grey, 
+              fontSize: 14
+            ),
             filled: true,
             fillColor: Colors.white,
             suffixIcon: iconLook,
@@ -51,6 +58,7 @@ class InputField extends StatelessWidget {
               borderSide: BorderSide.none,
               borderRadius: BorderRadius.circular(8),
             ),
+            errorStyle: const TextStyle(color: Color(0xFFFF0033))
           ),
           validator: validator ??
               (v) => v == null || v.isEmpty ? 'Required' : null,

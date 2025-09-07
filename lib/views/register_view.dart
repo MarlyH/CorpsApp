@@ -5,11 +5,14 @@ import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/input_field.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart' as launcher;
+import 'package:flutter_svg/flutter_svg.dart';
+
 
 /// Two-step registration + success flow with resend countdown.
 class RegisterView extends StatefulWidget {
@@ -33,6 +36,8 @@ class _RegisterViewState extends State<RegisterView> {
 
   bool _obscure = true;
   bool _loading = false;
+  bool _resending = false;
+
   String? _error;
 
   // Resend‐confirmation cooldown
@@ -78,6 +83,10 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _submit() async {
+    setState(() {
+        _error = null;
+      });
+      
     if (!_formKey.currentState!.validate()) return;
 
     // Age check
@@ -111,7 +120,6 @@ class _RegisterViewState extends State<RegisterView> {
 
     setState(() {
       _loading = true;
-      _error = null;
     });
 
     //Capitalsie names
@@ -165,10 +173,13 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _resend() async {
-    if (_cooldown > Duration.zero) return;
+    if (_cooldown > Duration.zero || _resending) return;
+
+    setState(() => _resending = true);//start spinner
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url     = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
+
     try {
       final resp = await http.post(
         url,
@@ -180,11 +191,14 @@ class _RegisterViewState extends State<RegisterView> {
           (resp.statusCode == 200
               ? 'Verification email resent'
               : 'Failed to resend');
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       _startCooldown();
     } catch (_) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Network error')));
+    } finally {
+      setState(() => _resending = false); // stop spinner
     }
   }
 
@@ -199,28 +213,38 @@ class _RegisterViewState extends State<RegisterView> {
               if (Platform.isAndroid) 
                 const BackButton(color: Colors.white),
 
-              const SizedBox(width: 8),
-
               const Text('REGISTER',
                   style: TextStyle(
                       color: Colors.white, 
-                      fontSize: 24, 
+                      fontSize: 28, 
                       fontFamily: 'WinnerSans', 
                       fontWeight: FontWeight.bold)
                       ),
             ]),
 
-            const SizedBox(height: 4),
+            const SizedBox(height: 24),
 
             RichText(
               text: TextSpan(
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4,),
                 children: [
-                  const TextSpan(text: 'Create an account to start booking free events!\n'),
+                  const TextSpan(
+                    text: 'Create an account to start booking free events!\n',
+                  ),
+                
                   TextSpan(
-                    text: 'Already have one? Log in',
+                    text: 'Already have one? ',
+                    style: const TextStyle(), 
+                  ),
+
+                  TextSpan(
+                    text: 'Log in',
                     style: const TextStyle(
-                        decoration: TextDecoration.underline, color: Colors.white),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      decoration: TextDecoration.none, 
+                    ),
+
                     recognizer: TapGestureRecognizer()
                       ..onTap = () {
                         Navigator.pushNamed(context, '/login');
@@ -229,103 +253,126 @@ class _RegisterViewState extends State<RegisterView> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 32),
+
             Row(children: [
               Expanded(
                 child: InputField(
                     label: 'First Name', 
-                    hintText: 'Your first name', 
+                    hintText: 'e.g. John',
                     controller: firstNameCtrl),
               ),
+
               const SizedBox(width: 16),
+
               Expanded(
                 child: InputField(
                     label: 'Last Name', 
-                    hintText: 'Your last name', 
+                    hintText: 'e.g. Smith',
                     controller: lastNameCtrl),
               ),
             ]),
+
             const SizedBox(height: 16),
+
             InputField(
                 label: 'Username', 
-                hintText: 'Choose a username', 
+                hintText: 'Choose a unique username',
                 controller: userNameCtrl),
+
             const SizedBox(height: 16),
+
             InputField(
                 label: 'Email',
-                hintText: 'you@example.com',
+                hintText: 'example@example.com',
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => v != null && v.contains('@') ? null : 'Enter a valid email'),
+                validator: (v) {
+                  final pattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$';
+                  final regex = RegExp(pattern);
+                  if (v == null || !regex.hasMatch(v.trim())) {
+                    return 'Invalid email';
+                  }
+                  return null;
+                },
+            ),
+            
             const SizedBox(height: 16),
+
             InputField(
               label: 'Date of Birth',
-              hintText: 'YYYY-MM-DD',
+              hintText: 'Select your date of birth',
               controller: dobCtrl,
               onTap: () async {
-                final dt = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime(2005, 1, 1),
-                  firstDate: DateTime(1900),
-                  lastDate: DateTime.now(),
-                );
+                final dt = await _pickDate(context);
                 if (dt != null) {
                   dobCtrl.text = dt.toIso8601String().split('T').first;
                 }
               },
-              iconLook: const Icon(Icons.calendar_today, color: Colors.grey),
+
+              iconLook: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: SvgPicture.asset(
+                  'assets/icons/calendar.svg',
+                  width: 12,
+                  height: 12,
+                  colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+                ),
+              ),
             ),
+
             const SizedBox(height: 16),
+
             InputField(
               label: 'Password',
-              hintText: 'Enter password',
+              hintText: 'Must be at least 6 characters',
               controller: passwordCtrl,
               obscureText: _obscure,
+              keyboardType: TextInputType.visiblePassword,
               iconLook: IconButton(
                 icon: Icon(
                   _obscure ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
+                  color: Colors.black,
                 ),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
+
             const SizedBox(height: 16),
+
             InputField(
                 label: 'Confirm Password',
                 hintText: 'Re-enter password',
                 controller: confirmCtrl,
+                keyboardType: TextInputType.visiblePassword,
                 obscureText: _obscure),
+
             const SizedBox(height: 16),
+
             if (_error != null) ...[
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-            ],
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('NEXT', style: TextStyle(color: Colors.white, fontSize: 16)),
-              ),
-            ),
+              Text(_error!, style: const TextStyle(color: Color(0xFFFF0033))),
+            ], 
+
             const SizedBox(height: 16),
+
+            Button(
+              label: 'NEXT',
+              onPressed: _submit,
+              loading: _loading,
+            ),
+
+            const SizedBox(height: 24),
+
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 children: [
-                  const TextSpan(text: 'By registering you agree to our '),
+                  const TextSpan(text: 'By registering, you agree to our '),
                   TextSpan(
                     text: 'Terms & Conditions',
-                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white),
+                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white, fontWeight: FontWeight.bold),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () {
                         launcher.launchUrl(
@@ -337,7 +384,7 @@ class _RegisterViewState extends State<RegisterView> {
                   const TextSpan(text: ' and '),
                   TextSpan(
                     text: 'Privacy Policy',
-                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white),
+                    style: const TextStyle(decoration: TextDecoration.underline, color: Colors.white, fontWeight: FontWeight.bold),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () {
                         launcher.launchUrl(
@@ -348,8 +395,7 @@ class _RegisterViewState extends State<RegisterView> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 32),
+            ),          
           ]),
         ),
       ),
@@ -359,62 +405,83 @@ class _RegisterViewState extends State<RegisterView> {
   Widget _buildSuccess() {
     return Container(
       color: Colors.black,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: AppPadding.screen,
       child: Column(
         children: [
-          const Spacer(flex: 2),
-          Container(
-            width: 120,
-            height: 120,
-            decoration: const BoxDecoration(
-              color: Color(0xFF8EF9B3),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check, size: 72, color: Colors.black),
+          const Spacer(flex: 1),
+          SvgPicture.asset('assets/icons/sent.svg',
+          width: 180,
+          height: 180,
+          colorFilter: const ColorFilter.mode( Color(0xFF4C85D0), BlendMode.srcIn)
           ),
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 36),
+
+          const Text(
+            'Verification Email Sent',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white, 
+              fontSize: 24, 
+              fontFamily: 'WinnerSans', 
+              fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 16),
+          
           const Text(
             'A verification link has been sent to your email.\n'
-            'Please check your inbox to activate your account.',
+            'Please check your inbox or spam to activate your account.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-          const SizedBox(height: 24),
+
+          const Spacer(flex: 1),
+
           // _cooldown is zero on first display, so this link is active immediately
           if (_cooldown > Duration.zero)
-            Text('Retry in ${_formatDuration(_cooldown)}',
+            Text('Resend email in ${_formatDuration(_cooldown)}',
                 style: const TextStyle(color: Colors.white, fontSize: 14))
           else
             GestureDetector(
               onTap: _resend,
-              child: const Text(
-                "Didn't receive email? Resend",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  decoration: TextDecoration.underline,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Didn't receive email? ",
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  
+                  const SizedBox(width: 4),
+
+                  if (_resending)
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  else
+                    const Text(
+                      'Resend',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
               ),
             ),
-          const Spacer(flex: 1),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
-                shape:
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('DONE',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold)),
-            ),
+
+          const SizedBox(height: 64),
+
+          Button(
+            label: 'DONE', 
+            onPressed: () => Navigator.of(context).pop()
           ),
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -427,4 +494,59 @@ class _RegisterViewState extends State<RegisterView> {
       body: SafeArea(child: _step == 0 ? _buildForm() : _buildSuccess()),
     );
   }
+}
+
+Future<DateTime?> _pickDate(BuildContext context) async {
+  DateTime? dt;
+
+  if (Platform.isAndroid) {
+    dt = await showDatePicker(
+      context: context,
+      initialDate: DateTime(1980, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+  } else if (Platform.isIOS) {
+    dt = await showModalBottomSheet<DateTime>(
+      context: context,
+      builder: (BuildContext builder) {
+        DateTime tempPickedDate = DateTime(1980, 1, 1);
+
+        return Container(
+          height: 300,
+          color: Colors.black,
+          child: Column(
+            children: [
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: DateTime(1980, 1, 1),
+                  minimumDate: DateTime(1900),
+                  maximumDate: DateTime.now(),
+                  onDateTimeChanged: (DateTime picked) {
+                    tempPickedDate = picked;
+                  },
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(tempPickedDate);
+                },
+              child: const Text(
+                  "Done",
+                  style: TextStyle(
+                    color: CupertinoColors.activeBlue, 
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),              
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  return dt;
 }

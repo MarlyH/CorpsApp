@@ -136,7 +136,6 @@ Widget build(BuildContext context) {
                   child: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
-                    fontWeight: FontWeight.w600,
                     size: 24,
                   ),
                 ),

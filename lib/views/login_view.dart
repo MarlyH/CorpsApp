@@ -1,4 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -113,81 +117,37 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
-  // Reusable field builder with autofill support and password toggle
-  Widget _boxField({
-    required String label,
-    required TextEditingController ctrl,
-    bool obscure = false,
-    Widget? suffix,
-    String? Function(String?)? validator,
-    TextInputType? keyboardType,
-    Iterable<String>? autofillHints,
-    TextInputAction textInputAction = TextInputAction.next,
-    void Function(String)? onFieldSubmitted,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'WinnerSans',
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: ctrl,
-          obscureText: obscure,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: const TextStyle(color: Colors.black),
-          autofillHints: autofillHints,
-          textInputAction: textInputAction,
-          onFieldSubmitted: onFieldSubmitted,
-          enableSuggestions: !obscure, // best practice for password fields
-          autocorrect: !obscure, // best practice for password fields
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            hintText: 'Enter your ${label.toLowerCase()}',
-            hintStyle: const TextStyle(color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: AppColors.background,
+    body: SafeArea(
+      child: Padding(
+        padding: AppPadding.screen,
         child: Column(
           children: [
             // top bar
-            Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+            if (Platform.isAndroid) ...[
+              Align(
+                alignment: Alignment.topLeft,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => Navigator.pushNamed(context, '/'),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    size: 24,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox (height: 16),
+            ],
 
             // form area
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
-                  const SizedBox(height: 24),
                   const Text(
                     'WELCOME BACK',
                     textAlign: TextAlign.center,
@@ -198,7 +158,8 @@ class _LoginViewState extends State<LoginView> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 32),
+
+                  const SizedBox(height: 24),
 
                   Form(
                     key: _formKey,
@@ -206,52 +167,56 @@ class _LoginViewState extends State<LoginView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _boxField(
-                            label: 'EMAIL',
-                            ctrl: _emailCtrl,
+                          InputField(
+                            label: 'EMAIL', 
+                            hintText: 'Enter your email', 
+                            controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
-                            autofillHints: const [
-                              AutofillHints.username,
-                              AutofillHints.email
-                            ],
+                            autofillHints: const [AutofillHints.email],
                             textInputAction: TextInputAction.next,
-                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                           ),
-                          const SizedBox(height: 16),
+                          
+                          const SizedBox(height: 20),
 
-                          _boxField(
-                            label: 'PASSWORD',
-                            ctrl: _pwCtrl,
-                            obscure: _obscure,
-                            suffix: IconButton(
+                          InputField(
+                            label: 'PASSWORD', 
+                            hintText: 'Enter your password', 
+                            controller: _pwCtrl,
+                            obscureText: _obscure,
+                            keyboardType: TextInputType.visiblePassword,
+                            iconLook: IconButton(
                               icon: Icon(
                                 _obscure ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.grey,
+                                color: Colors.black,
                               ),
                               onPressed: () => setState(() => _obscure = !_obscure),
-                              tooltip: _obscure ? 'Show password' : 'Hide password',
                             ),
                             autofillHints: const [AutofillHints.password],
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _login(),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                           ),
-                          const SizedBox(height: 4),
-
+                       
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                              onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                '/forgot-password',
+                              ),
                               child: const Text(
-                                'Forgot password?',
-                                style: TextStyle(color: Colors.white, fontSize: 12),
+                                'Forgot Password?',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ),
 
                           if (_error != null) ...[
-                            const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -261,11 +226,12 @@ class _LoginViewState extends State<LoginView> {
                               child: Row(
                                 children: [
                                   const Icon(Icons.error, color: Colors.red),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
                                       _error!,
-                                      style: const TextStyle(color: Colors.red),
+                                      style:
+                                          const TextStyle(color: Colors.red),
                                     ),
                                   ),
                                 ],
@@ -290,31 +256,13 @@ class _LoginViewState extends State<LoginView> {
                             ),
                           ],
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
-                          SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4A90E2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text(
-                                      'LOGIN',
-                                      style: TextStyle(
-                                        fontFamily: 'WinnerSans',
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
+                          Button(
+                            label: 'LOGIN', 
+                            onPressed: _login,
+                            loading: _isLoading
+                          ),                          
 
                           const SizedBox(height: 16),
 
@@ -322,24 +270,27 @@ class _LoginViewState extends State<LoginView> {
                             child: RichText(
                               text: TextSpan(
                                 text: "Don't have an account? ",
-                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
                                 children: [
                                   TextSpan(
                                     text: 'Register',
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      decoration: TextDecoration.underline,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     recognizer: TapGestureRecognizer()
-                                      ..onTap = () =>
-                                          Navigator.pushNamed(context, '/register'),
+                                      ..onTap = () => Navigator.pushNamed(
+                                            context,
+                                            '/register',
+                                          ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
                         ],
                       ),
                     ),
@@ -350,6 +301,8 @@ class _LoginViewState extends State<LoginView> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

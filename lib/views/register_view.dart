@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
@@ -264,7 +265,7 @@ class _RegisterViewState extends State<RegisterView> {
                     controller: firstNameCtrl),
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
 
               Expanded(
                 child: InputField(
@@ -274,14 +275,14 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ]),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             InputField(
                 label: 'Username', 
                 hintText: 'Choose a unique username',
                 controller: userNameCtrl),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             InputField(
                 label: 'Email',
@@ -298,7 +299,7 @@ class _RegisterViewState extends State<RegisterView> {
                 },
             ),
             
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             InputField(
               label: 'Date of Birth',
@@ -322,7 +323,7 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             InputField(
               label: 'Password',
@@ -339,7 +340,7 @@ class _RegisterViewState extends State<RegisterView> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             InputField(
                 label: 'Confirm Password',
@@ -348,13 +349,13 @@ class _RegisterViewState extends State<RegisterView> {
                 keyboardType: TextInputType.visiblePassword,
                 obscureText: _obscure),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             if (_error != null) ...[
               Text(_error!, style: const TextStyle(color: Color(0xFFFF0033))),
             ], 
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20 ),
 
             Button(
               label: 'NEXT',
@@ -404,7 +405,7 @@ class _RegisterViewState extends State<RegisterView> {
 
   Widget _buildSuccess() {
     return Container(
-      color: Colors.black,
+      color: AppColors.background,
       padding: AppPadding.screen,
       child: Column(
         children: [
@@ -490,7 +491,7 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: SafeArea(child: _step == 0 ? _buildForm() : _buildSuccess()),
     );
   }
@@ -514,7 +515,7 @@ Future<DateTime?> _pickDate(BuildContext context) async {
 
         return Container(
           height: 300,
-          color: Colors.black,
+          color: AppColors.background,
           child: Column(
             children: [
               Expanded(

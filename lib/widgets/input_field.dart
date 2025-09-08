@@ -9,6 +9,9 @@ class InputField extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? iconLook;
   final String? Function(String?)? validator;
+  final TextInputAction textInputAction;
+  final void Function(String)? onFieldSubmitted;
+  final Iterable<String>? autofillHints;
 
   const InputField ({
     super.key,
@@ -20,6 +23,9 @@ class InputField extends StatelessWidget {
     this.onTap,
     this.iconLook,
     this.validator,
+    this.textInputAction = TextInputAction.next,
+    this.onFieldSubmitted,
+    this.autofillHints
   });
 
   @override
@@ -30,8 +36,9 @@ class InputField extends StatelessWidget {
         Text(
           label,
             style: const TextStyle(
+                fontFamily: 'WinnerSans',
                 color: Colors.white, 
-                fontSize: 14, 
+                fontSize: 12, 
                 fontWeight: FontWeight.bold)
         ),
 
@@ -43,6 +50,9 @@ class InputField extends StatelessWidget {
           obscureText: obscureText,
           onTap: onTap,
           style: const TextStyle(color: Colors.black),
+          autofillHints: autofillHints,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(

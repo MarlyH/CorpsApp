@@ -1,3 +1,4 @@
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 class InputField extends StatelessWidget {
@@ -68,7 +69,7 @@ class InputField extends StatelessWidget {
               borderSide: BorderSide.none,
               borderRadius: BorderRadius.circular(8),
             ),
-            errorStyle: const TextStyle(color: Color(0xFFFF0033))
+            errorStyle: TextStyle(color: AppColors.errorColor),
           ),
           validator: validator ??
               (v) => v == null || v.isEmpty ? 'Required' : null,

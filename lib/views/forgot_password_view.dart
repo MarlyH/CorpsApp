@@ -1,4 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/back_button.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'verify_otp_view.dart';
@@ -12,11 +18,17 @@ class ForgotPasswordView extends StatefulWidget {
 }
 
 class _ForgotPasswordViewState extends State<ForgotPasswordView> {
+  final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   bool _isLoading = false;
   String? _error;
 
   Future<void> sendResetEmail() async {
+      // Clear any previous server error immediately
+    if (mounted) setState(() => _error = null);
+
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _isLoading = true;
       _error     = null;
@@ -57,41 +69,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     }
   }
 
-  Widget _boxField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('EMAIL',
-          style: TextStyle(
-            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: _emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            hintText: 'Enter your email',
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       // allow body to resize when keyboard appears:
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -101,11 +82,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           builder: (ctx, constraints) {
             return SingleChildScrollView(
               // ensure scrolls up and adds padding for keyboard:
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-              ),
+              padding: AppPadding.screen,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight: constraints.maxHeight,
@@ -113,14 +90,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                 child: IntrinsicHeight(
                   child: Stack(children: [
                     // back arrow
-                    Positioned(
-                      top: 8,
-                      left: 4,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
+                    CustomBackButton(),
 
                     Column(
                       children: [
@@ -129,9 +99,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                         // graphic
                         Image.asset(
                           'assets/forgot_password.png',
-                          height: 240,
+                          height: 360
                         ),
-                        const SizedBox(height: 32),
 
                         // heading
                         const Text(
@@ -141,9 +110,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                             color: Colors.white,
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
+                            fontFamily: 'WinnerSans'
                           ),
                         ),
-                        const SizedBox(height: 12),
 
                         // subtext
                         const Text(
@@ -155,54 +124,53 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                             fontSize: 14,
                           ),
                         ),
-                        const SizedBox(height: 32),
+
+                        const SizedBox(height: 24),
 
                         // email input
-                        _boxField(),
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              InputField(
+                                label: 'EMAIL', 
+                                hintText: 'Enter your email', 
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (v) {
+                                  // null or empty
+                                  if (v == null || v.isEmpty) return 'Required';
+
+                                  // not null or empty, validate email format
+                                  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                                  if (!emailRegex.hasMatch(v)) return 'Invalid email address';
+
+                                  // Valid
+                                  return null;
+                                },
+                              ),
+                            ]
+                          )
+                        ),
+                        
                         const SizedBox(height: 24),
 
                         // error
                         if (_error != null) ...[
                           Text(
                             _error!,
-                            style: const TextStyle(color: Colors.red),
-                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.errorColor, fontSize: 12),
+                            textAlign: TextAlign.left,
                           ),
                           const SizedBox(height: 16),
                         ],
 
-                        // send code button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : sendResetEmail,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4A90E2),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'SEND CODE',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                          ),
+                        Button(
+                          label: 'SEND CODE', 
+                          onPressed: sendResetEmail, 
+                          loading: _isLoading
                         ),
-
+                
                         const Spacer(), // bottom space
                       ],
                     ),

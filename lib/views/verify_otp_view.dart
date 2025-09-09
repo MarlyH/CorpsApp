@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/otp_field.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'reset_password_view.dart';
-import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 
 class VerifyOtpView extends StatefulWidget {
   final String email;
@@ -23,14 +23,14 @@ class VerifyOtpView extends StatefulWidget {
 
 class _VerifyOtpViewState extends State<VerifyOtpView> {
   final TextEditingController _otpCtrl = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+
+
   bool _isLoading = false;
   String? _error;
 
   @override
   void dispose() {
     _otpCtrl.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -119,18 +119,13 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: LayoutBuilder(builder: (ctx, constraints) {
           return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              bottom: bottomInset + 24,
-            ),
+            padding: AppPadding.screen,
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
@@ -176,13 +171,8 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                     // OTP boxes
                     OtpField(
                       onSubmit: (code) {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text("Verification Code"),
-                            content: Text('Code entered is $code'),
-                          ),
-                        );
+                        _otpCtrl.text = code;
+                        _submitCode();
                       },
                     ),
 

@@ -19,8 +19,8 @@ class OtpField extends StatelessWidget {
       fieldHeight: 60,
       showFieldAsBox: false,
       autoFocus: true,
-      margin: const EdgeInsets.only(right: 16),
       clearText: true,
+      margin: const EdgeInsets.only(right: 16),
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       textStyle: const TextStyle(
         fontSize: 24,

@@ -34,7 +34,6 @@ class CustomBackButton extends StatelessWidget {
               Icons.arrow_back,
               color: color,
               size: size,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),

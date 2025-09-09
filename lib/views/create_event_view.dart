@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+// import 'package:file_picker/file_picker.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -33,7 +33,7 @@ class _CreateEventViewState extends State<CreateEventView> {
   TimeOfDay?   _startTime;
   TimeOfDay?   _endTime;
   DateTime?    _availableDate;
-  File?        _seatMapFile;
+  // File?        _seatMapFile;
 
   bool _isLoading = false;
   List<Location> _locations = [];
@@ -53,12 +53,12 @@ class _CreateEventViewState extends State<CreateEventView> {
     }
   }
 
-  Future<void> _pickSeatMap() async {
-    final res = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (res?.files.single.path != null) {
-      setState(() => _seatMapFile = File(res!.files.single.path!));
-    }
-  }
+  // Future<void> _pickSeatMap() async {
+  //   final res = await FilePicker.platform.pickFiles(type: FileType.image);
+  //   if (res?.files.single.path != null) {
+  //     setState(() => _seatMapFile = File(res!.files.single.path!));
+  //   }
+  // }
 
   Future<void> _pickDate({ required bool eventDate }) async {
     final now = DateTime.now();
@@ -162,13 +162,13 @@ class _CreateEventViewState extends State<CreateEventView> {
         ..['address']         = _addressCtl.text.trim()
         ..['description']     = _descCtl.text.trim();
 
-      if (_seatMapFile != null) {
-        req.files.add(await http.MultipartFile.fromPath(
-          'seatingMapImage',
-          _seatMapFile!.path,
-          filename: p.basename(_seatMapFile!.path),
-        ));
-      }
+      // if (_seatMapFile != null) {
+      //   req.files.add(await http.MultipartFile.fromPath(
+      //     'seatingMapImage',
+      //     _seatMapFile!.path,
+      //     filename: p.basename(_seatMapFile!.path),
+      //   ));
+      // }
 
       final streamed = await req.send();
       final resp     = await http.Response.fromStream(streamed);
@@ -212,7 +212,7 @@ class _CreateEventViewState extends State<CreateEventView> {
               children: [
 
                 // Session Type
-                const Text('Session Type', style: TextStyle(color: Colors.white70)),
+                const Text('Session Type', style: TextStyle(color: Colors.white)),
                 Row(children: [
                   Expanded(child: RadioListTile<SessionType>(
                     title: const Text('Ages 8–11', style: TextStyle(color: Colors.white)),
@@ -232,7 +232,7 @@ class _CreateEventViewState extends State<CreateEventView> {
 
                 const SizedBox(height: 16),
                 // Location
-                const Text('Location', style: TextStyle(color: Colors.white70)),
+                const Text('Location', style: TextStyle(color: Colors.white)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<Location>(
                   decoration: _inputDecoration(hintText: 'Select city or town'),
@@ -249,7 +249,7 @@ class _CreateEventViewState extends State<CreateEventView> {
 
                 const SizedBox(height: 16),
                 // Address
-                const Text('Address', style: TextStyle(color: Colors.white70)),
+                const Text('Address', style: TextStyle(color: Colors.white)),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _addressCtl,
@@ -260,7 +260,7 @@ class _CreateEventViewState extends State<CreateEventView> {
 
                 const SizedBox(height: 16),
                 // Date & Time section
-                const Text('Date & Time', style: TextStyle(color: Colors.white70)),
+                const Text('Date & Time', style: TextStyle(color: Colors.white)),
                 const SizedBox(height: 6),
                 // Event Date
                 TextFormField(
@@ -285,7 +285,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                     readOnly: true,
                     onTap: () => _pickTime(start: true),
                     decoration: _inputDecoration(
-                      hintText: 'Time',
+                      hintText: 'Starting Time',
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                     ),
                     controller: TextEditingController(
@@ -294,15 +294,15 @@ class _CreateEventViewState extends State<CreateEventView> {
                     validator: (_) => _startTime == null ? 'Req.' : null,
                   )),
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('to', style: TextStyle(color: Colors.white70)),
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('to', style: TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                   Expanded(child: TextFormField(
                     style: const TextStyle(color: Colors.black),
                     readOnly: true,
                     onTap: () => _pickTime(start: false),
                     decoration: _inputDecoration(
-                      hintText: 'Time',
+                      hintText: 'Finish Time',
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                     ),
                     controller: TextEditingController(
@@ -329,36 +329,37 @@ class _CreateEventViewState extends State<CreateEventView> {
                 ),
 
                 const SizedBox(height: 16),
-                // Seats map (optional)
-                const Text('Seats map', style: TextStyle(color: Colors.white70)),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: _pickSeatMap,
-                  child: Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Center(
-                      child: _seatMapFile == null
-                          ? const Text('Upload Seat Map',
-                              style: TextStyle(color: Colors.black38))
-                          : Text(p.basename(_seatMapFile!.path),
-                              style: const TextStyle(color: Colors.black)),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 16),
+                // Seats map (optional)
+                // const Text('Seats map', style: TextStyle(color: Colors.white70)),
+                // const SizedBox(height: 6),
+                // GestureDetector(
+                //   onTap: _pickSeatMap,
+                //   child: Container(
+                //     height: 150,
+                //     width: double.infinity,
+                //     decoration: BoxDecoration(
+                //       color: Colors.white,
+                //       borderRadius: BorderRadius.circular(8),
+                //       border: Border.all(color: Colors.grey.shade300),
+                //     ),
+                //     child: Center(
+                //       child: _seatMapFile == null
+                //           ? const Text('Upload Seat Map',
+                //               style: TextStyle(color: Colors.black38))
+                //           : Text(p.basename(_seatMapFile!.path),
+                //               style: const TextStyle(color: Colors.black)),
+                //     ),
+                //   ),
+                // ),
+
+                // const SizedBox(height: 16),
                 // Total seats
                 Row(children: [
                   const Expanded(
                     flex: 2,
                     child: Text('Total number of seats',
-                        style: TextStyle(color: Colors.white70)),
+                        style: TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -367,7 +368,13 @@ class _CreateEventViewState extends State<CreateEventView> {
                       controller: _seatsCtl,
                       keyboardType: TextInputType.number,
                       decoration: _inputDecoration(
-                        suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                        hintText: 'e.g. 20',
+                        suffixIcon: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Icon(Icons.event_seat, color: Colors.black54
+                          ),
+                        ),
                       ),
                       style: const TextStyle(color: Colors.black),
                       validator: (v) {
@@ -382,7 +389,7 @@ class _CreateEventViewState extends State<CreateEventView> {
 
                 const SizedBox(height: 16),
                 // Description
-                const Text('Description', style: TextStyle(color: Colors.white70)),
+                const Text('Description', style: TextStyle(color: Colors.white)),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _descCtl,

@@ -272,7 +272,7 @@ class _HomeFragmentState extends State<HomeFragment> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final canManage = auth.isAdmin || auth.isEventManager;
-    final isUser = auth.isUser || auth.isStaff;
+    final isUser = auth.isUser;
     // final isGuest = !isUser || !canManage;
 
     final user = auth.userProfile ?? {};
@@ -491,7 +491,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                                 Expanded(
                                   child: Text(
                                     _filterSessionType == null
-                                        ? 'All Sessions'
+                                        ? 'All Session Ages'
                                         : friendlySession(_filterSessionType!),
                                     style: const TextStyle(color: Colors.black54),
                                     overflow: TextOverflow.ellipsis,
@@ -627,17 +627,17 @@ class __FilterSheetState extends State<_FilterSheet> {
           // Session Type
           ListTile(
             title: const Text(
-              'Session Type',
+              'Session Ages',
               style: TextStyle(color: Colors.white70),
             ),
             trailing: DropdownButton<event_summary.SessionType?>(
               dropdownColor: Colors.grey[800],
               value: _session,
-              hint: const Text('All', style: TextStyle(color: Colors.white)),
+              hint: const Text('All Ages', style: TextStyle(color: Colors.white)),
               items: [
                 const DropdownMenuItem(
                   value: null,
-                  child: Text('All', style: TextStyle(color: Colors.white)),
+                  child: Text('All Ages', style: TextStyle(color: Colors.white)),
                 ),
                 for (var st in event_summary.SessionType.values)
                   DropdownMenuItem(

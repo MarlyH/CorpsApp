@@ -141,11 +141,11 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final isManagerOrAdmin = _hasRole('Event Manager') || _hasRole('Admin');
-    final isStaff = _hasRole('Staff');
+    final isManagerOrAdminOrStaff = _hasRole('Event Manager') || _hasRole('Admin') || _hasRole('Staff');
+    // final isStaff = _hasRole('Staff');
     final isGuest = context.watch<AuthProvider>().isGuest;
 
-    final usesCenterDocked = isManagerOrAdmin; // only admins/managers get the notch layout
+    final usesCenterDocked = isManagerOrAdminOrStaff; // only admins/managers get the notch layout
     final inset = MediaQuery.of(context).padding.bottom;
     final barH  = kBottomNavigationBarHeight + _bottomPad;
 
@@ -153,7 +153,7 @@ class _DashboardViewState extends State<DashboardView> {
     final extraFabClearance = usesCenterDocked ? (_fabDiameter / 2) : 0.0;
 
     // Staff always gets Tickets. Regular users get Tickets. Guests don’t.
-    final showTickets = isStaff || (!isGuest && !isManagerOrAdmin);
+    final showTickets = (!isGuest && !isManagerOrAdminOrStaff);
     final fab = QrScanFab(diameter: _fabDiameter, borderWidth: _fabBorder);
 
     // Pages
@@ -184,45 +184,43 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         ),
 
+        // floatingActionButton: (isManagerOrAdmin || isStaff)
+        //   ? (isStaff
+        //       ? Transform.translate( 
+        //           offset: const Offset(-5, 10),
+        //           child: fab,
+        //         )
+        //       : fab)
+        //   : null,
 
-        
+        floatingActionButton: isManagerOrAdminOrStaff ? fab : null,
 
-        floatingActionButton: (isManagerOrAdmin || isStaff)
-          ? (isStaff
-              ? Transform.translate( 
-                  offset: const Offset(-5, 10),
-                  child: fab,
-                )
-              : fab)
-          : null,
+        floatingActionButtonLocation: usesCenterDocked
+            ? FloatingActionButtonLocation.centerDocked
+            : FloatingActionButtonLocation.endFloat,
 
-      floatingActionButtonLocation: usesCenterDocked
-          ? FloatingActionButtonLocation.centerDocked
-          : FloatingActionButtonLocation.endFloat,
-
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.black,
-        shape: usesCenterDocked ? const CircularNotchedRectangle() : null,
-        notchMargin: usesCenterDocked ? _fabBorder : 0,
-        child: SizedBox(
-          height: barH + inset,
-          child: _buildBottomNav(
-            isManagerOrAdmin: isManagerOrAdmin,
-            isGuest: isGuest,
-            isStaff: isStaff,
+        bottomNavigationBar: BottomAppBar(
+          color: Colors.black,
+          shape: usesCenterDocked ? const CircularNotchedRectangle() : null,
+          notchMargin: usesCenterDocked ? _fabBorder : 0,
+          child: SizedBox(
+            height: barH + inset,
+            child: _buildBottomNav(
+              isManagerOrAdminOrStaff: isManagerOrAdminOrStaff,
+              isGuest: isGuest,
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
   Widget _buildBottomNav({
-    required bool isManagerOrAdmin,
+    required bool isManagerOrAdminOrStaff,
     required bool isGuest,
-    required bool isStaff,
+    // required bool isStaff,
   }) {
-    if (isManagerOrAdmin) {
+    if (isManagerOrAdminOrStaff) {
       return AdminNavBar(
         selectedIndex: _selectedIndex,
         onTap: _goTo,
@@ -237,15 +235,15 @@ class _DashboardViewState extends State<DashboardView> {
         onTap: _goTo,
       );
     }
-    if (isStaff) {
-      return StaffNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: _goTo,
-        fabDiameter: _fabDiameter,
-        fabBorder: _fabBorder,
-        sideGap: _sideGap,
-      );
-    }
+    // if (isStaff) {
+    //   return StaffNavBar(
+    //     selectedIndex: _selectedIndex,
+    //     onTap: _goTo,
+    //     fabDiameter: _fabDiameter,
+    //     fabBorder: _fabBorder,
+    //     sideGap: _sideGap,
+    //   );
+    // }
     return UserNavBar(
       selectedIndex: _selectedIndex,
       onTap: _goTo,

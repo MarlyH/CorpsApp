@@ -25,7 +25,7 @@ class CustomBackButton extends StatelessWidget {
             behavior: HitTestBehavior.translucent,
             onTap: () {
               if (route != null) {
-                Navigator.pushNamed(context, route!);
+                Navigator.pushReplacementNamed(context, route!);
               } else {
                 Navigator.pop(context);
               }

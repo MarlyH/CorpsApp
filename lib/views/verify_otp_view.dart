@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/back_button.dart';
 import 'package:corpsapp/widgets/otp_field.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -133,19 +135,12 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Back arrow
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
+                    CustomBackButton(route: '/forgot-password',),
 
                     const Spacer(),
 
                     // Illustration
-                    Image.asset('assets/otp.jpg', height: 240),
-                    const SizedBox(height: 32),
+                    Image.asset('assets/otp.png', height: 360),              
 
                     // Heading
                     const Text(
@@ -155,9 +150,9 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'WinnerSans',
                       ),
                     ),
-                    const SizedBox(height: 12),
 
                     // Subtitle
                     const Text(
@@ -166,7 +161,8 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    const SizedBox(height: 32),
+
+                    const SizedBox(height: 24),
 
                     // OTP boxes
                     OtpField(
@@ -176,62 +172,41 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // Error
                     if (_error != null) ...[
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
+                        style: const TextStyle(color: AppColors.errorColor,fontSize: 12),
                       ),
                       const SizedBox(height: 16),
                     ],
 
                     // Resend link
-                    TextButton(
-                      onPressed: _isLoading ? null : _resendCode,
-                      child: const Text(
-                        "Didn't receive email? Resend",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Submit button
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitCode,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    Center(
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Didn't receive email? ",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
                           ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'SUBMIT CODE',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          children: [
+                            TextSpan(
+                              text: 'Resend',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
                               ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = _isLoading ? null : _resendCode,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-
                     const Spacer(),
                   ],
                 ),

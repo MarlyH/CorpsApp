@@ -45,7 +45,6 @@ class _OtpFieldState extends State<OtpField> {
         fieldWidth: fieldWidth,
         fieldHeight: 60,
         showFieldAsBox: false,
-        autoFocus: true,
         clearText: _clearText, 
         margin: EdgeInsets.only(right: margin),
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

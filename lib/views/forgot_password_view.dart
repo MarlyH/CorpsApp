@@ -73,7 +73,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      // allow body to resize when keyboard appears:
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         top: true,

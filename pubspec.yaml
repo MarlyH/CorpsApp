@@ -126,7 +126,7 @@ flutter:
     - assets/welcome_back.jpg
     - .env
     - assets/forgot_password.png
-    - assets/otp.jpg
+    - assets/otp.png
     - assets/change_password.jpg
     - assets/success.jpg
     - assets/icons/calendar.svg

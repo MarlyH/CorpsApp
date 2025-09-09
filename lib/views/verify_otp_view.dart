@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/widgets/otp_field.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'reset_password_view.dart';
+import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 
 class VerifyOtpView extends StatefulWidget {
   final String email;
@@ -20,12 +23,14 @@ class VerifyOtpView extends StatefulWidget {
 
 class _VerifyOtpViewState extends State<VerifyOtpView> {
   final TextEditingController _otpCtrl = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
   String? _error;
 
   @override
   void dispose() {
     _otpCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -76,75 +81,41 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   }
 
   Future<void> _resendCode() async {
+    // if (_cooldown > Duration.zero || _resending) return;
+
+    // setState(() => _resending = true);//start spinner
+
+    // final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    // final url     = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
+
+    // try {
+    //   final resp = await http.post(
+    //     url,
+    //     headers: {'Content-Type': 'application/json'},
+    //     body: jsonEncode({'email': emailCtrl.text.trim()}),
+    //   );
+
+    //   final data = jsonDecode(resp.body);
+    //   final msg = data['message']?.toString() ??
+    //       (resp.statusCode == 200
+    //           ? 'Verification email resent'
+    //           : 'Failed to resend'
+    //       );
+
+    //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+    //   _startCooldown();
+
+    // } catch (_) {
+    //   ScaffoldMessenger.of(context)
+    //       .showSnackBar(const SnackBar(content: Text('Network error')));
+    // } finally {
+    //   setState(() => _resending = false); // stop spinner     
+    // }
     // identical to your _resend in register view but pointing at
     // /api/auth/resend-confirmation-email
     // left as an exercise...
   }
-
-  Widget _buildOtpBoxes() {
-    final text = _otpCtrl.text;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(6, (i) {
-        final char = (i < text.length) ? text[i] : '';
-        return Container(
-          width:  fortyFive,
-          height: sixty,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Colors.white, width: 2),
-            ),
-          ),
-          child: Text(
-            char,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  void _openOtpEntry() {
-    // as before, pop up a full‐width TextField,
-    // or simply focus a hidden field. For brevity
-    // I'm just showing a dialog approach again:
-    FocusScope.of(context).unfocus();
-    final tmp = TextEditingController(text: _otpCtrl.text);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        content: TextField(
-          controller: tmp,
-          autofocus: true,
-          maxLength: 6,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white, fontSize: 20),
-          decoration: const InputDecoration(
-            hintText: 'Enter code',
-            hintStyle: TextStyle(color: Colors.grey),
-            enabledBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-            focusedBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
-          ),
-          onChanged: (v) {
-            if (v.length <= 6) _otpCtrl.text = v;
-            if (v.length == 6) Navigator.pop(context);
-          },
-        ),
-      ),
-    );
-  }
-
-  static const double fortyFive = 45;
-  static const double sixty = 60;
 
   @override
   Widget build(BuildContext context) {
@@ -203,10 +174,18 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                     const SizedBox(height: 32),
 
                     // OTP boxes
-                    GestureDetector(
-                      onTap: _openOtpEntry,
-                      child: _buildOtpBoxes(),
+                    OtpField(
+                      onSubmit: (code) {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text("Verification Code"),
+                            content: Text('Code entered is $code'),
+                          ),
+                        );
+                      },
                     ),
+
                     const SizedBox(height: 16),
 
                     // Error
@@ -272,5 +251,5 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
         }),
       ),
     );
-  }
+  } 
 }

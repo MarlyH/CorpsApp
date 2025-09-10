@@ -47,7 +47,7 @@ class _OtpFieldState extends State<OtpField> {
         showFieldAsBox: false,
         clearText: _clearText, 
         margin: EdgeInsets.only(right: margin),
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         textStyle: const TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,

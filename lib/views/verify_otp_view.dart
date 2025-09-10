@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
@@ -28,12 +29,38 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
 
 
   bool _isLoading = false;
+  bool _resending = false;
   String? _error;
+
+  Timer? _resendTimer;
+  Duration _cooldown = Duration.zero;
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _otpCtrl.dispose();
     super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final m = two(d.inMinutes.remainder(60));
+    final s = two(d.inSeconds.remainder(60));
+    return '$m:$s';
+  }
+
+  void _startCooldown() {
+    setState(() => _cooldown = Duration(minutes: 1));
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      final secs = _cooldown.inSeconds - 1;
+      if (secs > 0) {
+        setState(() => _cooldown = Duration(seconds: secs));
+      } else {
+        t.cancel();
+        setState(() => _cooldown = Duration.zero);
+      }
+    });
   }
 
   Future<void> _submitCode() async {
@@ -83,40 +110,36 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   }
 
   Future<void> _resendCode() async {
-    // if (_cooldown > Duration.zero || _resending) return;
+      // Clear any previous server error immediately
+    if (mounted) setState(() => _error = null);
 
-    // setState(() => _resending = true);//start spinner
+    if (_cooldown > Duration.zero || _resending) return;
 
-    // final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
-    // final url     = Uri.parse('$baseUrl/api/auth/resend-confirmation-email');
+    setState(() => _resending = true);//start spinner
 
-    // try {
-    //   final resp = await http.post(
-    //     url,
-    //     headers: {'Content-Type': 'application/json'},
-    //     body: jsonEncode({'email': emailCtrl.text.trim()}),
-    //   );
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
+    final url     = Uri.parse('$baseUrl/api/password/forgot-password');
 
-    //   final data = jsonDecode(resp.body);
-    //   final msg = data['message']?.toString() ??
-    //       (resp.statusCode == 200
-    //           ? 'Verification email resent'
-    //           : 'Failed to resend'
-    //       );
+    try {
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': widget.email}),
+      );
+      final data = jsonDecode(resp.body);
+      final msg = data['message']?.toString() ??
+          (resp.statusCode == 200
+              ? 'Verification email resent'
+              : 'Failed to resend');
 
-    //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
-    //   _startCooldown();
-
-    // } catch (_) {
-    //   ScaffoldMessenger.of(context)
-    //       .showSnackBar(const SnackBar(content: Text('Network error')));
-    // } finally {
-    //   setState(() => _resending = false); // stop spinner     
-    // }
-    // identical to your _resend in register view but pointing at
-    // /api/auth/resend-confirmation-email
-    // left as an exercise...
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      _startCooldown();
+    } catch (_) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Network error')));
+    } finally {
+      setState(() => _resending = false); // stop spinner
+    }
   }
 
   @override
@@ -194,20 +217,50 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                             fontSize: 12,
                           ),
                           children: [
-                            TextSpan(
-                              text: 'Resend',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                            if (_cooldown > Duration.zero)
+                              TextSpan(
+                                text: ' ${_formatDuration(_cooldown)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            else if (_resending)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    SizedBox(width: 6),
+                                    SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              TextSpan(
+                                text: 'Resend',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = (_isLoading || _resending) ? null : _resendCode,
                               ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = _isLoading ? null : _resendCode,
-                            ),
                           ],
                         ),
                       ),
                     ),
+
                     const Spacer(),
+                    
                   ],
                 ),
               ),

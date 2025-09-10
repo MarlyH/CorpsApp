@@ -1,14 +1,15 @@
+import 'package:corpsapp/views/reset_password_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-
 import 'views/landing_view.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
 import 'views/forgot_password_view.dart';
+//import 'views/verify_otp_view.dart';
 import 'views/dashboard_view.dart';
 import 'views/manage_children_view.dart';
 import 'views/children/create_child.dart';
@@ -85,6 +86,7 @@ class MyApp extends StatelessWidget {
         '/dashboard': (_) => const DashboardView(),
         '/children': (_) => const ManageChildrenView(),
         '/children/create': (_) => const CreateChildView(),
+        //'verify-otp': (_) => const VerifyOtpView(),
         '/children/edit': (context) {
           final child = ModalRoute.of(context)!.settings.arguments as ChildModel;
           return EditChildView(child: child);

@@ -1,4 +1,9 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/back_button.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -35,6 +40,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   }
 
   Future<void> _finish() async {
+    if (mounted) setState(() => _error = null);
+
     if (!_formKey.currentState!.validate()) return;
     if (_newPassCtrl.text != _confirmCtrl.text) {
       setState(() => _error = 'Passwords do not match');
@@ -81,18 +88,13 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   @override
   Widget build(BuildContext context) {
     // ensure we avoid bottom overflow when keyboard appears
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: LayoutBuilder(builder: (ctx, constraints) {
           return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              bottom: bottomInset + 24,
-            ),
+            padding: AppPadding.screen,
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
@@ -100,19 +102,12 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // back arrow
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
+                    CustomBackButton(),
 
                     const Spacer(),
 
                     // lock image
-                    Image.asset('assets/change_password.jpg', height: 240),
-                    const SizedBox(height: 32),
+                    Image.asset('assets/change_password.png', height: 360),
 
                     // title
                     const Text(
@@ -122,9 +117,9 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'WinnerSans',
                       ),
                     ),
-                    const SizedBox(height: 12),
 
                     // subtitle
                     const Text(
@@ -132,7 +127,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // form
                     Form(
@@ -140,66 +135,53 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                       child: Column(
                         children: [
                           // New password
-                          _buildField(
-                            label: 'NEW PASSWORD',
+                          InputField(
+                            label: 'NEW PASSWORD', 
+                            hintText: 'Enter new password', 
                             controller: _newPassCtrl,
-                            obscure: _obscureNew,
-                            toggle: () => setState(() => _obscureNew = !_obscureNew),
-                          ),
+                            obscureText: _obscureNew,
+                            keyboardType: TextInputType.visiblePassword,
+                            iconLook: IconButton(
+                              onPressed: () => setState(() => _obscureNew = !_obscureNew), 
+                              icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, 
+                              color: Colors.black,)),
+                            ),
+                            
                           const SizedBox(height: 16),
 
                           // Confirm password
-                          _buildField(
-                            label: 'CONFIRM PASSWORD',
+                          InputField(
+                            label: 'CONFIRM PASSWORD', 
+                            hintText: 'Enter new password', 
                             controller: _confirmCtrl,
-                            obscure: _obscureConfirm,
-                            toggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                          ),
+                            obscureText: _obscureConfirm,
+                            keyboardType: TextInputType.visiblePassword,
+                            iconLook: IconButton(
+                              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm), 
+                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, 
+                              color: Colors.black,)),
+                            ),                
+
+                          const SizedBox(height: 24),
 
                           if (_error != null) ...[
-                            const SizedBox(height: 16),
                             Text(
                               _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.redAccent),
+                              textAlign: TextAlign.left,
+                              style: const TextStyle(color: AppColors.errorColor,fontSize: 12),
                             ),
+                            const SizedBox(height: 16),
                           ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
-
                     // FINISH button
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _finish,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'FINISH',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                    Button(
+                      label: 'FINISH', 
+                      onPressed: _finish, 
+                      loading: _loading
                     ),
-
+                    
                     const Spacer(),
                   ],
                 ),
@@ -208,49 +190,6 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
           );
         }),
       ),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required bool obscure,
-    required VoidCallback toggle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          obscureText: obscure,
-          style: const TextStyle(color: Colors.black),
-          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-          decoration: InputDecoration(
-            hintText: 'Enter your password',
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
-              ),
-              onPressed: toggle,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

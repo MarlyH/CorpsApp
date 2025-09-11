@@ -19,6 +19,7 @@ class QrScanFab extends StatelessWidget {
       width: diameter + borderWidth * 1,
       height: diameter + borderWidth * 1,
       child: FloatingActionButton(
+        heroTag: null,
         backgroundColor: const Color(0xFFD01417),
         elevation: 4,
         onPressed: () {

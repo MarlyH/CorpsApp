@@ -118,179 +118,177 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: AppColors.background,
-    body: SafeArea(
-      child: Padding(
-        padding: AppPadding.screen,
-        child: Column(
-          children: [
-            // top bar
-            if (Platform.isAndroid) ...[
-              CustomBackButton(route: '/')
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: AppPadding.screen,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // back button at the top (fixed)
+              if (Platform.isAndroid) ...[
+                CustomBackButton(route: '/'),
+              ],
 
-            // form area
-            Expanded(
-              child: ListView(
-                children: [
-                  const Text(
-                    'WELCOME BACK',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'WinnerSans',
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+              // content centered in remaining space
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [              
+                    const Text(
+                      'LOGIN TO CORPS',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'WinnerSans',
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 60),
 
-                  Form(
-                    key: _formKey,
-                    child: AutofillGroup(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          InputField(
-                            label: 'EMAIL', 
-                            hintText: 'Enter your email', 
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                            autofillHints: const [AutofillHints.email],
-                            textInputAction: TextInputAction.next,
-                          ),
-                          
-                          const SizedBox(height: 20),
-
-                          InputField(
-                            label: 'PASSWORD', 
-                            hintText: 'Enter your password', 
-                            controller: _pwCtrl,
-                            obscureText: _obscure,
-                            keyboardType: TextInputType.visiblePassword,
-                            iconLook: IconButton(
-                              icon: Icon(
-                                _obscure ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.black,
-                              ),
-                              onPressed: () => setState(() => _obscure = !_obscure),
+                    Form(
+                      key: _formKey,
+                      child: AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            InputField(
+                              label: 'EMAIL',
+                              hintText: 'Enter your email',
+                              controller: _emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const [AutofillHints.email],
+                              textInputAction: TextInputAction.next,
                             ),
-                            autofillHints: const [AutofillHints.password],
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _login(),
-                          ),
-                       
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                              ),
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/forgot-password',
-                              ),
-                              child: const Text(
-                                'Forgot Password?',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                            const SizedBox(height: 20),
+                            InputField(
+                              label: 'PASSWORD',
+                              hintText: 'Enter your password',
+                              controller: _pwCtrl,
+                              obscureText: _obscure,
+                              keyboardType: TextInputType.visiblePassword,
+                              iconLook: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.black,
                                 ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
                               ),
+                              autofillHints: const [AutofillHints.password],
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _login(),
                             ),
-                          ),
 
-                          if (_error != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error, color: Colors.red),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      _error!,
-                                      style:
-                                          const TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                          if (_canResend) ...[
-                            const SizedBox(height: 8),
-                            Center(
+                            Align(
+                              alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: _resendEmail,
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                ),
+                                onPressed: () =>
+                                    Navigator.pushNamed(context, '/forgot-password'),
                                 child: const Text(
-                                  'Resend Confirmation Email',
+                                  'Forgot Password?',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    decoration: TextDecoration.underline,
                                     fontSize: 12,
                                   ),
                                 ),
                               ),
                             ),
-                          ],
 
-                          const SizedBox(height: 16),
-
-                          Button(
-                            label: 'LOGIN', 
-                            onPressed: _login,
-                            loading: _isLoading
-                          ),                          
-
-                          const SizedBox(height: 16),
-
-                          Center(
-                            child: RichText(
-                              text: TextSpan(
-                                text: "Don't have an account? ",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                            if (_error != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                children: [
-                                  TextSpan(
-                                    text: 'Register',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error, color: Colors.red),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        _error!,
+                                        style: const TextStyle(color: Colors.red),
+                                      ),
                                     ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () => Navigator.pushNamed(
-                                            context,
-                                            '/register',
-                                          ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            if (_canResend) ...[
+                              const SizedBox(height: 8),
+                              Center(
+                                child: TextButton(
+                                  onPressed: _resendEmail,
+                                  child: const Text(
+                                    'Resend Confirmation Email',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      decoration: TextDecoration.underline,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ],
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 42),
+
+                            Button(
+                              label: 'LOGIN',
+                              onPressed: _login,
+                              loading: _isLoading,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Center(
+                              child: RichText(
+                                text: TextSpan(
+                                  text: "Don't have an account? ",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Register',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () =>
+                                            Navigator.pushNamed(context, '/register'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }

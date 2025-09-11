@@ -131,6 +131,7 @@ flutter:
     - assets/icons/calendar.svg
     - assets/icons/sent.svg
     - assets/success.png
+    - assets/hello.png
 
     
 

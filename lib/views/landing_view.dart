@@ -19,6 +19,7 @@ class LandingView extends StatefulWidget {
 class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   bool _loading = true;
   late VoidCallback _connListener;
+  ConnectivityProvider? _connProvider;
 
   @override
   void initState() {
@@ -33,15 +34,15 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   }
 
   void _subscribeToConnectivity() {
-    final connProvider = Provider.of<ConnectivityProvider>(context, listen: false);
+    _connProvider = Provider.of<ConnectivityProvider>(context, listen: false);
     _connListener = () {
       // When we go from offline → online and we're not already loading,
       // retry the token check so we can auto-login.
-      if (!connProvider.isOffline && !_loading) {
+      if (!_connProvider!.isOffline && !_loading) {
         _attemptAutoLogin();
       }
     };
-    connProvider.addListener(_connListener);
+    _connProvider!.addListener(_connListener);
   }
 
   Future<void> _attemptAutoLogin() async {
@@ -73,8 +74,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    Provider.of<ConnectivityProvider>(context, listen: false)
-            .removeListener(_connListener);    
+    _connProvider?.removeListener(_connListener);    
     super.dispose();
   }
 

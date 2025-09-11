@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -53,13 +55,17 @@ class _DashboardViewState extends State<DashboardView> {
     await messaging.requestPermission();
 
     // get the FCM token and register it with API -> Azure Notification Hubs
-    final token = await messaging.getToken();
-    if (token != null) {
-      try {
-        await AuthHttpClient.registerDeviceToken(token);
-      } catch (e) {
-        print('Error registering device token: $e');
-      }
+    if (Platform.isAndroid)
+    {
+        final token = await messaging.getToken();
+
+        if (token != null) {
+          try {
+            await AuthHttpClient.registerDeviceToken(token);
+          } catch (e) {
+            print('Error registering device token: $e');
+          }
+        }
     }
 
     // handle notifications when the app is in the foreground

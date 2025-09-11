@@ -128,9 +128,10 @@ flutter:
     - assets/forgot_password.png
     - assets/otp.png
     - assets/change_password.png
-    - assets/success.jpg
     - assets/icons/calendar.svg
     - assets/icons/sent.svg
+    - assets/success.png
+
     
 
   # An image asset can refer to one or more resolution-specific "variants", see

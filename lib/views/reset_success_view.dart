@@ -1,3 +1,6 @@
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'login_view.dart';
 
@@ -9,15 +12,11 @@ class ResetSuccessView extends StatelessWidget {
     // space at bottom for phones with gesture bars
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(builder: (ctx, constraints) {
           return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              bottom: bottomInset + 24,
-            ),
+            padding: AppPadding.screen,
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
@@ -25,16 +24,15 @@ class ResetSuccessView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // push content down a bit
-                    const Spacer(flex: 2),
+                    const Spacer(),
 
                     // Success image
                     Center(
                       child: Image.asset(
-                        'assets/success.jpg', // your graphic here
-                        height: 240,
+                        'assets/success.png', // your graphic here
+                        height: 360,
                       ),
                     ),
-                    const SizedBox(height: 32),
 
                     // Title
                     const Text(
@@ -44,9 +42,9 @@ class ResetSuccessView extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'WinnerSans'
                       ),
                     ),
-                    const SizedBox(height: 12),
 
                     // Subtitle
                     const Text(
@@ -60,41 +58,23 @@ class ResetSuccessView extends StatelessWidget {
                     ),
 
                     // fill remaining space
-                    const Spacer(flex: 3),
-
+                    const Spacer(),
+                  
                     // Back to Login button
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginView(),
-                            ),
-                            (_) => false,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    Button(
+                      label: 'BACK TO LOGIN', 
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context, 
+                          MaterialPageRoute(
+                            builder: (_) => const LoginView(), 
                           ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Text(
-                          'BACK TO LOGIN',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                          (_) => false
+                        );                     
+                      }
                     ),
 
-                    // bottom safety spacing
-                    SizedBox(height: bottomInset),
+                    const Spacer(),                  
                   ],
                 ),
               ),

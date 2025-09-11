@@ -165,7 +165,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                           const SizedBox(height: 24),
 
                           if (_error != null) ...[
-                            Text(
+                            Text(                            
                               _error!,
                               textAlign: TextAlign.left,
                               style: const TextStyle(color: AppColors.errorColor,fontSize: 12),

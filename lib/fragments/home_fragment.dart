@@ -1,5 +1,11 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/views/login_view.dart';
+import 'package:corpsapp/widgets/browser_help.dart';
+import 'package:corpsapp/widgets/fab_create.dart';
+import 'package:corpsapp/widgets/filter_sheet.dart';
+import 'package:corpsapp/widgets/sliver_app_bar.dart';
+import 'package:corpsapp/widgets/events_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
@@ -12,8 +18,6 @@ import '../widgets/delayed_slide_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
-
-
 /// Local model for /api/events/{id}
 class EventDetail {
   final String description;
@@ -21,18 +25,6 @@ class EventDetail {
   EventDetail.fromJson(Map<String, dynamic> json)
     : description = json['description'] as String? ?? '',
       address = json['address'] as String? ?? '';
-}
-
-/// Helper for formatting session types.
-String friendlySession(event_summary.SessionType type) {
-  switch (type) {
-    case event_summary.SessionType.Ages8to11:
-      return 'Ages 8 to 11';
-    case event_summary.SessionType.Ages12to15:
-      return 'Ages 12 to 15';
-    default:
-      return 'Ages 16+';
-  }
 }
 
 /// Date formatter for the summary tiles.
@@ -122,133 +114,17 @@ class _HomeFragmentState extends State<HomeFragment> {
     return DateTime(d.year, d.month, d.day, hh, mm);
   }
 
-  void _showHelp() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final screenWidth = MediaQuery.of(context).size.width;
-
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          // Keep margins small for narrow (e.g., Fold cover) screens
-          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-          // Tighter paddings to avoid accidental overflow
-          titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          scrollable: true, // let content scroll instead of overflow
-
-          // Make title wrap instead of pushing horizontally
-          title: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Icon(Icons.help_outline, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Event Browser Help',
-                  style: TextStyle(color: Colors.white),
-                  softWrap: true,
-                ),
-              ),
-            ],
-          ),
-
-          // Constrain content width to fit narrow screens
-          content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: screenWidth - 48),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                // Location
-                Text(
-                  'Location Filter',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Use the dropdown at the top to filter events by location\n'
-                  '• Select "All Locations" to see events from everywhere\n',
-                  style: TextStyle(color: Colors.white70),
-                  softWrap: true,
-                ),
-
-                // Sessions & Sorting
-                SizedBox(height: 12),
-                Text(
-                  'Session Types & Sorting',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Tap "All Sessions" to open the filter panel\n'
-                  '• Filter by age groups (8–11, 12–15, 16+)\n'
-                  '• Sort by date (ascending/descending)\n'
-                  '• Sort by available seats\n',
-                  style: TextStyle(color: Colors.white70),
-                  softWrap: true,
-                ),
-
-                // Event Cards
-                SizedBox(height: 12),
-                Text(
-                  'Event Cards',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Tap a card to see event details\n'
-                  '• View location, date, time, and seat availability\n'
-                  '• Use "Book Now" to register for an event\n',
-                  style: TextStyle(color: Colors.white70),
-                  softWrap: true,
-                ),
-
-                // Refresh
-                SizedBox(height: 12),
-                Text(
-                  'Refresh',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• Pull down to refresh the event list\n'
-                  '• This will show the latest event updates\n',
-                  style: TextStyle(color: Colors.white70),
-                  softWrap: true,
-                ),
-              ],
-            ),
-          ),
-
-          actionsPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                child: const Text('GOT IT', style: TextStyle(color: Colors.white)),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-
   void _showFilters() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder:
           (_) => SafeArea(
-            child: _FilterSheet(
+            child: FilterSheet(
               initialSession: _filterSessionType,
               initialDateAsc: _dateAsc,
               initialDateDesc: _dateDesc,
@@ -289,37 +165,9 @@ class _HomeFragmentState extends State<HomeFragment> {
       user['suspensionUntil'] ?? user['suspensionExpiresAt'] ?? user['suspensionEnd'],
     );
 
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      floatingActionButton:
-          canManage
-              ? Padding(
-                padding: const EdgeInsets.only(bottom: 5.0),
-                child: SizedBox(
-                  width: 70,
-                  height: 70,
-                  child: FloatingActionButton(
-                    shape: CircleBorder(
-                      side: BorderSide(
-                        color: const Color(0xFF4C85D0),
-                        width: 2,
-                      ),
-                    ),
-                    backgroundColor: Colors.white,
-                    child: const Icon(Icons.add, color: Colors.black),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const CreateEventView(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              )
-              : null,
-
+      backgroundColor: AppColors.background,
+      floatingActionButton: canManage ? CreateEventFAB() : null,
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<event_summary.EventSummary>>(
@@ -368,7 +216,6 @@ class _HomeFragmentState extends State<HomeFragment> {
               }
             );
 
-
             final allLocations =
                 all.map((e) => e.locationName).toSet().toList()..sort();
 
@@ -378,137 +225,25 @@ class _HomeFragmentState extends State<HomeFragment> {
               child: CustomScrollView(
                 slivers: [
                   // STICKY FILTER BAR (hides on scroll down, snaps into view on slight up)
-                  SliverAppBar(
-                    backgroundColor: Colors.black,
-                    elevation: 8,
-                    shadowColor: Colors.black54,
-                    floating: true, // reveal on slight upward scroll
-                    snap: true,// snap fully into view
-                    pinned: false,// set to true if you want it always visible
-                    automaticallyImplyLeading: false,
-                    toolbarHeight: 72,
+                  EventBrowserAppBar(
+                    filterLocation: _filterLocation, 
+                    onLocationChanged: (v) => setState(() => _filterLocation = v), 
+                    allLocations: allLocations, 
+                    //helpButton: (EventBrowserHelpButton()), 
+                    onDropdownOpen: () {
+                      setState(() {
+                        dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
+                      });
+                    },
+                  ),
 
-                    // Top row: Location dropdown + Help
-                    titleSpacing: 16,
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String?>(
-                              value: _filterLocation,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                              dropdownColor: Colors.grey[900],
-                              isExpanded: true,
-                              onTap: () {
-                                setState(() {
-                                  dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
-                                });
-                              },
-                              hint: const Text(
-                                'All Locations',
-                                style: TextStyle(
-                                  fontFamily: 'WinnerSans',
-                                  color: Colors.white,
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              items: <DropdownMenuItem<String?>>
-                              [
-                                const DropdownMenuItem<String?>(
-                                  value: null,
-                                  child: Text(
-                                    'All Locations',
-                                    style: TextStyle(
-                                      fontFamily: 'WinnerSans',
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                ...allLocations.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final value = entry.value; // String
-                                  return DropdownMenuItem<String?>(
-                                    value: value,
-                                    child: DelayedSlideIn(
-                                      delay: Duration(milliseconds: 100 * index),
-                                      child: Text(
-                                        value.toUpperCase(),
-                                        style: TextStyle(
-                                          fontFamily: 'WinnerSans',
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w600,
-                                          shadows: [
-                                            Shadow(
-                                              color: Colors.blue.withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-
-                              onChanged: (v) => setState(() => _filterLocation = v),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.help_outline, color: Colors.white),
-                          onPressed: _showHelp,
-                          tooltip: 'Help',
-                        ),
-                      ],
-                    ),
-
-                    // Bottom: “All Sessions / filter” pill
-                    bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(36),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: GestureDetector(
-                          onTap: _showFilters,
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.filter_list, color: Colors.black54),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _filterSessionType == null
-                                        ? 'All Session Ages'
-                                        : friendlySession(_filterSessionType!),
-                                    style: const TextStyle(color: Colors.black54),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
-                              ],
-                            ),
-                          ),
-
-                        ),
-                      ),
+                  SliverToBoxAdapter(
+                    child: EventsFilter(
+                      onTap: _showFilters,
+                      filterSessionType: _filterSessionType,
+                      friendlySession: friendlySession
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
 
                   // LOADING / ERROR / EMPTY
                   if (loading)
@@ -535,6 +270,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                         ),
                       ),
                     )
+
                   // SESSION LIST
                   else
                     SliverList(
@@ -557,6 +293,7 @@ class _HomeFragmentState extends State<HomeFragment> {
                         childCount: events.length,
                       ),
                     ),
+
                   // bottom padding so last card isn’t hidden
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                 ],
@@ -564,185 +301,6 @@ class _HomeFragmentState extends State<HomeFragment> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-/// FILTER SHEET
-class _FilterSheet extends StatefulWidget {
-  final event_summary.SessionType? initialSession;
-  final bool initialDateAsc;
-  final bool initialDateDesc;
-  final bool initialSeatsAsc;
-  final bool initialSeatsDesc;
-  final void Function(event_summary.SessionType?, bool, bool, bool, bool)
-  onApply;
-
-  const _FilterSheet({
-    this.initialSession,
-    required this.initialDateAsc,
-    required this.initialDateDesc,
-    required this.initialSeatsAsc,
-    required this.initialSeatsDesc,
-    required this.onApply,
-  });
-
-  @override
-  __FilterSheetState createState() => __FilterSheetState();
-}
-
-class __FilterSheetState extends State<_FilterSheet> {
-  late event_summary.SessionType? _session;
-  late bool _dateAsc, _dateDesc, _seatsAsc, _seatsDesc;
-
-  @override
-  void initState() {
-    super.initState();
-    _session = widget.initialSession;
-    _dateAsc = widget.initialDateAsc;
-    _dateDesc = widget.initialDateDesc;
-    _seatsAsc = widget.initialSeatsAsc;
-    _seatsDesc = widget.initialSeatsDesc;
-  }
-
-  @override
-  Widget build(BuildContext c) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(c).viewInsets.bottom + 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Filter & Sort',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
-          const Divider(color: Colors.white54),
-
-          // Session Type
-          ListTile(
-            title: const Text(
-              'Session Ages',
-              style: TextStyle(color: Colors.white70),
-            ),
-            trailing: DropdownButton<event_summary.SessionType?>(
-              dropdownColor: Colors.grey[800],
-              value: _session,
-              hint: const Text('All Ages', style: TextStyle(color: Colors.white)),
-              items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text('All Ages', style: TextStyle(color: Colors.white)),
-                ),
-                for (var st in event_summary.SessionType.values)
-                  DropdownMenuItem(
-                    value: st,
-                    child: Text(
-                      friendlySession(st),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _session = v),
-            ),
-          ),
-
-          // Date Ascending
-          CheckboxListTile(
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: Colors.blue,
-            title: const Text(
-              'Date Ascending',
-              style: TextStyle(color: Colors.white70),
-            ),
-            value: _dateAsc,
-            onChanged: (v) {
-              setState(() {
-                _dateAsc = v!;
-                if (v) _dateDesc = false;
-              });
-            },
-          ),
-          // Date Descending
-          CheckboxListTile(
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: Colors.blue,
-            title: const Text(
-              'Date Descending',
-              style: TextStyle(color: Colors.white70),
-            ),
-            value: _dateDesc,
-            onChanged: (v) {
-              setState(() {
-                _dateDesc = v!;
-                if (v) _dateAsc = false;
-              });
-            },
-          ),
-
-          // Seats Ascending
-          CheckboxListTile(
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: Colors.blue,
-            title: const Text(
-              'Seats Ascending',
-              style: TextStyle(color: Colors.white70),
-            ),
-            value: _seatsAsc,
-            onChanged: (v) {
-              setState(() {
-                _seatsAsc = v!;
-                if (v) _seatsDesc = false;
-              });
-            },
-          ),
-          // Seats Descending
-          CheckboxListTile(
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: Colors.blue,
-            title: const Text(
-              'Seats Descending',
-              style: TextStyle(color: Colors.white70),
-            ),
-            value: _seatsDesc,
-            onChanged: (v) {
-              setState(() {
-                _seatsDesc = v!;
-                if (v) _seatsAsc = false;
-              });
-            },
-          ),
-
-          const SizedBox(height: 12),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            onPressed: () {
-              widget.onApply(
-                _session,
-                _dateAsc,
-                _dateDesc,
-                _seatsAsc,
-                _seatsDesc,
-              );
-              Navigator.of(context).pop();
-            },
-            child: const Text('APPLY'),
-          ),
-
-          const SizedBox(height: 16),
-        ],
       ),
     );
   }
@@ -824,7 +382,6 @@ class _EventTileState extends State<EventTile> {
     }
   }
 
-
   Future<void> _cancelEvent() async {
     final ctrl = TextEditingController();
     final msg = await showDialog<String>(
@@ -856,6 +413,7 @@ class _EventTileState extends State<EventTile> {
       }
     }
   }
+
   Future<void> _loadWaitlistFlag() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getBool(_waitlistPrefKey) ?? false;
@@ -907,27 +465,26 @@ class _EventTileState extends State<EventTile> {
     }
   }
 
-
-
   void _showNotifyOverlay({required bool isOn}) {
-  showDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierColor: Colors.black.withOpacity(.8),
-    builder: (ctx) {
-      bool working = false;
-      bool done = false;
-      String? error;
-      final s = widget.summary;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(.8),
+      builder: (ctx) {
+        bool working = false;
+        bool done = false;
+        String? error;
+        final s = widget.summary;
 
-      Future<void> _confirm(StateSetter setSB) async {
-        setSB(() { working = true; error = null; });
-        final ok = await _setWaitlistEnabled(!isOn);
-        setSB(() {
-          working = false;
-          done = ok;
-          if (!ok) error = 'Could not update notifications. Please try again.';
-        });
+        Future<void> _confirm(StateSetter setSB) async {
+          setSB(() { working = true; error = null; });
+          final ok = await _setWaitlistEnabled(!isOn);
+          setSB(() {
+            working = false;
+            done = ok;
+            if (!ok) error = 'Could not update notifications. Please try again.';
+          }
+        );
       }
 
       // const bgTop = Color(0xFF1A1B1E);
@@ -1150,10 +707,6 @@ class _EventTileState extends State<EventTile> {
   );
 }
 
-
-
-
-
   // notify button on event booked out
   Widget _notifyPill({
     required bool isOn,
@@ -1207,39 +760,6 @@ class _EventTileState extends State<EventTile> {
       ),
     );
   }
-  // A Big centered booked out watermark
-  // Widget _bookedOutWatermarkBig() {
-  //   return Positioned.fill(
-  //     child: IgnorePointer(
-  //       child: Center(
-  //         child: Opacity(
-  //           opacity: 0.18,
-  //           child: FittedBox(
-  //             fit: BoxFit.scaleDown,
-  //             child: Row(
-  //               mainAxisSize: MainAxisSize.min,
-  //               children: const [
-  //                 Icon(Icons.event_busy, size: 140, color: Color(0xFFD01417)),
-  //                 // SizedBox(width: 14),
-  //                 // Text(
-  //                 //   'BOOKED OUT',
-  //                 //   style: TextStyle(
-  //                 //     color: Colors.redAccent,
-  //                 //     fontSize: 56,
-  //                 //     fontWeight: FontWeight.w900,
-  //                 //     letterSpacing: 2,
-  //                 //   ),
-  //                 // ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -1281,111 +801,106 @@ class _EventTileState extends State<EventTile> {
     );
   }
 
-  Widget _buildContentPanels() {
-    final s = widget.summary;
+Widget _buildContentPanels() {
+  final s = widget.summary;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // SUMMARY and PILL Section
-        Padding(
-          padding: const EdgeInsets.only(bottom: _halfPill),
-          child: Stack(
-            clipBehavior: Clip.none, // so the 'More/Less' pill can stick out
-            children: [
-              ClipRRect(
-                borderRadius: _expanded
-                    ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
-                    : BorderRadius.circular(_innerRadius),
-                child: Stack(
-                  clipBehavior: Clip.hardEdge, // keep overlays inside the card
-                  children: [
-                    // Card content
-                    Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: _innerPad,
-                        vertical: _innerPad,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(child: _summaryLeft(s)),
-                          Expanded(child: _summaryRight(s)), 
-                        ],
-                      ),
-                    ),
-
-                  // booked out status
-                  // if (_isFull) _bookedOutWatermarkBig(),
-                  if (_isFull)
-                    const _CornerWedge(
-                      inset: 0,
-                      size: 80,
-                      padding: 10,
-                      perpPadding: 20,
-                      text: 'BOOKED OUT',
-                      showIcon: true,
-                      icon: Icons.event_busy,
-                      iconSize: 18,
-                      iconTextGap: 4,
-                    ),
-                  ]
-                ),
-              ),
-
-              // “More / Less” notch
-              Positioned(
-                bottom: -_halfPill,
-                left: 0,
-                right: 0,
-                child: Container(
-                  width: _pillSize,
-                  height: _pillSize,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: _borderWidth),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _expanded ? 'Less' : 'More',
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-
-
-        // DETAILS PANEL (only when expanded)
-        if (_expanded)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(_innerRadius),
-              ),
-            ),
-            padding: EdgeInsets.only(
-              top: _innerPad,
-              bottom: _innerPad + _halfAction,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+  return Stack(
+    clipBehavior: Clip.none, // allow notch to stick out
+    children: [
+      // Main content column: summary + details
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // SUMMARY card
+          ClipRRect(
+            borderRadius: _expanded
+                ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
+                : BorderRadius.circular(_innerRadius),
+            child: Stack(
+              clipBehavior: Clip.hardEdge, // keep overlays inside the card
               children: [
-                _padded(child: _buildSeatsRow(s)),
-                const SizedBox(height: 16),
-                _padded(child: _buildAddress()),
-                const SizedBox(height: 16),
-                _padded(child: _buildDescription()),
+                // Card content
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _innerPad,
+                    vertical: _innerPad,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: _summaryLeft(s)),
+                      Expanded(child: _summaryRight(s)),
+                    ],
+                  ),
+                ),
+
+                // BOOKED OUT overlay
+                if (_isFull)
+                  const _CornerWedge(
+                    inset: 0,
+                    size: 80,
+                    padding: 10,
+                    perpPadding: 20,
+                    text: 'BOOKED OUT',
+                    showIcon: true,
+                    icon: Icons.event_busy,
+                    iconSize: 18,
+                    iconTextGap: 4,
+                  ),
               ],
             ),
           ),
-      ],
-    );
-  }
+
+          // DETAILS PANEL (only when expanded)
+          if (_expanded)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(_innerRadius),
+                ),
+              ),
+              padding: EdgeInsets.only(
+                top: _innerPad,
+                bottom: _innerPad + _halfAction,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _padded(child: _buildSeatsRow(s)),
+                  const SizedBox(height: 16),
+                  _padded(child: _buildAddress()),
+                  const SizedBox(height: 16),
+                  _padded(child: _buildDescription()),
+                ],
+              ),
+            ),
+        ],
+      ),
+
+      // “More / Less” notch — always on top
+      Positioned(
+        bottom: _expanded ? 138 : -_halfPill, // adjust as needed
+        left: 0,
+        right: 0,
+        child: Container(
+          width: _pillSize,
+          height: _pillSize,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: _borderWidth),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            _expanded ? 'Less' : 'More',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ),
+      ),
+    ],
+  );
+}
 
   Widget _summaryLeft(event_summary.EventSummary s) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1803,7 +1318,6 @@ class _CancellationDialog extends StatelessWidget {
     );
   }
 }
-
 
 class _CornerWedge extends StatelessWidget {
   const _CornerWedge({

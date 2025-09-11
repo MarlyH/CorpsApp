@@ -132,6 +132,9 @@ flutter:
     - assets/icons/sent.svg
     - assets/success.png
     - assets/hello.png
+    - assets/icons/dropdown.svg
+    - assets/icons/filter.svg
+
 
     
 

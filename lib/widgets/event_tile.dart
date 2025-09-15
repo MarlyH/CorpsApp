@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/cancellation_dialog.dart';
 import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
@@ -239,51 +240,16 @@ class EventTileState extends State<EventTile> {
     required bool busy,
     required VoidCallback onTap,
   }) {
-    final main = isOn ? 'STOP NOTIFYING ME' : 'GET NOTIFIED';
-    final sub  = isOn ? 'You won’t get alerts' : 'when seat is available';
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
-        child: InkWell(
-          onTap: busy ? null : onTap,
-          borderRadius: BorderRadius.circular(28),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4C85D0),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (busy)
-                  const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                else
-                  Icon(isOn ? Icons.notifications_off : Icons.notifications_active,
-                      color: Colors.white, size: 22),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      main,
-                      style: const TextStyle(
-                        color: Colors.white,fontFamily: 'winnersans', fontWeight: FontWeight.w800, letterSpacing: 1, fontSize: 16),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(sub,
-                      style: const TextStyle(color: Colors.white70, fontFamily: 'winnersans',fontSize: 10, height: 1.1)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final main = isOn ? 'Leave Waitlist' : 'Join Waitlist';
+    final sub  = isOn ? 'Stop being notified when seat becomes available' : 'Be notified when a seat becomes available';
+
+    return Button(
+      label: main, 
+      subLabel: sub,
+      onPressed: onTap,
+      loading: busy,
+      radius: 100,
     );
   }
 

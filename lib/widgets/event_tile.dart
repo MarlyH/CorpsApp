@@ -209,7 +209,7 @@ class EventTileState extends State<EventTile> {
               context: context, 
               dialogContext: ctx, 
               icon: joining ? 'assets/icons/notify.svg' : 'assets/icons/success.svg', 
-              message: joining ? "You've joined the waitlist!" : "You've exited the waitlist."
+              message: joining ? "You've joined the waitlist!" : "You've left the waitlist."
             );
 
             return const SizedBox.shrink(); //return empty widget while snackbox builds
@@ -217,7 +217,7 @@ class EventTileState extends State<EventTile> {
           } else {
             // CONFIRM state: show dialog
             return CustomAlertDialog(
-              title: joining ? 'No Available Seats' : 'Quit Waitlist',
+              title: joining ? 'No Available Seats' : 'Leave Waitlist',
               info: joining
                   ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
                   : "You won't receive alerts for this event anymore.",

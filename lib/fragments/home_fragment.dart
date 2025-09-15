@@ -1,25 +1,16 @@
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
-import 'package:corpsapp/views/login_view.dart';
-import 'package:corpsapp/widgets/browser_help.dart';
 import 'package:corpsapp/widgets/event_tile.dart';
 import 'package:corpsapp/widgets/events_sort.dart';
 import 'package:corpsapp/widgets/fab_create.dart';
-import 'package:corpsapp/widgets/filter_sheet.dart';
 import 'package:corpsapp/widgets/sliver_app_bar.dart';
 import 'package:corpsapp/widgets/events_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
-import '../views/booking_flow.dart';
-import '../views/create_event_view.dart';
 import '../models/event_summary.dart' as event_summary;
-import '../views/reserve_flow.dart';
-import '../widgets/delayed_slide_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:math' as math;
 
 /// Local model for /api/events/{id}
 class EventDetail {
@@ -30,34 +21,24 @@ class EventDetail {
       address = json['address'] as String? ?? '';
 }
 
-/// Date formatter for the summary tiles.
-String _formatDate(DateTime d) {
-  const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const mon = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${week[d.weekday - 1]} ${d.day.toString().padLeft(2, '0')} '
-      '${mon[d.month - 1]} ${d.year}';
+String friendlySession(event_summary.SessionType type) {
+  switch (type) {
+    case event_summary.SessionType.Ages8to11:
+      return 'Ages 8 to 11';
+    case event_summary.SessionType.Ages12to15:
+      return 'Ages 12 to 15';
+    default:
+      return 'Ages 16+';
+  }
 }
 
 class HomeFragment extends StatefulWidget {
   const HomeFragment({super.key});
   @override
-  _HomeFragmentState createState() => _HomeFragmentState();
+  HomeFragmentState createState() => HomeFragmentState();
 }
 
-class _HomeFragmentState extends State<HomeFragment> {
+class HomeFragmentState extends State<HomeFragment> {
   late Future<List<event_summary.EventSummary>> _futureSummaries;
   int dropdownOpenTime = 0;
 

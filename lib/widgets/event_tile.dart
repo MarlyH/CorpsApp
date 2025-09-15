@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:corpsapp/cancellation_dialog.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/cancellation_dialog.dart';
 import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/providers/auth_provider.dart';
@@ -8,10 +9,12 @@ import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/views/reserve_flow.dart';
 import 'package:corpsapp/widgets/corner_wedge.dart';
 import 'package:corpsapp/widgets/login_modal.dart';
+import 'package:corpsapp/widgets/snackbox.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
 
 class EventTile extends StatefulWidget {
   final event_summary.EventSummary summary;
@@ -35,11 +38,11 @@ class EventTile extends StatefulWidget {
   });
 
   @override
-  _EventTileState createState() => _EventTileState();
+  EventTileState createState() => EventTileState();
 }
 
 
-class _EventTileState extends State<EventTile> {
+class EventTileState extends State<EventTile> {
   bool _expanded = false;
   late Future<EventDetail> _detailFut;
 
@@ -57,7 +60,7 @@ class _EventTileState extends State<EventTile> {
   // guard we only auto-clear once per “available” session render
   
   bool _isWaitlisted = false;
-  bool _waitlistSubmitting = false;
+  final bool _waitlistSubmitting = false;
   late final String _waitlistPrefKey;
 
   @override
@@ -172,246 +175,64 @@ class _EventTileState extends State<EventTile> {
   }
 
   void _showNotifyOverlay({required bool isOn}) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(.8),
-      builder: (ctx) {
-        bool working = false;
-        bool done = false;
-        String? error;
-        final s = widget.summary;
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      bool working = false;
+      bool done = false;
+      String? error;
+      final s = widget.summary;
 
-        Future<void> _confirm(StateSetter setSB) async {
-          setSB(() { working = true; error = null; });
-          final ok = await _setWaitlistEnabled(!isOn);
-          setSB(() {
-            working = false;
-            done = ok;
-            if (!ok) error = 'Could not update notifications. Please try again.';
+      Future<void> confirm(StateSetter setSB) async {
+        setSB(() {
+          working = true;
+          error = null;
+        });
+        final ok = await _setWaitlistEnabled(!isOn);
+        setSB(() {
+          working = false;
+          done = ok;
+          if (!ok) {
+            error = 'Could not update notifications. Please try again.';
           }
-        );
+        });
       }
-
-      // const bgTop = Color(0xFF1A1B1E);
-      // const bgBot = Color(0xFF111214);
-      const border = Color(0x14FFFFFF);
-      const titleStyle = TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.w800,
-        fontSize: 16,
-      );
-      const bodyStyle = TextStyle(color: Colors.white70, height: 1.35);
-      const primary = Color(0xFF4C85D0);
-      const danger  = Color(0xFFD01417);
-
-      final detail =
-          '${_weekdayFull(s.startDate)} • ${_formatDate(s.startDate)} • '
-          '${s.startTime} @ ${s.locationName}';
 
       return StatefulBuilder(
         builder: (ctx, setSB) {
           final joining = !isOn;
-          final iconData = joining ? Icons.block : Icons.notifications_off;
-          final ctaLabel = joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST';
-          final ctaColor = joining ? primary : danger;
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Material(
-                type: MaterialType.transparency,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 50),
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(255, 0, 0, 0)],
-                    ),
-                    border: Border.all(color: border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(.45),
-                        blurRadius: 40,
-                        offset: const Offset(0, 20),
-                      ),
-                    ],
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 160),
-                    child: done
-                        // SUCCESS
-                        ? Column(
-                            key: const ValueKey('success'),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  child: const Text('OK',
-                                      style: TextStyle(color: Colors.white70)),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              // success icon
-                              Container(
-                                width: 64, height: 64,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: primary, width: 2),
-                                  color: primary.withOpacity(.08),
-                                ),
-                                child: Icon(
-                                  joining ? Icons.notifications_active : Icons.check_circle,
-                                  color: primary,
-                                  size: 34,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                joining ? 'You’re on the waitlist' : 'Notifications turned off',
-                                textAlign: TextAlign.center,
-                                style: titleStyle,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(detail, textAlign: TextAlign.center, style: bodyStyle),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primary,
-                                    shape: const StadiumBorder(),
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                  child: const Text('CLOSE',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      )),
-                                ),
-                              ),
-                            ],
-                          )
-                        // CONFIRM
-                        : Column(
-                            key: const ValueKey('confirm'),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  child: const Text('Cancel',
-                                      style: TextStyle(color: Colors.white70)),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              // blue circle + slash icon
-                              Container(
-                                width: 64, height: 64,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: primary,
-                                    width: 2,
-                                  ),
-                                  color: primary.withOpacity(.08),
-                                ),
-                                child: Icon(iconData, color: primary, size: 34),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                joining ? 'No Seats Available' : 'Stop Notifications?',
-                                textAlign: TextAlign.center,
-                                style: titleStyle,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                joining
-                                    ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
-                                    : "You won’t receive alerts for this event anymore.",
-                                textAlign: TextAlign.center,
-                                style: bodyStyle,
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(.06),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.event,
-                                        size: 16, color: Colors.white70),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        detail,
-                                        style: const TextStyle(
-                                            color: Colors.white70, fontSize: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (error != null) ...[
-                                const SizedBox(height: 10),
-                                Text(error!,
-                                    style: const TextStyle(
-                                        color: danger, fontWeight: FontWeight.w600)),
-                              ],
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: working ? null : () => _confirm(setSB),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: ctaColor,
-                                    shape: const StadiumBorder(),
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                  child: working
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : Text(
-                                          ctaLabel,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: .8,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          );
+          if (done) {
+            // SUCCESS state: close dialog and show SnackBar
+            CustomSnackBar.show(
+              context: context, 
+              dialogContext: ctx, 
+              icon: joining ? 'assets/icons/notify.svg' : 'assets/icons/success.svg', 
+              message: joining ? "You've joined the waitlist!" : "You've exited the waitlist."
+            );
+
+            return const SizedBox.shrink(); //return empty widget while snackbox builds
+
+          } else {
+            // CONFIRM state: show dialog
+            return CustomAlertDialog(
+              title: joining ? 'No Available Seats' : 'Quit Waitlist',
+              info: joining
+                  ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
+                  : "You won't receive alerts for this event anymore.",
+              extraContentText:
+                  '${friendlySession(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
+              buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
+              buttonAction: working ? null : () => confirm(setSB),
+            );
+          }
         },
       );
     },
   );
 }
+
   // notify button on event booked out
   Widget _notifyPill({
     required bool isOn,

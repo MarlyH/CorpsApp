@@ -136,6 +136,12 @@ flutter:
     - assets/icons/filter.svg
     - assets/icons/sort_desc.svg
     - assets/icons/sort_asc.svg
+    - assets/icons/unavailable.svg
+    - assets/icons/notify.svg
+    - assets/icons/success.svg
+
+
+
 
 
     

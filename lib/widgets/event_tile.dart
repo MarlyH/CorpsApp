@@ -3,7 +3,6 @@ import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_details.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
-import 'package:corpsapp/widgets/cancellation_dialog.dart';
 import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/providers/auth_provider.dart';
@@ -12,6 +11,7 @@ import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/views/reserve_flow.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
 import 'package:corpsapp/widgets/login_modal.dart';
+import 'package:corpsapp/widgets/modal.dart';
 import 'package:corpsapp/widgets/snackbox.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -89,10 +89,9 @@ class EventTileState extends State<EventTile> {
 
   Future<void> _cancelEvent() async {
     final ctrl = TextEditingController();
-    final msg = await showDialog<String>(
+    final msg = await showModalBottomSheet<String>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => CancellationDialog(controller: ctrl),
+      builder: (_) => Modal(),
     );
     if (msg != null) {
       try {

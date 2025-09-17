@@ -90,8 +90,10 @@ class EventTileState extends State<EventTile> {
   Future<void> _cancelEvent() async {
     final ctrl = TextEditingController();
     final msg = await showModalBottomSheet<String>(
+      isDismissible: false,
+      isScrollControlled: true, 
       context: context,
-      builder: (_) => Modal(),
+      builder: (_) => Modal(controller: ctrl),
     );
     if (msg != null) {
       try {
@@ -309,7 +311,7 @@ class EventTileState extends State<EventTile> {
       right: 0,
       child: Center(
         child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.7,
+          width: MediaQuery.of(context).size.width * 0.8,
           //display book now button for any users that do not have managing permissions
           child:
               widget.canManage

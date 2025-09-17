@@ -7,22 +7,20 @@ import 'package:flutter_svg/svg.dart';
 class Modal extends StatelessWidget {
   final TextEditingController? controller;
 
-  const Modal ({
+  const Modal({
     super.key,
-    this.controller
+    this.controller,
   });
-  
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 500,
-      child: Padding(
-        padding: AppPadding.screen,
+    return Padding(
+      padding: AppPadding.screen.copyWith(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, 
-          mainAxisSize: MainAxisSize.min, 
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min, // hug content
           children: <Widget>[
-
             Align(
               alignment: Alignment.topRight,
               child: GestureDetector(
@@ -67,6 +65,7 @@ class Modal extends StatelessWidget {
             TextField(
               controller: controller,
               maxLines: 4,
+              textInputAction: TextInputAction.done,
               style: const TextStyle(
                 color: Color.fromARGB(255, 0, 0, 0),
                 fontSize: 16,
@@ -93,6 +92,8 @@ class Modal extends StatelessWidget {
                   Navigator.of(context).pop(controller?.text.trim()),
               buttonColor: AppColors.errorColor,
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),

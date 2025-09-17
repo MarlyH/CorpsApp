@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/widgets/EventExpandableCard/event_details.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/cancellation_dialog.dart';
@@ -8,13 +10,13 @@ import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/services/auth_http_client.dart';
 import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/views/reserve_flow.dart';
-import 'package:corpsapp/widgets/corner_wedge.dart';
+import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
 import 'package:corpsapp/widgets/login_modal.dart';
 import 'package:corpsapp/widgets/snackbox.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 
 class EventTile extends StatefulWidget {
@@ -47,22 +49,17 @@ class EventTileState extends State<EventTile> {
   bool _expanded = false;
   late Future<EventDetail> _detailFut;
 
-  static const double _pillSize = 48.0;
-  static const double _halfPill = _pillSize / 2;
   static const double _actionSize = 48.0;
   static const double _halfAction = _actionSize / 2;
-  static const double _outerPadH = 16.0;
-  static const double _outerPadB = 32.0;
-  static const double _innerPad = 24.0;
-  static const double _borderWidth = 4.0;
-  static const double _outerRadius = 16.0;
-  static const double _innerRadius = _outerRadius - _borderWidth;
+
   bool get _isFull => widget.summary.availableSeatsCount <= 0;
   // guard we only auto-clear once per “available” session render
   
   bool _isWaitlisted = false;
   final bool _waitlistSubmitting = false;
   late final String _waitlistPrefKey;
+  bool _autoClearedBecauseNowAvailable = false;
+
 
   @override
   void initState() {
@@ -78,8 +75,6 @@ class EventTileState extends State<EventTile> {
 
     _loadWaitlistFlag();
   }
-
-  bool _autoClearedBecauseNowAvailable = false;
 
   void _maybeAutoDisableWaitlist() {
     if (_autoClearedBecauseNowAvailable) return;
@@ -117,7 +112,7 @@ class EventTileState extends State<EventTile> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Cancel failed: $e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppColors.errorColor,
           ),
         );
       }
@@ -181,53 +176,52 @@ class EventTileState extends State<EventTile> {
     barrierDismissible: true,
     builder: (ctx) {
       bool working = false;
-      bool done = false;
-      String? error;
       final s = widget.summary;
 
       Future<void> confirm(StateSetter setSB) async {
         setSB(() {
           working = true;
-          error = null;
         });
+
         final ok = await _setWaitlistEnabled(!isOn);
+
         setSB(() {
           working = false;
-          done = ok;
-          if (!ok) {
-            error = 'Could not update notifications. Please try again.';
-          }
         });
+
+        // Show the appropriate SnackBar after closing the dialog
+        if (ok) {
+          final joining = !isOn;
+          CustomSnackBar.show(
+            context: context,
+            dialogContext: ctx,
+            icon: joining ? 'assets/icons/notify.svg' : 'assets/icons/success.svg',
+            message: joining ? "You've joined the waitlist!" : "You've left the waitlist.",
+          );
+        } else {
+          // ERROR: show SnackBar after dialog closes
+          CustomSnackBar.show(
+            context: context,
+            dialogContext: ctx,
+            message: 'Could not update notifications. Please try again.'
+          );        
+        }
       }
 
       return StatefulBuilder(
         builder: (ctx, setSB) {
           final joining = !isOn;
 
-          if (done) {
-            // SUCCESS state: close dialog and show SnackBar
-            CustomSnackBar.show(
-              context: context, 
-              dialogContext: ctx, 
-              icon: joining ? 'assets/icons/notify.svg' : 'assets/icons/success.svg', 
-              message: joining ? "You've joined the waitlist!" : "You've left the waitlist."
-            );
-
-            return const SizedBox.shrink(); //return empty widget while snackbox builds
-
-          } else {
-            // CONFIRM state: show dialog
-            return CustomAlertDialog(
-              title: joining ? 'No Available Seats' : 'Leave Waitlist',
-              info: joining
-                  ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
-                  : "You won't receive alerts for this event anymore.",
-              extraContentText:
-                  '${friendlySession(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
-              buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
-              buttonAction: working ? null : () => confirm(setSB),
-            );
-          }
+          return CustomAlertDialog(
+            title: joining ? 'No Available Seats' : 'Leave Waitlist',
+            info: joining
+                ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
+                : "You won't receive alerts for this event anymore.",
+            extraContentText:
+                '${friendlySession(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
+            buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
+            buttonAction: working ? null : () => confirm(setSB),
+          );
         },
       );
     },
@@ -242,47 +236,40 @@ class EventTileState extends State<EventTile> {
   }) {
 
     final main = isOn ? 'Leave Waitlist' : 'Join Waitlist';
-    final sub  = isOn ? 'Stop being notified when seat becomes available' : 'Be notified when a seat becomes available';
 
     return Button(
       label: main, 
-      subLabel: sub,
       onPressed: onTap,
       loading: busy,
       radius: 100,
     );
-  }
+}
 
   @override
   Widget build(BuildContext context) {
     _maybeAutoDisableWaitlist();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        //event tiles list padding
-        0,
-        _outerPadH,
-        0,
-        _outerPadB,
-      ),
+      padding: EdgeInsets.fromLTRB(0,8,0, _expanded ? 32 : 16),
+
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _expanded = !_expanded),
         child: Stack(
           clipBehavior: Clip.none,
-          children: [
-            
+          children: [           
             // Outer border
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: _borderWidth),
-                  borderRadius: BorderRadius.circular(_outerRadius),
+                  border: Border.all(color: Colors.white, width: 3),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
+            
             Padding(
-              padding: const EdgeInsets.all(_borderWidth),
+              padding: const EdgeInsets.all(3),
               child: _buildContentPanels(),
             ),
 
@@ -294,191 +281,26 @@ class EventTileState extends State<EventTile> {
     );
   }
 
-Widget _buildContentPanels() {
-  final s = widget.summary;
+  Widget _buildContentPanels() {
+    final s = widget.summary;
 
-  return Stack(
-    clipBehavior: Clip.none, // allow notch to stick out
-    children: [
-      // Main content column: summary + details
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // SUMMARY card
-          ClipRRect(
-            borderRadius: _expanded
-                ? BorderRadius.vertical(top: Radius.circular(_innerRadius))
-                : BorderRadius.circular(_innerRadius),
-            child: Stack(
-              clipBehavior: Clip.hardEdge, // keep overlays inside the card
-              children: [
-                // Card content
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _innerPad,
-                    vertical: _innerPad,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(child: _summaryLeft(s)),
-                      Expanded(child: _summaryRight(s)),
-                    ],
-                  ),
-                ),
-
-                // BOOKED OUT overlay
-                if (_isFull)
-                  const CornerWedge(
-                    inset: 0,
-                    size: 80,
-                    padding: 10,
-                    perpPadding: 20,
-                    text: 'BOOKED OUT',
-                    showIcon: true,
-                    icon: Icons.event_busy,
-                    iconSize: 18,
-                    iconTextGap: 4,
-                  ),
-              ],
-            ),
-          ),
-
-          // DETAILS PANEL (only when expanded)
-          if (_expanded)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(_innerRadius),
-                ),
-              ),
-              padding: EdgeInsets.only(
-                top: _innerPad,
-                bottom: _innerPad + _halfAction,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _padded(child: _buildSeatsRow(s)),
-                  const SizedBox(height: 16),
-                  _padded(child: _buildAddress()),
-                  const SizedBox(height: 16),
-                  _padded(child: _buildDescription()),
-                ],
-              ),
-            ),
-        ],
-      ),
-
-      // “More / Less” notch — always on top
-      Positioned(
-        bottom: _expanded ? 138 : -_halfPill, // adjust as needed
-        left: 0,
-        right: 0,
-        child: Container(
-          width: _pillSize,
-          height: _pillSize,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: _borderWidth),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            _expanded ? 'Less' : 'More',
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-  Widget _summaryLeft(event_summary.EventSummary s) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        s.locationName,
-        style: const TextStyle(color: Colors.black54, fontSize: 12),
-        overflow: TextOverflow.ellipsis,
-      ),
-      const SizedBox(height: 8),
-      Text(
-        _weekdayFull(s.startDate),
-        style: const TextStyle(
-          color: Colors.black87,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      Text(
-        _formatDate(s.startDate),
-        style: const TextStyle(color: Colors.black54),
-      ),
-    ],
-  );
-
-  Widget _summaryRight(event_summary.EventSummary s) => Padding(
-    padding: EdgeInsets.only(right: _isFull ? 0 : 0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end, 
+    return Stack(
       children: [
-        Text(event_summary.friendlySession(s.sessionType),
-            style: const TextStyle(color: Colors.black54, fontSize: 12)),
-        const SizedBox(height: 8),
-        Text('Starts ${s.startTime}', style: const TextStyle(color: Colors.black54)),
-        Text('Ends   ${s.endTime}',   style: const TextStyle(color: Colors.black54)),
+        // Main content column: summary + details
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // SUMMARY card
+            EventSummaryCard(summary: s, isFull: _isFull, isExpanded: _expanded),
+
+            // DETAILS PANEL (only when expanded)
+            if (_expanded)
+              EventDetailsCard(summary: s, detailFut: _detailFut),           
+          ],
+        ),
       ],
-    ),
-  );
-
-
-
-  Widget _buildSeatsRow(event_summary.EventSummary s) => Row(
-    children: [
-      const Icon(Icons.event_seat, color: Colors.white, size: 16),
-      const SizedBox(width: 8),
-      Text(
-        '${s.availableSeatsCount} Seats Available',
-        style: const TextStyle(color: Colors.white),
-      ),
-    ],
-  );
-
-  Widget _buildAddress() => FutureBuilder<EventDetail>(
-    future: _detailFut,
-    builder: (ctx, snap) {
-      final addr = snap.data?.address ?? '';
-      return Text(addr, style: const TextStyle(color: Colors.white));
-    },
-  );
-
-  Widget _buildDescription() => FutureBuilder<EventDetail>(
-    future: _detailFut,
-    builder: (ctx, snap) {
-      if (snap.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-        );
-      }
-      if (snap.hasError) {
-        return const Text(
-          'Error loading details',
-          style: TextStyle(color: Colors.redAccent),
-        );
-      }
-      return Text(
-        snap.data!.description,
-        style: const TextStyle(color: Colors.white70),
-      );
-    },
-  );
-
-  Padding _padded({required Widget child}) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: _innerPad),
-    child: child,
-  );
+    );
+  }
 
   Widget _buildActionButtons() {
     if (!_expanded) return const SizedBox.shrink();
@@ -488,7 +310,7 @@ Widget _buildContentPanels() {
       right: 0,
       child: Center(
         child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
+          width: MediaQuery.of(context).size.width * 0.7,
           //display book now button for any users that do not have managing permissions
           child:
               widget.canManage
@@ -504,49 +326,35 @@ Widget _buildContentPanels() {
     final isSuspended =
         context.read<AuthProvider>().userProfile?['isSuspended'] == true;
 
+    //do not allow user to make bookings or join waitlsit if suspended
     if (isSuspended) {
-      return ElevatedButton(
-        onPressed: () => _showSuspensionOverlay(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey, // disabled style
-          minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        ),
-        child: const Text('BOOK NOW (LOCKED)', style: TextStyle(
-            fontFamily: 'WinnerSans',
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-        ),
+      return Button(
+        label: s.availableSeatsCount > 0 ? 'Book Now': 'Join Waitlist', 
+        onPressed: () => _showSuspensionOverlay(context, DateTime.now().add(Duration(days: 90))),
+        buttonColor: AppColors.disabled,
+        radius: 100,
       );
     }
 
+    //if there are available seats allow users to book
     if (s.availableSeatsCount > 0) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4C85D0),
-          minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        ),
+      return Button(
+        label: 'Book Now', 
         onPressed: () {
           if (widget.isUser) {
-            Navigator.push(context,
-              MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)));
           } else {
             showModalBottomSheet<void>(
               context: context,
               builder: (_) => const RequireLoginModal(),
             );
           }
-        },
-        child: const Text('BOOK NOW',
-          style: TextStyle(fontFamily: 'WinnerSans', color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        },        
+        radius: 100,
       );
     }
 
+    //if there are no available seats, allow users to join waitlist
     return _notifyPill(
       isOn: _isWaitlisted,
       busy: _waitlistSubmitting,
@@ -563,25 +371,16 @@ Widget _buildContentPanels() {
     );
   }
 
-  void _showSuspensionOverlay(BuildContext context) {
+  void _showSuspensionOverlay(BuildContext context, DateTime unsuspendDate) {
+    final formattedDate = DateFormat('MMM d, yyyy').format(unsuspendDate);
+
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Bookings Locked', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Your account is suspended for 90 days due to 3 attendance strikes. '
-          'If you believe this is a mistake, you can submit an appeal from your Profile.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
+      builder: (_) => CustomAlertDialog(
+        title: 'Account Suspended Till $formattedDate',
+        info: 'Your account is suspended from booking events due to 3 attendance strikes. '
+            'If you believe this is a mistake, you can submit an appeal through Profile -> Appeal Ban.',
       ),
     );
   }
@@ -589,37 +388,19 @@ Widget _buildContentPanels() {
   Widget _buildCancelReserveRow() => Row(
     children: [
       Expanded(
-        child: OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            backgroundColor: const Color(0xFF9E9E9E),
-            side: const BorderSide(color: Colors.grey),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
+        child: Button(
+          label: 'Cancel', 
           onPressed: _cancelEvent,
-          child: const Text('CANCEL', 
-            style: const TextStyle(
-              fontFamily: 'WinnerSans',
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          buttonColor: AppColors.disabled,
+          radius: 100,
         ),
       ),
 
       const SizedBox(width: 8),
+
       Expanded(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            backgroundColor: const Color(0xFF4C85D0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
+        child: Button(
+          label: 'Reserve', 
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -627,82 +408,30 @@ Widget _buildContentPanels() {
               ),
             );
           },
-          child: const Text('RESERVE', 
-            style: const TextStyle(
-              fontFamily: 'WinnerSans',
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
+          radius: 100,
+        )
+      )
     ],
   );
-
-  String _weekdayFull(DateTime d) {
-    const week = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    return week[d.weekday - 1];
-  }
-
-
-  void showSuspendedOverlay() {
-    final until = widget.suspensionUntil;
-    final now = DateTime.now();
-    final daysLeft = until != null ? (until.difference(now).inDays).clamp(0, 9999) : null;
-
-    final String details = until == null
-        ? "Booking is suspended for 90 days from the date you received your third strike."
-        : "Booking is suspended for 90 days from your third strike.\n"
-          "Access will be restored on ${_formatDate(until)}"
-          "${daysLeft != null ? " ($daysLeft day${daysLeft == 1 ? '' : 's'} left)" : ""}.";
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Booking Locked', style: TextStyle(color: Colors.white)),
-        content: Text(
-          "You have reached 3 attendance strikes.\n\n$details",
-          style: const TextStyle(color: Colors.white70, height: 1.35),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
-    );
-  }
   
   String _formatDate(DateTime d) {
-  const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const mon = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${week[d.weekday - 1]} ${d.day.toString().padLeft(2, '0')} '
-      '${mon[d.month - 1]} ${d.year}';
-}
-  
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+
+    final eventDate = d.day.toString(); 
+    final eventMonth = months[d.month - 1];
+    final eventYear = d.year;
+    
+    return '$eventMonth $eventDate, $eventYear';
+  } 
+
+
+  String formatTime(String time) {
+    // Parse from "HH:mm:ss"
+    final parsed = DateFormat("HH:mm:ss").parse(time);
+    // Format to "hh:mm a" -> 12-hour with AM/PM
+    return DateFormat("hh:mma").format(parsed);
+  }
 }

@@ -250,6 +250,8 @@ class HomeFragmentState extends State<HomeFragment> {
                               ],
                             ),
 
+                            const SizedBox(height: 16),
+
                             // Loading / Error / Empty States
                             if (loading)
                               const Center(

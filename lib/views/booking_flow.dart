@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../models/event_summary.dart' show EventSummary, friendlySession;
 import '../models/event_detail.dart' show EventDetail;
 import '../models/child_model.dart';
+import 'package:intl/intl.dart';
 
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
@@ -19,7 +20,7 @@ class _BookingFlowState extends State<BookingFlow> {
   int _step = 0;
   int? _selectedSeat;
   String? _selectedChildId;
-  bool _allowAlone = false;
+  bool? _allowAlone; // null = not chosen yet
 
   List<ChildModel> _children = [];
   late Future<EventDetail> _detailFut;
@@ -32,6 +33,19 @@ class _BookingFlowState extends State<BookingFlow> {
     _detailFut = _loadEventDetail();
     _fetchMascotImage();
   }
+
+  String _format12h(String? raw, ) {
+    if (raw == null) return '—';
+    final s = raw.trim();
+    if (s.isEmpty) return '—';
+    final m = RegExp(r'^(\d{1,2}):(\d{2})(?::\d{2})?$').firstMatch(s);
+    if (m == null) return s; // fallback if unexpected
+    final h = int.tryParse(m.group(1)!) ?? 0;
+    final min = int.tryParse(m.group(2)!) ?? 0;
+    final dt = DateTime(2000, 1, 1, h, min);
+    return DateFormat('h:mm a',).format(dt); // e.g., 1:05 PM
+  }
+
 
   Future<void> _fetchMascotImage() async {
     try {
@@ -96,15 +110,22 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
 
-  void _next() {
-    // now under-16 goes up to index 2 (Terms=0, Seat=1, Confirm=2)
-    final last = _needsFullFlow ? 3 : 2;
-    if (_step < last) {
-      setState(() => _step++);
-    } else {
-      _submitBooking();
-    }
+  void _next() async {
+  final last = _needsFullFlow ? 3 : 2;
+
+  // On Attendee step in full flow, require a selection
+  if (_needsFullFlow && _step == 2 && _allowAlone == null) {
+    await _showPermissionInfoDialog();
+    return;
   }
+
+  if (_step < last) {
+    setState(() => _step++);
+  } else {
+    _submitBooking();
+  }
+}
+
 
   void _back() {
     if (_step > 0) {
@@ -220,10 +241,11 @@ class _BookingFlowState extends State<BookingFlow> {
                     // Next / Complete
                     Expanded(
                       child: ElevatedButton(
-                        onPressed:
-                            (_step == 1 && _selectedSeat == null)
+                        onPressed: (_step == 1 && _selectedSeat == null) ||
+                                      (_needsFullFlow && _step == 2 && _allowAlone == null)
                                 ? null
                                 : _next,
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4C85D0),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -314,12 +336,13 @@ class _BookingFlowState extends State<BookingFlow> {
                     Row(
                       children: [
                         Text(
-                          e.startTime,
+                          _format12h(e.startTime),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
                           ),
                         ),
+
                         const Text(
                           ' • ',
                           style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -641,27 +664,56 @@ class _BookingFlowState extends State<BookingFlow> {
                     style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Radio<bool>(
-                        value: true,
-                        groupValue: _allowAlone,
-                        activeColor: Colors.blue,
-                        onChanged: (v) => setState(() => _allowAlone = v!),
-                      ),
-                      const Text('Yes', style: TextStyle(color: Colors.white)),
-                      const SizedBox(width: 24),
-                      Radio<bool>(
-                        value: false,
-                        groupValue: _allowAlone,
-                        activeColor: Colors.blue,
-                        onChanged: (v) => setState(() => _allowAlone = v!),
-                      ),
-                      const Text('No', style: TextStyle(color: Colors.white)),
-                    ],
+
+                  // YES checkbox (checked only if _allowAlone == true)
+                  CheckboxListTile(
+                    value: _allowAlone == true,
+                    onChanged: (v) {
+                      setState(() {
+                        _allowAlone = (v == true) ? true : null; // uncheck -> back to no selection
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: Colors.blue,
+                    checkColor: Colors.white,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Yes, my child may leave on their own',
+                        style: TextStyle(color: Colors.white)),
                   ),
+
+                  // NO checkbox (checked only if _allowAlone == false)
+                  CheckboxListTile(
+                    value: _allowAlone == false && _allowAlone != null,
+                    onChanged: (v) {
+                      setState(() {
+                        _allowAlone = (v == true) ? false : null; // uncheck -> back to no selection
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: Colors.blue,
+                    checkColor: Colors.white,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('No, an authorised parent/guardian will collect',
+                        style: TextStyle(color: Colors.white)),
+                    subtitle: const Text(
+                      'Authorised person must present the QR code for handover.',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+
+                  if (_allowAlone == null)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 12, top: 4),
+                      child: Text(
+                        'Please choose one option to continue.',
+                        style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                      ),
+                    ),
                 ],
               ),
+
             ),
           ],
         ),
@@ -684,8 +736,41 @@ class _BookingFlowState extends State<BookingFlow> {
     );
   }
 
-  // ADD CHILD DIALOG
+  
+  Future<void> _showPermissionInfoDialog() async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Permission to Leave'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Please choose one option before continuing.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 12),
+              Text('• YES – Child may leave on their own after the event. '
+                  'Your Corps is not responsible for the child’s safety once they leave the venue. '
+                  'Parents/guardians should only choose this if they’re comfortable with the child leaving independently.'),
+              SizedBox(height: 8),
+              Text('• NO – Child will remain at the venue until an authorised parent/guardian collects them. '
+                  'The authorised person must have the QR code ready for scanning before handover.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
+  // ADD CHILD DIALOG
   Future<void> _showAddChildDialog() async {
     final fn = TextEditingController();
     final ln = TextEditingController();

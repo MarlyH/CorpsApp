@@ -32,7 +32,13 @@ class _BookingFlowState extends State<BookingFlow> {
     _loadChildren();
     _detailFut = _loadEventDetail();
     _fetchMascotImage();
+
+    // If we don't need the full flow (no attendee step), force false
+    if (!_needsFullFlow) {
+      _allowAlone = false;
+    }
   }
+
 
   String _format12h(String? raw, ) {
     if (raw == null) return '—';
@@ -137,12 +143,14 @@ class _BookingFlowState extends State<BookingFlow> {
 
   Future<void> _submitBooking() async {
     final isChild = _selectedChildId != null;
+    final canLeave = _needsFullFlow ? (_allowAlone ?? false) : false;
+
     final dto = {
       'eventId': widget.event.eventId,
       'seatNumber': _selectedSeat,
       'isForChild': isChild,
       'childId': isChild ? int.parse(_selectedChildId!) : null,
-      'canBeLeftAlone': _allowAlone,
+      'canBeLeftAlone': canLeave, // guaranteed non-null, false for short flow
     };
 
     try {

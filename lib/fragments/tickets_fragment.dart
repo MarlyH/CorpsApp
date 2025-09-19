@@ -37,12 +37,20 @@ class _BookingWithTime {
     startDateTime = _parse(time.startTime);
     final parsedEnd = _parse(time.endTime);
 
-    final isZero = (time.endTime == null) ||
+    // "unknown" or sentinel -> short fallback window so logic still works
+    final isZero =
+        (time.endTime == null) ||
         time.endTime == '00:00' ||
         time.endTime == '00:00:00';
-    endDateTime = (isZero || !parsedEnd.isAfter(startDateTime))
-        ? startDateTime.add(const Duration(minutes: 15))
-        : parsedEnd;
+
+    // If we DO have an end-time but it's <= start, assume it crosses midnight (+1 day)
+    if (!isZero && !parsedEnd.isAfter(startDateTime)) {
+      endDateTime = parsedEnd.add(const Duration(days: 1));
+    } else if (!isZero) {
+      endDateTime = parsedEnd;
+    } else {
+      endDateTime = startDateTime.add(const Duration(minutes: 15));
+    }
   }
 }
 
@@ -90,29 +98,28 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   Future<List<_BookingWithTime>> _fetchAllWithTimes() async {
     final resp = await AuthHttpClient.get('/api/booking/my');
-    final list = (jsonDecode(resp.body) as List)
-        .cast<Map<String, dynamic>>()
-        .map(Booking.fromJson)
-        .toList();
+    final list =
+        (jsonDecode(resp.body) as List)
+            .cast<Map<String, dynamic>>()
+            .map(Booking.fromJson)
+            .toList();
 
-    return Future.wait(list.map((b) async {
-      EventTime t;
-      if (b.status == BookingStatus.Cancelled || b.status == BookingStatus.Striked) {
-        t = EventTime('00:00', '00:00');
-      } else {
+    return Future.wait(
+      list.map((b) async {
         try {
           final evtResp = await AuthHttpClient.get('/api/events/${b.eventId}');
           final js = jsonDecode(evtResp.body) as Map<String, dynamic>;
-          t = EventTime(
+          final t = EventTime(
             (js['startTime'] ?? js['StartTime']) as String?,
             (js['endTime'] ?? js['EndTime']) as String?,
           );
+          return _BookingWithTime(b, t);
         } catch (_) {
-          t = EventTime('00:00', '00:00');
+          // fall back only if the event fetch fails
+          return _BookingWithTime(b, EventTime('00:00', '00:00'));
         }
-      }
-      return _BookingWithTime(b, t);
-    }));
+      }),
+    );
   }
 
   _Bucket _classify(_BookingWithTime bt) {
@@ -173,7 +180,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(32),
                 ),
-                indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 6,
+                ),
                 tabs: const [
                   Tab(text: 'Upcoming'),
                   Tab(text: 'Concluded'),
@@ -247,9 +257,20 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   return TabBarView(
                     controller: _tabs,
                     children: [
-                      _buildList(upcoming, allowCancel: true, dateFmtHeader: dateFmtHeader),
-                      _buildConcludedList(concluded, dateFmtHeader: dateFmtHeader),
-                      _buildList(cancelled, allowCancel: false, dateFmtHeader: dateFmtHeader),
+                      _buildList(
+                        upcoming,
+                        allowCancel: true,
+                        dateFmtHeader: dateFmtHeader,
+                      ),
+                      _buildConcludedList(
+                        concluded,
+                        dateFmtHeader: dateFmtHeader,
+                      ),
+                      _buildList(
+                        cancelled,
+                        allowCancel: false,
+                        dateFmtHeader: dateFmtHeader,
+                      ),
                     ],
                   );
                 },
@@ -275,7 +296,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
         child: ListView(
           children: const [
             SizedBox(height: 80),
-            Center(child: Text('No bookings', style: TextStyle(color: Colors.white))),
+            Center(
+              child: Text('No bookings', style: TextStyle(color: Colors.white)),
+            ),
             SizedBox(height: 400),
           ],
         ),
@@ -293,9 +316,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
-      final day = byDate[key]!..sort(
-          (a, b) => b.startDateTime.compareTo(a.startDateTime),
-        );
+      final day =
+          byDate[key]!
+            ..sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
       items.add(_Header(headerLabel));
       for (final bt in day!) {
         items.add(_Row(bt));
@@ -340,7 +363,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
     // Apply filter
     final filtered = switch (_concludedFilter) {
       _ConcludedFilter.checkedOut =>
-        list.where((bt) => bt.booking.status == BookingStatus.CheckedOut).toList(),
+        list
+            .where((bt) => bt.booking.status == BookingStatus.CheckedOut)
+            .toList(),
       _ConcludedFilter.striked =>
         list.where((bt) => bt.booking.status == BookingStatus.Striked).toList(),
       _ => List<_BookingWithTime>.from(list),
@@ -359,7 +384,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
               child: ListView(
                 children: const [
                   SizedBox(height: 80),
-                  Center(child: Text('No concluded bookings', style: TextStyle(color: Colors.white))),
+                  Center(
+                    child: Text(
+                      'No concluded bookings',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
                   SizedBox(height: 400),
                 ],
               ),
@@ -381,9 +411,9 @@ class _TicketsFragmentState extends State<TicketsFragment>
     final dateKeys = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
-      final day = byDate[key]!..sort(
-          (a, b) => b.startDateTime.compareTo(a.startDateTime),
-        );
+      final day =
+          byDate[key]!
+            ..sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
       items.add(_Header(headerLabel));
       for (final bt in day!) {
         items.add(_Row(bt));
@@ -442,104 +472,104 @@ class _ConcludedFilterBar extends StatelessWidget {
   });
 
   @override
-Widget build(BuildContext context) {
-  final baseTheme = Theme.of(context);
-  final baseChip = ChipTheme.of(context);
+  Widget build(BuildContext context) {
+    final baseTheme = Theme.of(context);
+    final baseChip = ChipTheme.of(context);
 
-  // State-based background color
-  final MaterialStateProperty<Color?> chipFill =
-      MaterialStateProperty.resolveWith((states) {
-    if (states.contains(MaterialState.disabled)) {
-      return Colors.transparent;
-    }
-    if (states.contains(MaterialState.selected)) {
-      return Colors.white;
-    }
-    return Colors.transparent;
-  });
+    // State-based background color
+    final MaterialStateProperty<Color?> chipFill =
+        MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.disabled)) {
+            return Colors.transparent;
+          }
+          if (states.contains(MaterialState.selected)) {
+            return Colors.white;
+          }
+          return Colors.transparent;
+        });
 
-  // State-based border
-  final MaterialStateProperty<BorderSide?> chipBorder =
-      MaterialStateProperty.resolveWith((states) {
-    if (states.contains(MaterialState.selected)) {
-      return const BorderSide(color: Colors.black, width: 1.2);
-    }
-    return BorderSide(color: Colors.grey[400]!, width: 1.0);
-  });
+    // State-based border
+    final MaterialStateProperty<BorderSide?> chipBorder =
+        MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return const BorderSide(color: Colors.black, width: 1.2);
+          }
+          return BorderSide(color: Colors.grey[400]!, width: 1.0);
+        });
 
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-    child: Theme(
-      data: baseTheme.copyWith(
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        chipTheme: baseChip.copyWith(
-          backgroundColor: Colors.transparent,
-          selectedColor: Colors.white,
-          secondarySelectedColor: Colors.white,
-          disabledColor: Colors.transparent,
-          shadowColor: Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+      child: Theme(
+        data: baseTheme.copyWith(
+          splashFactory: NoSplash.splashFactory,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          chipTheme: baseChip.copyWith(
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.white,
+            secondarySelectedColor: Colors.white,
+            disabledColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+          ),
+        ),
+        child: Wrap(
+          spacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text(
+                'All',
+                style: TextStyle(
+                  color:
+                      selected == _ConcludedFilter.all
+                          ? Colors.black
+                          : const Color.fromARGB(255, 255, 255, 255),
+                ),
+              ),
+              selected: selected == _ConcludedFilter.all,
+              showCheckmark: true,
+              surfaceTintColor: Colors.transparent,
+              color: chipFill,
+              onSelected: (_) => onChanged(_ConcludedFilter.all),
+            ),
+            ChoiceChip(
+              label: Text(
+                'Checked Out',
+                style: TextStyle(
+                  color:
+                      selected == _ConcludedFilter.checkedOut
+                          ? Colors.black
+                          : const Color.fromARGB(255, 255, 255, 255),
+                ),
+              ),
+              selected: selected == _ConcludedFilter.checkedOut,
+              showCheckmark: true,
+              surfaceTintColor: Colors.transparent,
+              color: chipFill,
+
+              onSelected: (_) => onChanged(_ConcludedFilter.checkedOut),
+            ),
+            ChoiceChip(
+              label: Text(
+                'Striked',
+                style: TextStyle(
+                  color:
+                      selected == _ConcludedFilter.striked
+                          ? Colors.black
+                          : const Color.fromARGB(255, 255, 255, 255),
+                ),
+              ),
+              selected: selected == _ConcludedFilter.striked,
+              showCheckmark: true,
+              surfaceTintColor: Colors.transparent,
+              color: chipFill,
+
+              onSelected: (_) => onChanged(_ConcludedFilter.striked),
+            ),
+          ],
         ),
       ),
-      child: Wrap(
-        spacing: 8,
-        children: [
-          ChoiceChip(
-            label: Text(
-              'All',
-              style: TextStyle(
-                color: selected == _ConcludedFilter.all
-                    ? Colors.black
-                    : const Color.fromARGB(255, 255, 255, 255),
-              ),
-            ),
-            selected: selected == _ConcludedFilter.all,
-            showCheckmark: true,
-            surfaceTintColor: Colors.transparent,
-            color: chipFill,
-            onSelected: (_) => onChanged(_ConcludedFilter.all),
-          ),
-          ChoiceChip(
-            label: Text(
-              'Checked Out',
-              style: TextStyle(
-                color: selected == _ConcludedFilter.checkedOut
-                    ? Colors.black
-                    : const Color.fromARGB(255, 255, 255, 255),
-              ),
-            ),
-            selected: selected == _ConcludedFilter.checkedOut,
-            showCheckmark: true,
-            surfaceTintColor: Colors.transparent,
-            color: chipFill,
-            
-            onSelected: (_) => onChanged(_ConcludedFilter.checkedOut),
-          ),
-          ChoiceChip(
-            label: Text(
-              'Striked',
-              style: TextStyle(
-                color: selected == _ConcludedFilter.striked
-                    ? Colors.black
-                    : const Color.fromARGB(255, 255, 255, 255),
-              ),
-            ),
-            selected: selected == _ConcludedFilter.striked,
-            showCheckmark: true,
-            surfaceTintColor: Colors.transparent,
-            color: chipFill,
-            
-            onSelected: (_) => onChanged(_ConcludedFilter.striked),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
-
+    );
+  }
 }
 
 class _BookingCard extends StatelessWidget {
@@ -547,6 +577,21 @@ class _BookingCard extends StatelessWidget {
   final bool allowCancel;
   final void Function(Booking) onCancelled;
   final _Bucket bucket;
+
+  String _format12hFromRawOnDay(String? raw, DateTime day, {bool dashOnZero = false}) {
+    if (raw == null || raw.trim().isEmpty) return '—';
+    final isZero = raw == '00:00' || raw == '00:00:00' || raw == '0:00' || raw == '0:00:00';
+    if (dashOnZero && isZero) return '—';
+
+    final parts = raw.split(':');
+    int h = 0, m = 0;
+    if (parts.isNotEmpty) h = int.tryParse(parts[0]) ?? 0;
+    if (parts.length > 1) m = int.tryParse(parts[1]) ?? 0;
+
+    final dt = DateTime(day.year, day.month, day.day, h, m);
+    return DateFormat('h:mm a').format(dt); // e.g., 1:05 PM
+  }
+
 
   const _BookingCard({
     super.key,
@@ -561,9 +606,15 @@ class _BookingCard extends StatelessWidget {
     final booking = bt.booking;
     final time = bt.time;
 
+    final startLabel = _format12hFromRawOnDay(time.startTime, booking.eventDate);
+    final endLabel = _format12hFromRawOnDay(time.endTime,booking.eventDate, dashOnZero: true);
+
+
     final now = DateTime.now();
-    final isLive = now.isAfter(bt.startDateTime) && now.isBefore(bt.endDateTime);
-    final isMissed = bucket == _Bucket.concluded &&
+    final isLive =
+        now.isAfter(bt.startDateTime) && now.isBefore(bt.endDateTime);
+    final isMissed =
+        bucket == _Bucket.concluded &&
         booking.status != BookingStatus.CheckedOut &&
         booking.status != BookingStatus.Striked;
 
@@ -579,10 +630,11 @@ class _BookingCard extends StatelessWidget {
           final didCancel = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (_) => TicketDetailView(
-                booking: booking,
-                allowCancel: allowCancel,
-              ),
+              builder:
+                  (_) => TicketDetailView(
+                    booking: booking,
+                    allowCancel: allowCancel,
+                  ),
             ),
           );
           if (didCancel == true) onCancelled(booking);
@@ -598,8 +650,10 @@ class _BookingCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Booking for',
-                            style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        const Text(
+                          'Booking for',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           booking.attendeeName,
@@ -622,8 +676,11 @@ class _BookingCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Starts ${time.startTime ?? '—'} • Ends ${time.endTime ?? '—'}',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                      'Starts $startLabel • Ends $endLabel',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -671,9 +728,18 @@ class _BookingCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(label,
-          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

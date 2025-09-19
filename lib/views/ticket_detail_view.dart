@@ -92,6 +92,24 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     _detailFuture = _loadDetail();
   }
 
+  String _format12h(String? raw) {
+    if (raw == null) return '—';
+    final s = raw.trim();
+    if (s.isEmpty) return '—';
+
+    // Accept HH:mm or HH:mm:ss (and lenient like "0:05")
+    final m = RegExp(r'^(\d{1,2}):(\d{2})(?::(\d{2}))?$').firstMatch(s);
+    if (m == null) return s; // fallback: show as-is
+
+    final h = int.tryParse(m.group(1)!) ?? 0;
+    final min = int.tryParse(m.group(2)!) ?? 0;
+
+    // any date works; we just want the time formatting
+    final dt = DateTime(2000, 1, 1, h, min);
+    return DateFormat('h:mm a').format(dt); // e.g., 1:05 PM
+  }
+
+
   Future<EventDetail> _loadDetail() async {
     final resp = await AuthHttpClient.get('/api/events/${widget.booking.eventId}');
     if (resp.statusCode != 200) {
@@ -180,7 +198,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 _pdfDetailRow('Location', widget.booking.eventName),
                 _pdfDetailRow('Address', detail.address),
                 _pdfDetailRow('Date', dateLabel),
-                _pdfDetailRow('Time', '${detail.startTime} – ${detail.endTime}'),
+                _pdfDetailRow('Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
                 _pdfDetailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                 // Only show for child bookings:
                 if (widget.booking.isForChild)
@@ -409,7 +427,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                           _detailRow('Location', widget.booking.eventName),
                           _detailRow('Address', detail.address),
                           _detailRow('Date', dateLabel),
-                          _detailRow('Time', '${detail.startTime} – ${detail.endTime}'),
+                          _detailRow('Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
                           _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                           // Only show for child bookings:
                           if (widget.booking.isForChild)

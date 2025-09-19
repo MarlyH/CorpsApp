@@ -1,5 +1,3 @@
-// lib/views/reserve_flow.dart
-
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -108,7 +106,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load seats')),
+        const SnackBar(content: Text('Could not load any tickets. Please try again later.')),
       );
     }
   }
@@ -273,7 +271,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Reserve Seat'),
+        title: const Text('Reserve a Ticket'),
         backgroundColor: Colors.black,
       ),
       body: SafeArea(
@@ -304,8 +302,8 @@ class _ReserveFlowState extends State<ReserveFlow> {
                       icon: const Icon(Icons.event_seat, color: Colors.white),
                       label: Text(
                         _selectedSeat == null
-                            ? 'Choose Seat'
-                            : 'Change Seat (Seat #$_selectedSeat)',
+                            ? 'Choose Ticket'
+                            : 'Change Ticket (Ticket #$_selectedSeat)',
                         style: const TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
@@ -314,15 +312,15 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
                   // Seat number (editable or readOnly; keep editable here)
                   _boxedField(
-                    label: 'Seat Number',
-                    hint: 'Tap “Choose Seat”',
+                    label: 'Ticket Number',
+                    hint: 'Tap “Choose Ticket”',
                     controller: _seatCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (v) {
                       final n = int.tryParse((v ?? '').trim());
-                      if (n == null) return 'Please pick a seat';
-                      if (n <= 0) return 'Seat must be >= 1';
+                      if (n == null) return 'Please pick a Ticket';
+                      if (n <= 0) return 'Ticket must be >= 1';
                       return null;
                     },
                   ),
@@ -480,7 +478,7 @@ class _SeatPickerDialogState extends State<_SeatPickerDialog> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Select a Seat',
+                      'Select a Ticket',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -501,7 +499,7 @@ class _SeatPickerDialogState extends State<_SeatPickerDialog> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '${available.length} of $total seats available'
+                  '${available.length} of $total Tickets available'
                   '${_picked != null ? ' • selected: #$_picked' : ''}',
                   style: const TextStyle(color: Colors.white70),
                 ),
@@ -587,7 +585,7 @@ class _SeatPickerDialogState extends State<_SeatPickerDialog> {
                         ),
                       ),
                       child: Text(
-                        _picked == null ? 'USE SELECTED' : 'USE SEAT #$_picked',
+                        _picked == null ? 'USE SELECTED' : 'USE TICKET #$_picked',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),

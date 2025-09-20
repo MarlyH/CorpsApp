@@ -676,10 +676,16 @@ class _BookingFlowState extends State<BookingFlow> {
                   // YES checkbox (checked only if _allowAlone == true)
                   CheckboxListTile(
                     value: _allowAlone == true,
-                    onChanged: (v) {
-                      setState(() {
-                        _allowAlone = (v == true) ? true : null; // uncheck -> back to no selection
-                      });
+                    // YES checkbox
+                    onChanged: (v) async {
+                      if (v == true) {
+                        final ok = await _confirmPermissionChange(true);
+                        if (ok) {
+                          setState(() => _allowAlone = true);
+                        }
+                      } else {
+                        setState(() => _allowAlone = null); // uncheck -> no selection
+                      }
                     },
                     controlAffinity: ListTileControlAffinity.leading,
                     activeColor: Colors.blue,
@@ -693,10 +699,16 @@ class _BookingFlowState extends State<BookingFlow> {
                   // NO checkbox (checked only if _allowAlone == false)
                   CheckboxListTile(
                     value: _allowAlone == false && _allowAlone != null,
-                    onChanged: (v) {
-                      setState(() {
-                        _allowAlone = (v == true) ? false : null; // uncheck -> back to no selection
-                      });
+                    // NO checkbox
+                    onChanged: (v) async {
+                      if (v == true) {
+                        final ok = await _confirmPermissionChange(false);
+                        if (ok) {
+                          setState(() => _allowAlone = false);
+                        }
+                      } else {
+                        setState(() => _allowAlone = null); // uncheck -> no selection
+                      }
                     },
                     controlAffinity: ListTileControlAffinity.leading,
                     activeColor: Colors.blue,
@@ -743,6 +755,70 @@ class _BookingFlowState extends State<BookingFlow> {
       ),
     );
   }
+  Future<bool> _confirmPermissionChange(bool allowAlone) async {
+    final title = allowAlone
+        ? 'Confirm: Child May Leave Alone'
+        : 'Confirm: Guardian Pickup Required';
+
+    final body = allowAlone
+        ? const [
+            Text(
+              'By selecting YES, you consent to your child leaving the venue on their own after the event concludes.',
+              style: TextStyle(height: 1.4),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• Your Corps is not responsible for the child’s safety once they leave the venue.',
+              style: TextStyle(height: 1.4),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• Staff will perform a manual sign-out at conclusion.',
+              style: TextStyle(height: 1.4),
+            ),
+          ]
+        : const [
+            Text(
+              'By selecting NO, your child must be checked in and checked out by an authorised parent/guardian.',
+              style: TextStyle(height: 1.4),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• The authorised person must scan the child’s QR code on entry and again when collecting at the end.',
+              style: TextStyle(height: 1.4),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '• Your child will remain at the venue under supervision until they are claimed with the QR code.',
+              style: TextStyle(height: 1.4),
+            ),
+          ];
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: body,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+
+    return result == true;
+  }
 
   
   Future<void> _showPermissionInfoDialog() async {
@@ -759,12 +835,16 @@ class _BookingFlowState extends State<BookingFlow> {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 12),
-              Text('• YES – Child may leave on their own after the event. '
-                  'Your Corps is not responsible for the child’s safety once they leave the venue. '
-                  'Parents/guardians should only choose this if they’re comfortable with the child leaving independently.'),
-              SizedBox(height: 8),
-              Text('• NO – Child will remain at the venue until an authorised parent/guardian collects them. '
-                  'The authorised person must have the QR code ready for scanning before handover.'),
+              Text('YES – Child may leave on their own after the event.'),
+              SizedBox(height: 4),
+              Text('• You consent to your child leaving independently.', style: TextStyle(height: 1.4)),
+              Text('• Your Corps is not responsible once they leave the venue.', style: TextStyle(height: 1.4)),
+              Text('• Staff will perform a manual sign-out at conclusion.', style: TextStyle(height: 1.4)),
+              SizedBox(height: 12),
+              Text('NO – An authorised parent/guardian will collect.'),
+              SizedBox(height: 4),
+              Text('• The authorised person must scan the QR code to check in and check out.', style: TextStyle(height: 1.4)),
+              Text('• The child remains at the venue until they are claimed with the QR code.', style: TextStyle(height: 1.4)),
             ],
           ),
         ),
@@ -777,6 +857,7 @@ class _BookingFlowState extends State<BookingFlow> {
       ),
     );
   }
+
 
   // ADD CHILD DIALOG
   Future<void> _showAddChildDialog() async {

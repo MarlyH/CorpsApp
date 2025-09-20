@@ -673,16 +673,13 @@ class _BookingFlowState extends State<BookingFlow> {
                   ),
                   const SizedBox(height: 12),
 
-                  // YES checkbox (checked only if _allowAlone == true)
+                  // YES: child may leave on their own  -> (store inverted) _allowAlone = false
                   CheckboxListTile(
-                    value: _allowAlone == true,
-                    // YES checkbox
+                    value: _allowAlone == false, // inverted binding
                     onChanged: (v) async {
                       if (v == true) {
-                        final ok = await _confirmPermissionChange(true);
-                        if (ok) {
-                          setState(() => _allowAlone = true);
-                        }
+                        final ok = await _confirmPermissionChange(true); // UI meaning = YES
+                        if (ok) setState(() => _allowAlone = false);     // invert when storing
                       } else {
                         setState(() => _allowAlone = null); // uncheck -> no selection
                       }
@@ -692,20 +689,19 @@ class _BookingFlowState extends State<BookingFlow> {
                     checkColor: Colors.white,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Yes, my child may leave on their own',
-                        style: TextStyle(color: Colors.white)),
+                    title: const Text(
+                      'Yes, my child may leave on their own',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
 
-                  // NO checkbox (checked only if _allowAlone == false)
+                  // NO: parent/guardian will collect  -> (store inverted) _allowAlone = true
                   CheckboxListTile(
-                    value: _allowAlone == false && _allowAlone != null,
-                    // NO checkbox
+                    value: _allowAlone == true, // inverted binding
                     onChanged: (v) async {
                       if (v == true) {
-                        final ok = await _confirmPermissionChange(false);
-                        if (ok) {
-                          setState(() => _allowAlone = false);
-                        }
+                        final ok = await _confirmPermissionChange(false); // UI meaning = NO
+                        if (ok) setState(() => _allowAlone = true);        // invert when storing
                       } else {
                         setState(() => _allowAlone = null); // uncheck -> no selection
                       }
@@ -715,13 +711,17 @@ class _BookingFlowState extends State<BookingFlow> {
                     checkColor: Colors.white,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('No, an authorised parent/guardian will collect',
-                        style: TextStyle(color: Colors.white)),
+                    title: const Text(
+                      'No, an authorised parent/guardian will collect',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     subtitle: const Text(
                       'Authorised person must present the QR code for handover.',
                       style: TextStyle(color: Colors.white70),
                     ),
                   ),
+
+
 
                   if (_allowAlone == null)
                     const Padding(

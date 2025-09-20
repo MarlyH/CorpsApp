@@ -431,7 +431,7 @@ class _QrScanViewState extends State<QrScanView> {
 
                             
                             if (current.isForChild)
-                              _kvRow('Can Be Left Alone', current.canBeLeftAlone ? 'Yes' : 'No'),
+                              _kvRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', current.canBeLeftAlone ? 'Yes' : 'No'),
 
                             const SizedBox(height: 12),
                             Row(

@@ -202,7 +202,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 _pdfDetailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                 // Only show for child bookings:
                 if (widget.booking.isForChild)
-                  _pdfDetailRow('Can be left alone?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
+                  _pdfDetailRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
 
 
                 pw.SizedBox(height: 12),
@@ -431,7 +431,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                           _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
                           // Only show for child bookings:
                           if (widget.booking.isForChild)
-                            _detailRow('Can be left alone?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
+                            _detailRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
 
                           const SizedBox(height: 16),
                           const Divider(color: Colors.black26),

@@ -583,12 +583,26 @@ class _AttendeeDetailSheet extends StatelessWidget {
               kind: _ActionKind.phone,
             ),
 
-            _kv('Can Be Left Alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
-            if (!detail.canBeLeftAlone)
-              _kv('Parent/Guardian',
-                  (detail.reservedGuardianName?.trim().isNotEmpty ?? false)
-                      ? detail.reservedGuardianName!.trim()
-                      : '—'),
+            // derive requirement correctly
+            () {
+              final hasGuardianName = (detail.reservedGuardianName?.trim().isNotEmpty ?? false);
+              // If guardian name is present on a reservation OR canBeLeftAlone is false,
+              // then a guardian is required at event conclusion.
+              final requireGuardian = hasGuardianName || !detail.canBeLeftAlone;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _kv(
+                    'Does the attendee require a Parent/Guardian to be present on event conclusion?',
+                    requireGuardian ? 'Yes' : 'No',
+                  ),
+                  if (hasGuardianName)
+                    _kv('Parent/Guardian', detail.reservedGuardianName!.trim()),
+                ],
+              );
+            }(),
+
             const SizedBox(height: 12),
           ],
 
@@ -637,7 +651,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
           _kv('Event', detail.eventName ?? '—'),
           _kv('Event Date', _fmtDob(detail.eventDate)),
           if (isChildBooking)
-            _kv('Can Be Left Alone', detail.canBeLeftAlone ? 'Yes' : 'No'),
+            _kv('Does the attendee require a Parent/Guardian to be present on event conclusion?', detail.canBeLeftAlone ? 'Yes' : 'No'),
 
           const Spacer(),
         ],

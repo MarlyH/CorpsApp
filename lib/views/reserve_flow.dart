@@ -17,7 +17,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
   final _seatCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _guardianCtrl = TextEditingController(); // NEW
+  final _guardianCtrl = TextEditingController();
 
   bool _loading = false;
   String? _error;
@@ -26,7 +26,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
   int? _selectedSeat;
 
   // UX toggle (inverse of API's canBeLeftAlone)
-  bool _cannotBeLeftAlone = false; // NEW
+  bool _cannotBeLeftAlone = false;
 
   // brand color used for selected state
   static const _brandBlue = Color(0xFF4C85D0);
@@ -43,7 +43,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
     _seatCtrl.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _guardianCtrl.dispose(); // NEW
+    _guardianCtrl.dispose();
     super.dispose();
   }
 
@@ -58,7 +58,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
         s.trim().runes.where((c) => (c >= 0x30 && c <= 0x39) || c == 0x2B),
       );
 
-  bool _needsGuardian() => _cannotBeLeftAlone; // NEW
+  bool _needsGuardian() => _cannotBeLeftAlone;
 
   // ────────────────────────────────────────────────────────────────────────────
   // API helpers
@@ -328,7 +328,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
                   _boxedField(
                     label: 'Attendee Name',
-                    hint: 'Your name',
+                    hint: 'Child full name',
                     controller: _nameCtrl,
                     validator: (v) =>
                         v == null || v.trim().isEmpty ? 'Required' : null,
@@ -358,11 +358,11 @@ class _ReserveFlowState extends State<ReserveFlow> {
                     value: _cannotBeLeftAlone,
                     onChanged: (v) => setState(() => _cannotBeLeftAlone = v),
                     title: const Text(
-                      'Cannot be left alone',
+                      'Does the attendee require a Parent/Guardian to be present on event conclusion?',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Text(
-                      'If enabled, a Parent/Guardian name is required',
+                      'If enabled, a Parent/Guardians full name is required they may be asked for ID on event day.',
                       style: TextStyle(color: Colors.white70),
                     ),
                     activeColor: _brandBlue,

@@ -356,6 +356,7 @@ class _AdminBookingDetail {
 class _AdminUserMini {
   final String id;
   final String? email;
+  final String? phoneNumber;
   final String firstName;
   final String lastName;
   final int strikes;
@@ -365,6 +366,7 @@ class _AdminUserMini {
   _AdminUserMini({
     required this.id,
     required this.email,
+    required this.phoneNumber,
     required this.firstName,
     required this.lastName,
     required this.strikes,
@@ -375,6 +377,7 @@ class _AdminUserMini {
   factory _AdminUserMini.fromJson(Map<String, dynamic> j) => _AdminUserMini(
         id: (j['id'] ?? '').toString(),
         email: j['email']?.toString(),
+        phoneNumber: j['phoneNumber']?.toString(),
         firstName: (j['firstName'] ?? '').toString(),
         lastName: (j['lastName'] ?? '').toString(),
         strikes: (j['attendanceStrikeCount'] as int?) ?? 0,
@@ -619,6 +622,15 @@ class _AttendeeDetailSheet extends StatelessWidget {
                 label: isChildBooking ? 'Parent Email' : 'Email',
                 value: email.isNotEmpty ? email : '—',
                 kind: _ActionKind.email,
+              );
+            }(),
+            () {
+              final phone = (user.phoneNumber ?? '').trim();
+              return _kvAction(
+                context,
+                label: isChildBooking ? 'Parent Phone' : 'Phone',
+                value: phone.isNotEmpty ? phone : '—',
+                kind: _ActionKind.phone,
               );
             }(),
             _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),

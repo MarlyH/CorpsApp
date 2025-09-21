@@ -104,11 +104,13 @@ class AuthHttpClient {
     String? newUserName,
     String? newFirstName,
     String? newLastName,
+    String? newPhoneNumber,
   }) async {
     final body = <String, String>{
       if (newUserName != null) 'newUserName': newUserName,
       if (newFirstName != null) 'newFirstName': newFirstName,
       if (newLastName != null) 'newLastName': newLastName,
+      if (newPhoneNumber != null) 'newPhoneNumber': newPhoneNumber,
     };
     final resp = await patch(
       '/api/profile',  // ← **use** `/api/profile` not `/api/profile/profile`

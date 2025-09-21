@@ -427,7 +427,7 @@ class _QrScanViewState extends State<QrScanView> {
                             _kvRow('Session', current.sessionType ?? '—'),
                             _kvRow('Date', current.eventDateText),
                             _kvRow('Time', '${current.startTime ?? '—'} - ${current.endTime ?? '—'}'),
-                            _kvRow('Seat', current.seatNumber?.toString() ?? '—'),
+                            _kvRow('Ticket', current.seatNumber?.toString() ?? '—'),
 
                             
                             if (current.isForChild)
@@ -481,6 +481,7 @@ class _QrScanViewState extends State<QrScanView> {
                               const SizedBox(height: 8),
                               _kvRow('Parent/Guardian Name', current.user!.fullName),
                               _kvRow('Email', current.user!.email ?? '—'),
+                              _kvRow('Phone', current.user!.phoneNumber ?? '—'),
                               _kvRow('Strikes', '${current.user!.attendanceStrikeCount}'
                                   '${current.user!.isSuspended ? ' (SUSPENDED)' : ''}'),
                               if (current.user!.dateOfLastStrike != null)
@@ -782,6 +783,7 @@ class _ScanChildDto {
 class _ScanUserMini {
   final String id;
   final String? email;
+  final String? phoneNumber;
   final String firstName;
   final String lastName;
   final int attendanceStrikeCount;
@@ -791,6 +793,7 @@ class _ScanUserMini {
   _ScanUserMini({
     required this.id,
     required this.email,
+    required this.phoneNumber,
     required this.firstName,
     required this.lastName,
     required this.attendanceStrikeCount,
@@ -801,6 +804,7 @@ class _ScanUserMini {
   factory _ScanUserMini.fromJson(Map<String, dynamic> j) => _ScanUserMini(
         id: (j['id'] ?? '').toString(),
         email: j['email']?.toString(),
+        phoneNumber: j['phoneNumber']?.toString(),
         firstName: (j['firstName'] ?? '').toString(),
         lastName: (j['lastName'] ?? '').toString(),
         attendanceStrikeCount: (j['attendanceStrikeCount'] as int?) ?? 0,

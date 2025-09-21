@@ -14,7 +14,6 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:flutter_svg/flutter_svg.dart';
 
-
 /// Two-step registration + success flow with resend countdown.
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -31,6 +30,7 @@ class _RegisterViewState extends State<RegisterView> {
   final lastNameCtrl  = TextEditingController();
   final userNameCtrl  = TextEditingController();
   final emailCtrl     = TextEditingController();
+  final phoneCtrl     = TextEditingController();
   final dobCtrl       = TextEditingController();
   final passwordCtrl  = TextEditingController();
   final confirmCtrl   = TextEditingController();
@@ -53,6 +53,7 @@ class _RegisterViewState extends State<RegisterView> {
       lastNameCtrl,
       userNameCtrl,
       emailCtrl,
+      phoneCtrl,
       dobCtrl,
       passwordCtrl,
       confirmCtrl
@@ -85,8 +86,8 @@ class _RegisterViewState extends State<RegisterView> {
 
   Future<void> _submit() async {
     setState(() {
-        _error = null;
-      });
+      _error = null;
+    });
       
     if (!_formKey.currentState!.validate()) return;
 
@@ -103,7 +104,7 @@ class _RegisterViewState extends State<RegisterView> {
       if (age < 13) {
         await showDialog(
           context: context,
-          builder: (context) => CustomAlertDialog(
+          builder: (context) => const CustomAlertDialog(
             title: 'Parent or Guardian Required',
             info: 'Accounts for users under the age of 13 must be created by a parent or legal guardian. '
                   'Please have them register their own account to make bookings on your behalf.'
@@ -123,7 +124,6 @@ class _RegisterViewState extends State<RegisterView> {
       _loading = true;
     });
 
-    //Capitalsie names
     String capitalize(String input) {
       if (input.isEmpty) return input;
       return input[0].toUpperCase() + input.substring(1).toLowerCase();
@@ -131,14 +131,18 @@ class _RegisterViewState extends State<RegisterView> {
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
     final url     = Uri.parse('$baseUrl/api/auth/register');
-    final body    = jsonEncode({
+
+    final bodyMap = {
       'firstName':   capitalize(firstNameCtrl.text.trim()),
       'lastName':    capitalize(lastNameCtrl.text.trim()),
       'userName':    userNameCtrl.text.trim(),
       'email':       emailCtrl.text.trim(),
       'dateOfBirth': dobCtrl.text.trim(),
       'password':    passwordCtrl.text,
-    });
+      'phoneNumber': phoneCtrl.text.trim(),
+    };
+
+    final body = jsonEncode(bodyMap);
 
     try {
       final resp = await http.post(
@@ -233,9 +237,8 @@ class _RegisterViewState extends State<RegisterView> {
                     text: 'Create an account to start booking free events!\n',
                   ),
                 
-                  TextSpan(
+                  const TextSpan(
                     text: 'Already have one? ',
-                    style: const TextStyle(), 
                   ),
 
                   TextSpan(
@@ -245,7 +248,6 @@ class _RegisterViewState extends State<RegisterView> {
                       color: Colors.white,
                       decoration: TextDecoration.none, 
                     ),
-
                     recognizer: TapGestureRecognizer()
                       ..onTap = () {
                         Navigator.pushNamed(context, '/login');
@@ -298,6 +300,15 @@ class _RegisterViewState extends State<RegisterView> {
                   return null;
                 },
             ),
+
+            const SizedBox(height: 20),
+
+            InputField(
+              label: 'Phone Number',
+              hintText: 'e.g. 021 123 4567',
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+            ),
             
             const SizedBox(height: 20),
 
@@ -311,7 +322,6 @@ class _RegisterViewState extends State<RegisterView> {
                   dobCtrl.text = dt.toIso8601String().split('T').first;
                 }
               },
-
               iconLook: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: SvgPicture.asset(
@@ -457,7 +467,7 @@ class _RegisterViewState extends State<RegisterView> {
                   const SizedBox(width: 4),
 
                   if (_resending)
-                    SizedBox(
+                    const SizedBox(
                       width: 14,
                       height: 14,
                       child: CircularProgressIndicator(
@@ -503,7 +513,7 @@ Future<DateTime?> _pickDate(BuildContext context) async {
   if (Platform.isAndroid) {
     dt = await showDatePicker(
       context: context,
-      initialDate: DateTime(1980, 1, 1),
+      initialDate: DateTime(2025, 1, 1),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );

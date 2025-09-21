@@ -36,6 +36,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     required String initial,
     required String hint,
     required Future<void> Function(String) onSubmit,
+    bool isPhone = false, // <-- added
   }) async {
     final result = await showDialog<String?>(
       context: context,
@@ -44,6 +45,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
         initial: initial,
         hint: hint,
         isEmail: false,
+        isPhone: isPhone, // <-- added
       ),
     );
     if (result == null || result.trim() == initial.trim()) return;
@@ -202,20 +204,28 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                           errorText: _emailError,
                         ),
                         _divider(),
+
+                        // ───── Phone (optional) ─────
+                        _buildTile(
+                          label: 'Phone',
+                          value: user['phoneNumber'] as String? ?? '',
+                          onTap: () => _editField(
+                            title: 'Phone',
+                            initial: user['phoneNumber'] as String? ?? '',
+                            hint: 'e.g. 021 123 4567',
+                            isPhone: true, // <-- phone keyboard
+                            onSubmit: (v) =>
+                                AuthHttpClient.updateProfile(newPhoneNumber: v),
+                          ),
+                          showArrow: true,
+                        ),
+                        _divider(),
+
                         _buildTile(
                           label: 'Age',
                           value: (user['age']?.toString() ?? ''),
                         ),
                         _divider(),
-                        // _buildTile(
-                        //   label: 'Location',
-                        //   value: user['location'] as String? ?? '',
-                        //   onTap: () {
-                        //     // TODO: push a real LocationPickerView
-                        //   },
-                        //   showArrow: true,
-                        // ),
-                        // _divider(),
                         _buildTile(
                           label: 'Password',
                           value: '●●●●●●●●',
@@ -288,12 +298,14 @@ class _SingleFieldDialog extends StatefulWidget {
   final String initial;
   final String hint;
   final bool isEmail;
+  final bool isPhone; // <-- added
   const _SingleFieldDialog({
     super.key,
     required this.title,
     required this.initial,
     required this.hint,
     this.isEmail = false,
+    this.isPhone = false, // <-- added
   });
 
   @override
@@ -325,7 +337,7 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
         controller: _ctrl,
         keyboardType: widget.isEmail
             ? TextInputType.emailAddress
-            : TextInputType.text,
+            : (widget.isPhone ? TextInputType.phone : TextInputType.text), // <-- added
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: widget.hint,

@@ -267,6 +267,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                       ],
                     ),
                     _ActionableEmail(email: u.email),
+                    _ActionPhone(phone: u.phoneNumber),
 
                     const SizedBox(height: 12),
 
@@ -492,7 +493,6 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 // ---------------------------
 // Widgets
 // ---------------------------
-
 class _ActionableEmail extends StatelessWidget {
   final String email;
   const _ActionableEmail({required this.email});
@@ -538,6 +538,52 @@ class _ActionableEmail extends StatelessWidget {
       );
     }
   }
+
+class _ActionPhone extends StatelessWidget {
+  final String? phone;
+  const _ActionPhone({required this.phone});
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = (phone ?? '').trim();
+    final isEmpty = trimmed.isEmpty;
+
+    final style = TextStyle(
+      color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
+      fontSize: 12,
+      decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
+      decorationColor: const Color(0xFF4A90E2),
+    );
+
+    Future<void> _launch() async {
+      if (isEmpty) return;
+      final uri = Uri(scheme: 'tel', path: trimmed);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _copy(context);
+      }
+    }
+
+    return GestureDetector(
+      onTap: _launch,
+      onLongPress: () => _copy(context),
+      child: Text(isEmpty ? '—' : trimmed, style: style),
+    );
+  }
+
+  void _copy(BuildContext context) {
+    if ((phone ?? '').trim().isEmpty) return;
+    Clipboard.setData(ClipboardData(text: (phone ?? '').trim()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Phone number copied to clipboard'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+}
 
 class _UserTile extends StatelessWidget {
   final _User user;
@@ -654,6 +700,7 @@ class _UserTile extends StatelessWidget {
 class _User {
   final String id;
   final String email;
+  final String phoneNumber;
   final String firstName;
   final String lastName;
 
@@ -664,6 +711,7 @@ class _User {
   _User({
     required this.id,
     required this.email,
+    required this.phoneNumber,
     required this.firstName,
     required this.lastName,
     this.strikes = 0,
@@ -676,6 +724,7 @@ class _User {
   factory _User.fromJson(Map<String, dynamic> j) => _User(
         id: (j['id'] ?? '').toString(),
         email: (j['email'] ?? '').toString(),
+        phoneNumber: j['phoneNumber'].toString(),
         firstName: (j['firstName'] ?? '').toString(),
         lastName: (j['lastName'] ?? '').toString(),
         // If your /users endpoint already returns these, they’ll be used; otherwise enriched later.

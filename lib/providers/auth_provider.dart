@@ -53,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
           'firstName': userData['firstName'],
           'lastName': userData['lastName'],
           'email': userData['email'],
+          'phoneNumber': userData['phoneNumber'],
           'roles': roles,
           'age': userData['age'],
           'attendanceStrikeCount': userData['attendanceStrikeCount'] ?? 0,

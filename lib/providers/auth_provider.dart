@@ -58,6 +58,7 @@ class AuthProvider extends ChangeNotifier {
           'age': userData['age'],
           'attendanceStrikeCount': userData['attendanceStrikeCount'] ?? 0,
           'isSuspended': userData['isSuspended'] ?? false,
+          'suspensionUntil': userData['suspensionUntil'],
         };
 
         notifyListeners();

@@ -14,6 +14,8 @@ import '../widgets/navbar/guest_navbar.dart';
 import '../widgets/navbar/qr_scanner_fab.dart';
 import '../widgets/navbar/user_navbar.dart';
 import '../widgets/navbar/staff_navbar.dart';
+import '../services/notification_prefs.dart';
+import '../widgets/in_app_push.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -51,43 +53,64 @@ class _DashboardViewState extends State<DashboardView> {
   Future<void> _setupFirebaseMessaging() async {
     final messaging = FirebaseMessaging.instance;
 
-    // Request permission
+    // Respect user's preference
+    final enabled = await NotificationPrefs.getEnabled();
+    await messaging.setAutoInitEnabled(enabled);
+
+    // Request permission (safe on Android, needed on iOS)
     await messaging.requestPermission();
+    //iOS suppresses notification alerts when the app is open unless you opt in
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
 
     // get the FCM token and register it with API -> Azure Notification Hubs
-    if (Platform.isAndroid)
-    {
-        final token = await messaging.getToken();
-
-        if (token != null) {
-          try {
-            await AuthHttpClient.registerDeviceToken(token);
-          } catch (e) {
-            print('Error registering device token: $e');
-          }
+    // if (Platform.isAndroid && enabled) {
+    //   final token = await messaging.getToken();
+    //   if (token != null) {
+    //     try {
+    //       await AuthHttpClient.registerDeviceToken(token);
+    //     } catch (e) {
+    //       print('Error registering device token: $e');
+    //     }
+    //   }
+    // }
+    if (enabled) {
+      final token = await messaging.getToken(); //this will support iOS & Android
+      if (token != null) {
+        try {
+          await AuthHttpClient.registerDeviceToken(token);
+        } catch (e) {
+          print('Error registering device token: $e');
         }
+      }
     }
 
-    // handle notifications when the app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final notification = message.notification;
 
-      if (notification != null) {
-        final title = notification.title ?? 'Notification';
-        final body = notification.body ?? '';
+    // Foreground notifications: only show if enabled
+   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    final on = await NotificationPrefs.getEnabled();
+    if (!on) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(body), duration: Duration(seconds: 10)),
-        );
-      }
-    });
+    final notif = message.notification;
+    if (!mounted || notif == null) return;
 
-    // Handle when the app is opened from a notification tap
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Notification caused app to open: ${message.data}');
-      // Navigate or update UI based on message.data here
-      // Example:
-      // Navigator.pushNamed(context, '/someRoute', arguments: message.data);
+    final title = notif.title ?? 'Notification';
+    final body  = notif.body  ?? '';
+
+    // NEW: poppable overlay
+    // ignore: use_build_context_synchronously
+    showInAppPush(context, title: title, body: body);
+  });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      final on = await NotificationPrefs.getEnabled();
+      if (!on) return;
+      // Handle deep links if needed
+      // print('Notification caused app to open: ${message.data}');
     });
   }
 

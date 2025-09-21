@@ -276,24 +276,29 @@ class _LoginViewState extends State<LoginView> {
 
                                     Center(
                                       child: RichText(
-                                        text: const TextSpan(
+                                        text: TextSpan(
                                           text: "Don't have an account? ",
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
                                           ),
                                           children: [
                                             TextSpan(
                                               text: 'Register',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w600,
+                                                decoration: TextDecoration.underline, // optional
                                               ),
+                                              recognizer: TapGestureRecognizer()
+                                                ..onTap = () {
+                                                  Navigator.pushNamed(context, '/register');
+                                                },
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ),
+                                    )
                                   ],
                                 ),
                               ),

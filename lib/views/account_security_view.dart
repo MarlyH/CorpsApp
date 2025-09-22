@@ -36,7 +36,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     required String initial,
     required String hint,
     required Future<void> Function(String) onSubmit,
-    bool isPhone = false, // <-- added
+    bool isPhone = false,
   }) async {
     final result = await showDialog<String?>(
       context: context,
@@ -45,7 +45,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
         initial: initial,
         hint: hint,
         isEmail: false,
-        isPhone: isPhone, // <-- added
+        isPhone: isPhone,
       ),
     );
     if (result == null || result.trim() == initial.trim()) return;
@@ -105,22 +105,26 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool?>(
-      context: context,
-      builder: (_) => const _DeleteConfirmDialog(),
-    ) ?? false;
+    final ok = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true, // keyboard-safe
+          backgroundColor: Colors.transparent,
+          builder: (_) => const _DeleteConfirmSheet(),
+        ) ??
+        false;
+
     if (!ok) return;
 
     setState(() => _isLoading = true);
     try {
       await AuthHttpClient.deleteProfile();
       await context.read<AuthProvider>().logout();
-      if (!context.mounted) return;
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/landing');
     } catch (e) {
       _showSnack("Delete failed: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -135,12 +139,12 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text('Account & Security'),
-            titleTextStyle: const TextStyle(
-              fontFamily: 'WinnerSans',
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+        titleTextStyle: const TextStyle(
+          fontFamily: 'WinnerSans',
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
         leading: const BackButton(color: Colors.white),
       ),
       body: _isLoading
@@ -204,8 +208,6 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                           errorText: _emailError,
                         ),
                         _divider(),
-
-                        // ───── Phone (optional) ─────
                         _buildTile(
                           label: 'Phone',
                           value: user['phoneNumber'] as String? ?? '',
@@ -213,14 +215,14 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                             title: 'Phone',
                             initial: user['phoneNumber'] as String? ?? '',
                             hint: 'e.g. 021 123 4567',
-                            isPhone: true, // <-- phone keyboard
-                            onSubmit: (v) =>
-                                AuthHttpClient.updateProfile(newPhoneNumber: v),
+                            isPhone: true,
+                            onSubmit: (v) => AuthHttpClient.updateProfile(
+                              newPhoneNumber: v,
+                            ),
                           ),
                           showArrow: true,
                         ),
                         _divider(),
-
                         _buildTile(
                           label: 'Age',
                           value: (user['age']?.toString() ?? ''),
@@ -242,7 +244,6 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
 
                   const SizedBox(height: 24),
 
-                  // only non-admins can delete
                   if (!isAdmin)
                     TextButton(
                       onPressed: _confirmDelete,
@@ -298,14 +299,14 @@ class _SingleFieldDialog extends StatefulWidget {
   final String initial;
   final String hint;
   final bool isEmail;
-  final bool isPhone; // <-- added
+  final bool isPhone;
   const _SingleFieldDialog({
     super.key,
     required this.title,
     required this.initial,
     required this.hint,
     this.isEmail = false,
-    this.isPhone = false, // <-- added
+    this.isPhone = false,
   });
 
   @override
@@ -337,7 +338,7 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
         controller: _ctrl,
         keyboardType: widget.isEmail
             ? TextInputType.emailAddress
-            : (widget.isPhone ? TextInputType.phone : TextInputType.text), // <-- added
+            : (widget.isPhone ? TextInputType.phone : TextInputType.text),
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: widget.hint,
@@ -364,14 +365,15 @@ class __SingleFieldDialogState extends State<_SingleFieldDialog> {
   }
 }
 
-/// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
-class _DeleteConfirmDialog extends StatefulWidget {
-  const _DeleteConfirmDialog({super.key});
+/// Bottom-sheet delete confirmation (keyboard-safe, tidy)
+class _DeleteConfirmSheet extends StatefulWidget {
+  const _DeleteConfirmSheet({super.key});
+
   @override
-  __DeleteConfirmDialogState createState() => __DeleteConfirmDialogState();
+  State<_DeleteConfirmSheet> createState() => _DeleteConfirmSheetState();
 }
 
-class __DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
+class _DeleteConfirmSheetState extends State<_DeleteConfirmSheet> {
   final _ctrl = TextEditingController();
 
   @override
@@ -382,53 +384,124 @@ class __DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom; // keyboard height
     final isValid = _ctrl.text.trim().toUpperCase() == 'DELETE';
-    return AlertDialog(
-      backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Delete Account", style: TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Type “delete” to confirm permanent removal.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _ctrl,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              hintText: 'delete',
-              hintStyle: const TextStyle(color: Colors.white24),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // grabber
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // header
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Delete Account',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // scrollable body in case of small screens
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Type “delete” to confirm permanent removal.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _ctrl,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (_) => setState(() {}),
+                          style: const TextStyle(color: Colors.black),
+                          decoration: InputDecoration(
+                            hintText: 'delete',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('CANCEL',
+                            style: TextStyle(color: Colors.grey)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextButton(
+                        onPressed:
+                            isValid ? () => Navigator.pop(context, true) : null,
+                        child: Text(
+                          'DELETE',
+                          style: TextStyle(
+                            color: isValid
+                                ? Colors.redAccent
+                                : Colors.redAccent.withOpacity(0.4),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            onChanged: (_) => setState(() {}),
           ),
-        ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
-        ),
-        TextButton(
-          onPressed: isValid ? () => Navigator.pop(context, true) : null,
-          child: Text(
-            "DELETE",
-            style: TextStyle(
-              color: isValid
-                  ? Colors.redAccent
-                  : Colors.redAccent.withOpacity(0.4),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

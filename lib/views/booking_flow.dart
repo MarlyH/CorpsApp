@@ -8,6 +8,24 @@ import '../models/event_detail.dart' show EventDetail;
 import '../models/child_model.dart';
 import 'package:intl/intl.dart';
 
+class MedicalItem {
+  MedicalItem({required this.name, this.notes = '', this.isAllergy = false});
+  String name;
+  String notes;
+  bool isAllergy;
+
+  Map<String, dynamic> toJson() => {
+        'name': name.trim(),
+        'notes': notes.trim(),
+        'isAllergy': isAllergy,
+      };
+}
+
+String _cap(String s) =>
+    s.split(RegExp(r'\s+'))
+     .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+     .join(' ');
+
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
   const BookingFlow({super.key, required this.event});
@@ -866,6 +884,11 @@ class _BookingFlowState extends State<BookingFlow> {
     final emName = TextEditingController();
     final emPhone = TextEditingController();
     DateTime? dob;
+
+    // NEW: medical state for the dialog
+    bool hasMedical = false;
+    final List<MedicalItem> medicalItems = [];
+
     bool isSubmitting = false;
 
     await showDialog(
@@ -873,6 +896,60 @@ class _BookingFlowState extends State<BookingFlow> {
       builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (sbCtx, setSb) {
+            Future<void> addMedical() async {
+              final item = await showModalBottomSheet<MedicalItem>(
+                context: dialogCtx,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (ctx) => SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                          MediaQuery.of(ctx).padding.bottom +
+                          16,
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                    ),
+                    child: const _MedicalEditor(),
+                  ),
+                ),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+              );
+              if (item != null) setSb(() => medicalItems.add(item));
+            }
+
+            Future<void> editMedical(int i) async {
+              final updated = await showModalBottomSheet<MedicalItem>(
+                context: dialogCtx,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (ctx) => SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                          MediaQuery.of(ctx).padding.bottom +
+                          16,
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                    ),
+                    child: _MedicalEditor(initial: medicalItems[i]),
+                  ),
+                ),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+              );
+              if (updated != null) setSb(() => medicalItems[i] = updated);
+            }
+
             return Dialog(
               backgroundColor: Colors.transparent,
               child: ConstrainedBox(
@@ -888,254 +965,232 @@ class _BookingFlowState extends State<BookingFlow> {
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                   child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Add New Child',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontFamily: 'WinnerSans',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.of(dialogCtx).pop(),
-                            icon: const Icon(Icons.close, color: Colors.white),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // First Name
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4, bottom: 6),
-                            child: Text(
-                              'First Name',
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Add New Child',
                               style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextField(
-                            controller: fn,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. Jane',
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.person_outline,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Last Name
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4, bottom: 6),
-                            child: Text(
-                              'Last Name',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextField(
-                            controller: ln,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. Doe',
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.person_outline,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // DOB
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4, bottom: 6),
-                            child: Text(
-                              'Date of Birth',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () async {
-                              final d = await showDatePicker(
-                                context: sbCtx,
-                                initialDate: DateTime.now().subtract(
-                                  const Duration(days: 365 * 8),
-                                ),
-                                firstDate: DateTime(2005),
-                                lastDate: DateTime.now(),
-                              );
-                              if (d != null) setSb(() => dob = d);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
+                                fontSize: 20,
+                                fontFamily: 'WinnerSans',
+                                fontWeight: FontWeight.w600,
                               ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.black54,
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(dialogCtx).pop(),
+                              icon: const Icon(Icons.close, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // First Name
+                        _label('First Name'),
+                        TextField(
+                          controller: fn,
+                          textCapitalization: TextCapitalization.words,
+                          style: const TextStyle(color: Colors.black),
+                          decoration: _decWhite(
+                            hint: 'e.g. Jane',
+                            icon: Icons.person_outline,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Last Name
+                        _label('Last Name'),
+                        TextField(
+                          controller: ln,
+                          textCapitalization: TextCapitalization.words,
+                          style: const TextStyle(color: Colors.black),
+                          decoration: _decWhite(
+                            hint: 'e.g. Doe',
+                            icon: Icons.person_outline,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // DOB
+                        _label('Date of Birth'),
+                        GestureDetector(
+                          onTap: () async {
+                            final d = await showDatePicker(
+                              context: sbCtx,
+                              initialDate: DateTime.now().subtract(const Duration(days: 365 * 8)),
+                              firstDate: DateTime(2005),
+                              lastDate: DateTime.now(),
+                            );
+                            if (d != null) setSb(() => dob = d);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today, color: Colors.black54),
+                                const SizedBox(width: 12),
+                                Text(
+                                  dob == null
+                                      ? 'Tap to select date'
+                                      : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                    color: dob == null ? Colors.black38 : Colors.black87,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    dob == null
-                                        ? 'Tap to select date'
-                                        : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}',
-                                    style: TextStyle(
-                                      color:
-                                          dob == null
-                                              ? Colors.black38
-                                              : Colors.black87,
-                                    ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Emergency Name
+                        _label('Emergency Contact Name'),
+                        TextField(
+                          controller: emName,
+                          textCapitalization: TextCapitalization.words,
+                          style: const TextStyle(color: Colors.black),
+                          decoration: _decWhite(
+                            hint: 'e.g. John Doe',
+                            icon: Icons.contact_phone_outlined,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Emergency Phone
+                        _label('Emergency Contact Phone'),
+                        TextField(
+                          controller: emPhone,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(color: Colors.black),
+                          decoration: _decWhite(
+                            hint: '(555) 123-4567',
+                            icon: Icons.phone_outlined,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // MEDICAL TOGGLE
+                        SwitchListTile.adaptive(
+                          value: hasMedical,
+                          onChanged: (v) => setSb(() => hasMedical = v),
+                          activeColor: Colors.blueAccent,
+                          title: const Text(
+                            'Has medical conditions or allergies?',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: const Text(
+                            'If enabled, add one or more items below.',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+
+                        if (hasMedical) ...[
+                          const SizedBox(height: 8),
+                          medicalItems.isEmpty
+                              ? Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF121212),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white12),
                                   ),
-                                ],
+                                  child: const Text(
+                                    'No items yet. Tap "Add Condition/Allergy" to add one.',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: medicalItems.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, i) {
+                                    final it = medicalItems[i];
+                                    return Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF121212),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.white12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    if (it.isAllergy)
+                                                      const Padding(
+                                                        padding: EdgeInsets.only(right: 6),
+                                                        child: Icon(Icons.warning_amber_rounded,
+                                                            size: 16, color: Colors.amber),
+                                                      ),
+                                                    Flexible(
+                                                      child: Text(
+                                                        it.name,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (it.notes.trim().isNotEmpty) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(it.notes, style: const TextStyle(color: Colors.white70)),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () => editMedical(i),
+                                            icon: const Icon(Icons.edit, color: Colors.white70),
+                                          ),
+                                          IconButton(
+                                            onPressed: () => setSb(() => medicalItems.removeAt(i)),
+                                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              onPressed: addMedical,
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: const Text('ADD CONDITION/ALLERGY', style: TextStyle(color: Colors.white)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                             ),
                           ),
+                          const SizedBox(height: 8),
                         ],
-                      ),
-                      const SizedBox(height: 16),
 
-                      // Emergency Name
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4, bottom: 6),
-                            child: Text(
-                              'Emergency Contact Name',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextField(
-                            controller: emName,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. John Doe',
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.contact_phone_outlined,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Emergency Phone
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4, bottom: 6),
-                            child: Text(
-                              'Emergency Contact Phone',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextField(
-                            controller: emPhone,
-                            keyboardType: TextInputType.phone,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: '(555) 123-4567',
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.phone_outlined,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Submit Button
-                      ElevatedButton(
-                        onPressed:
-                            isSubmitting
-                                ? null
-                                : () async {
+                        // Submit
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  // basic validation
                                   if (fn.text.trim().isEmpty ||
                                       ln.text.trim().isEmpty ||
                                       dob == null ||
@@ -1143,88 +1198,103 @@ class _BookingFlowState extends State<BookingFlow> {
                                       emPhone.text.trim().isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text(
-                                          'Please fill out all fields',
-                                          style: TextStyle(color: Colors.black),
-                                        ),
+                                        content: Text('Please fill out all fields', style: TextStyle(color: Colors.black)),
                                         backgroundColor: Colors.redAccent,
                                       ),
                                     );
                                     return;
                                   }
+                                  // medical validation
+                                  if (hasMedical && medicalItems.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please add at least one condition/allergy or turn the toggle off.',
+                                            style: TextStyle(color: Colors.black)),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   setSb(() => isSubmitting = true);
                                   try {
-                                    await AuthHttpClient.post(
-                                      '/api/child',
-                                      body: {
-                                        'firstName': fn.text.trim(),
-                                        'lastName': ln.text.trim(),
-                                        'dateOfBirth':
-                                            dob!
-                                                .toIso8601String()
-                                                .split('T')
-                                                .first,
-                                        'emergencyContactName':
-                                            emName.text.trim(),
-                                        'emergencyContactPhone':
-                                            emPhone.text.trim(),
-                                      },
-                                    );
+                                    final body = {
+                                      'firstName': _cap(fn.text.trim()),
+                                      'lastName': _cap(ln.text.trim()),
+                                      'dateOfBirth': dob!.toIso8601String().split('T').first,
+                                      'emergencyContactName': _cap(emName.text.trim()),
+                                      'emergencyContactPhone': emPhone.text.trim(),
+                                      'hasMedicalConditions': hasMedical,
+                                      if (hasMedical)
+                                        'medicalConditions': medicalItems.map((m) => m.toJson()).toList(),
+                                    };
+
+                                    final res = await AuthHttpClient.post('/api/child', body: body);
+
+                                    // try to select newly created child if id returned
+                                    int? newId;
+                                    try {
+                                      final j = jsonDecode(res.body);
+                                      if (j is Map && j['childId'] != null) newId = (j['childId'] as num).toInt();
+                                    } catch (_) {}
+
                                     await _loadChildren();
+                                    if (newId != null) {
+                                      setState(() => _selectedChildId = newId.toString());
+                                    }
                                     Navigator.of(dialogCtx).pop();
                                   } catch (e) {
                                     setSb(() => isSubmitting = false);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text(
-                                          'Could not add child: $e',
-                                        ),
+                                        content: Text('Could not add child: $e'),
                                         backgroundColor: Colors.redAccent,
                                       ),
                                     );
                                   }
                                 },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            disabledBackgroundColor: Colors.blue.withOpacity(0.3),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          disabledBackgroundColor: Colors.blue.withOpacity(0.3),
-                        ),
-                        child:
-                            isSubmitting
-                                ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 20, height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                                 )
-                                : const Text(
-                                  'ADD CHILD',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                      ),
-                    ],
+                              : const Text('ADD CHILD', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
-      );
+            );
+          },
+        );
       },
     );
   }
+
+  // small label + white input helper (keeps your current look)
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 6),
+    child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+  );
+
+  InputDecoration _decWhite({required String hint, required IconData icon}) => InputDecoration(
+    hintText: hint,
+    filled: true,
+    fillColor: Colors.white,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    prefixIcon: Icon(icon, color: Colors.black54),
+  );
+
 }
 
 
@@ -1523,4 +1593,153 @@ class _LegendSwatch extends StatelessWidget {
     );
   }
 }
+
+
+
+
+class _MedicalEditor extends StatefulWidget {
+  const _MedicalEditor({this.initial});
+  final MedicalItem? initial;
+
+  @override
+  State<_MedicalEditor> createState() => _MedicalEditorState();
+}
+
+class _MedicalEditorState extends State<_MedicalEditor> {
+  late final TextEditingController _name;
+  late final TextEditingController _notes;
+  bool _isAllergy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initial?.name ?? '');
+    _notes = TextEditingController(text: widget.initial?.notes ?? '');
+    _isAllergy = widget.initial?.isAllergy ?? false;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF121212),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 40, height: 4,
+          margin: const EdgeInsets.only(top: 8, bottom: 16),
+          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Medical Condition / Allergy',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _name,
+            style: const TextStyle(color: Colors.white),
+            decoration: _dec('Name (required)'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _notes,
+            style: const TextStyle(color: Colors.white),
+            maxLines: 3,
+            decoration: _dec('Notes (optional)'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile.adaptive(
+          value: _isAllergy,
+          onChanged: (v) => setState(() => _isAllergy = v),
+          activeColor: Colors.amber,
+          title: const Text('This is an allergy', style: TextStyle(color: Colors.white)),
+          subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
+              style: TextStyle(color: Colors.white70)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_name.text.trim().isEmpty) return;
+                    Navigator.pop(
+                      context,
+                      MedicalItem(
+                        name: _name.text.trim(),
+                        notes: _notes.text.trim(),
+                        isAllergy: _isAllergy,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('SAVE', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: MediaQuery.of(context).padding.bottom),
+      ]),
+    );
+  }
+
+  InputDecoration _dec(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        filled: true,
+        fillColor: const Color(0xFF1E1E1E),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blueAccent),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      );
+}
+
 

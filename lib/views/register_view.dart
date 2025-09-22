@@ -944,7 +944,7 @@ class _MedicalEditorState extends State<_MedicalEditor> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('SAVE'),
+                  child: const Text('SAVE', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],

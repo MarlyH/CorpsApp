@@ -1,4 +1,4 @@
-import 'package:corpsapp/fragments/events_fragment.dart';
+import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';

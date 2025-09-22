@@ -115,7 +115,7 @@ class HomeFragmentState extends State<HomeFragment> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      // floatingActionButton: canManage ? CreateEventFAB() : null,
+      floatingActionButton: canManage ? CreateEventFAB() : null,
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<event_summary.EventSummary>>(

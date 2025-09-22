@@ -3,7 +3,7 @@ import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_details.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
-import 'package:corpsapp/fragments/events_fragment.dart';
+import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/services/auth_http_client.dart';

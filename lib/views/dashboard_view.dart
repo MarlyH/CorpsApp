@@ -68,18 +68,8 @@ class _DashboardViewState extends State<DashboardView> {
 
 
     // get the FCM token and register it with API -> Azure Notification Hubs
-    // if (Platform.isAndroid && enabled) {
-    //   final token = await messaging.getToken();
-    //   if (token != null) {
-    //     try {
-    //       await AuthHttpClient.registerDeviceToken(token);
-    //     } catch (e) {
-    //       print('Error registering device token: $e');
-    //     }
-    //   }
-    // }
-    if (enabled) {
-      final token = await messaging.getToken(); //this will support iOS & Android
+    if (Platform.isAndroid && enabled) {
+      final token = await messaging.getToken();
       if (token != null) {
         try {
           await AuthHttpClient.registerDeviceToken(token);
@@ -88,7 +78,7 @@ class _DashboardViewState extends State<DashboardView> {
         }
       }
     }
-
+    
 
     // Foreground notifications: only show if enabled
    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -112,7 +102,7 @@ class _DashboardViewState extends State<DashboardView> {
       // Handle deep links if needed
       // print('Notification caused app to open: ${message.data}');
     });
-  }
+    }
 
   Future<bool> _onWillPop() async {
     final exit = await showDialog<bool>(
@@ -278,6 +268,4 @@ class _DashboardViewState extends State<DashboardView> {
       onTap: _goTo,
     );
   }
-
-
 }

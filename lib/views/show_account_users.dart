@@ -4,7 +4,6 @@ import '../services/auth_http_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 
-
 class ManageUsersView extends StatefulWidget {
   const ManageUsersView({super.key});
 
@@ -92,7 +91,6 @@ class _ManageUsersViewState extends State<ManageUsersView> {
         _total = (body['total'] as int?) ?? 0;
         items = (body['items'] as List?) ?? const [];
       } else if (body is List) {
-        // If your API returns a flat array (no paging metadata)
         items = body;
         _total = replace ? items.length : _total + items.length;
       } else {
@@ -104,7 +102,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
           .map<_User>((j) => _User.fromJson(j))
           .toList();
 
-      // Enrich this page with strike info
+      // Enrich this page with strike info (bulk request)
       if (pageUsers.isNotEmpty) {
         final ids = pageUsers.map((u) => u.id).where((id) => id.isNotEmpty).toList();
         try {
@@ -122,7 +120,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
             for (final u in pageUsers) {
               final d = map[u.id];
               if (d != null) {
-                u.strikes = (d['attendanceStrikeCount'] as int?) ?? 0;
+                u.strikes = (d['attendanceStrikeCount'] as int?) ?? u.strikes;
                 u.dateOfLastStrike = d['dateOfLastStrike']?.toString();
                 u.isSuspended = d['isSuspended'] == true;
               }
@@ -143,7 +141,6 @@ class _ManageUsersViewState extends State<ManageUsersView> {
       if (_total > 0) {
         _hasMore = _users.length < _total;
       } else {
-        // No total provided: infer from page size
         _hasMore = pageUsers.length == _pageSize;
       }
 
@@ -157,7 +154,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 
   void _maybeLoadMore() {
     if (!_hasMore || _loadingMore || _loadingFirstPage) return;
-    final threshold = 280.0; // px from bottom to prefetch
+    const threshold = 280.0;
     if (_scroll.position.pixels + threshold >= _scroll.position.maxScrollExtent) {
       _fetchNextPage();
     }
@@ -207,11 +204,15 @@ class _ManageUsersViewState extends State<ManageUsersView> {
   }
 
   // ---------------------------
-  // Children (user details)
+  // Children + Medical (user details)
   // ---------------------------
 
   Future<void> _openUserDetail(_User u) async {
     List<_Child> kids = [];
+    bool userHasMedical = false;
+    List<_MedicalCondition> userMedical = [];
+
+    // Children (now includes medical)
     try {
       final resp = await AuthHttpClient.get('/api/UserManagement/user/${u.id}/children');
       if (resp.statusCode == 200) {
@@ -223,6 +224,18 @@ class _ManageUsersViewState extends State<ManageUsersView> {
     } catch (e) {
       _snack('Failed to fetch children: $e', error: true);
     }
+
+    // User medical
+    try {
+      final medResp = await AuthHttpClient.get('/api/UserManagement/user/${u.id}/medical');
+      if (medResp.statusCode == 200) {
+        final js = jsonDecode(medResp.body) as Map<String, dynamic>;
+        userHasMedical = (js['hasMedicalConditions'] == true);
+        final list = (js['medicalConditions'] as List?) ?? const [];
+        userMedical = list.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+      }
+    } catch (_) {/* best effort */}
+
     if (!mounted) return;
 
     showModalBottomSheet(
@@ -270,6 +283,13 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                     _ActionPhone(phone: u.phoneNumber),
 
                     const SizedBox(height: 12),
+
+                    // User medical
+                    _medicalBlock(
+                      title: 'Medical / Allergy Info (User)',
+                      hasAny: userHasMedical,
+                      items: userMedical,
+                    ),
 
                     const Text('Children', style: TextStyle(color: Colors.white70, fontSize: 14)),
                     const SizedBox(height: 8),
@@ -329,6 +349,14 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                                         ),
                                       ),
                                     ],
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Child medical
+                                  _medicalBlock(
+                                    title: 'Medical / Allergy Info',
+                                    hasAny: c.hasMedicalConditions,
+                                    items: c.medicalConditions,
                                   ),
                                 ],
                               ),
@@ -404,23 +432,21 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                     const Icon(Icons.search, color: Colors.black54),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: TextField
-                        (
-                          controller: _searchCtrl,
-                          style: const TextStyle(color: Colors.black),
-                          cursorColor: Colors.black,
-                          decoration: const InputDecoration(
-                            hintText: 'Search by name or email',
-                            hintStyle: TextStyle(color: Colors.black),
-                            border: InputBorder.none,
-                          ),
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: (_) {
-                            _query = _searchCtrl.text;
-                            _fetchFirstPage();
-                          },
+                      child: TextField(
+                        controller: _searchCtrl,
+                        style: const TextStyle(color: Colors.black),
+                        cursorColor: Colors.black,
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name or email',
+                          hintStyle: TextStyle(color: Colors.black),
+                          border: InputBorder.none,
                         ),
-
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) {
+                          _query = _searchCtrl.text;
+                          _fetchFirstPage();
+                        },
+                      ),
                     ),
                     if (_searchCtrl.text.isNotEmpty)
                       IconButton(
@@ -466,8 +492,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                                     child: Center(
                                       child: _hasMore
                                           ? const CircularProgressIndicator(color: Colors.white)
-                                          : const Text('No more users',
-                                              style: TextStyle(color: Colors.white54)),
+                                          : const Text('No more users', style: TextStyle(color: Colors.white54)),
                                     ),
                                   );
                                 }
@@ -493,51 +518,52 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 // ---------------------------
 // Widgets
 // ---------------------------
+
 class _ActionableEmail extends StatelessWidget {
   final String email;
   const _ActionableEmail({required this.email});
 
   @override
-    Widget build(BuildContext context) {
-      final trimmed = email.trim();
-      final isEmpty = trimmed.isEmpty;
+  Widget build(BuildContext context) {
+    final trimmed = email.trim();
+    final isEmpty = trimmed.isEmpty;
 
-      final style = TextStyle(
-        color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
-        fontSize: 12,
-        decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
-        decorationColor: const Color(0xFF4A90E2),
-      );
+    final style = TextStyle(
+      color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
+      fontSize: 12,
+      decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
+      decorationColor: const Color(0xFF4A90E2),
+    );
 
-      Future<void> _launch() async {
-        if (isEmpty) return;
-        final uri = Uri(scheme: 'mailto', path: trimmed);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          _copy(context);
-        }
+    Future<void> _launch() async {
+      if (isEmpty) return;
+      final uri = Uri(scheme: 'mailto', path: trimmed);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _copy(context);
       }
-
-      return GestureDetector(
-        onTap: _launch,
-        onLongPress: () => _copy(context),
-        child: Text(isEmpty ? '—' : trimmed, style: style),
-      );
     }
 
-    void _copy(BuildContext context) {
-      if (email.trim().isEmpty) return;
-      Clipboard.setData(ClipboardData(text: email.trim()));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email copied to clipboard'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    return GestureDetector(
+      onTap: _launch,
+      onLongPress: () => _copy(context),
+      child: Text(isEmpty ? '—' : trimmed, style: style),
+    );
   }
+
+  void _copy(BuildContext context) {
+    if (email.trim().isEmpty) return;
+    Clipboard.setData(ClipboardData(text: email.trim()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Email copied to clipboard'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+}
 
 class _ActionPhone extends StatelessWidget {
   final String? phone;
@@ -727,10 +753,30 @@ class _User {
         phoneNumber: j['phoneNumber'].toString(),
         firstName: (j['firstName'] ?? '').toString(),
         lastName: (j['lastName'] ?? '').toString(),
-        // If your /users endpoint already returns these, they’ll be used; otherwise enriched later.
         strikes: j['attendanceStrikeCount'] is int ? j['attendanceStrikeCount'] as int : 0,
         dateOfLastStrike: j['dateOfLastStrike']?.toString(),
         isSuspended: j['isSuspended'] as bool?,
+      );
+}
+
+class _MedicalCondition {
+  final int id;
+  final String name;
+  final String? notes;
+  final bool isAllergy;
+
+  _MedicalCondition({
+    required this.id,
+    required this.name,
+    required this.notes,
+    required this.isAllergy,
+  });
+
+  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
+        id: (j['id'] ?? j['Id'] ?? 0) as int,
+        name: (j['name'] ?? j['Name'] ?? '').toString(),
+        notes: (j['notes'] ?? j['Notes'])?.toString(),
+        isAllergy: j['isAllergy'] == true || j['IsAllergy'] == true,
       );
 }
 
@@ -743,6 +789,10 @@ class _Child {
   final String emergencyContactPhone;
   final int age;
 
+  // Medical
+  final bool hasMedicalConditions;
+  final List<_MedicalCondition> medicalConditions;
+
   _Child({
     required this.childId,
     required this.firstName,
@@ -751,9 +801,12 @@ class _Child {
     required this.emergencyContactName,
     required this.emergencyContactPhone,
     required this.age,
+    required this.hasMedicalConditions,
+    required this.medicalConditions,
   });
 
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
+
   String get dobLabel {
     if (dateOfBirth == null) return 'Unknown DOB';
     final y = dateOfBirth!.year.toString().padLeft(4, '0');
@@ -777,6 +830,9 @@ class _Child {
       }
     }
 
+    final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+
     return _Child(
       childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
       firstName: (j['firstName'] ?? j['FirstName'] ?? '').toString(),
@@ -785,6 +841,78 @@ class _Child {
       emergencyContactName: (j['emergencyContactName'] ?? j['EmergencyContactName'] ?? '').toString(),
       emergencyContactPhone: (j['emergencyContactPhone'] ?? j['EmergencyContactPhone'] ?? '').toString(),
       age: (j['age'] ?? j['Age'] ?? 0) as int,
+      hasMedicalConditions: (j['hasMedicalConditions'] ?? j['HasMedicalConditions']) == true || meds.isNotEmpty,
+      medicalConditions: meds,
     );
   }
+}
+
+// ---------------------------
+// Medical UI helpers
+// ---------------------------
+
+Widget _medicalBlock({
+  required String title,
+  required bool hasAny,
+  required List<_MedicalCondition> items,
+}) {
+  final showNone = !hasAny || items.isEmpty;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      const SizedBox(height: 6),
+      if (showNone)
+        const Text('None reported',
+            style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic))
+      else
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items.map(_medicalTile).toList(),
+        ),
+      const SizedBox(height: 12),
+    ],
+  );
+}
+
+Widget _medicalTile(_MedicalCondition m) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white12,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.white24),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (m.isAllergy)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(right: 8, top: 2),
+            decoration: BoxDecoration(
+              color: const Color(0x33FF5252),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFFF5252)),
+            ),
+            child: const Text('ALLERGY',
+                style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(m.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              if ((m.notes ?? '').trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(m.notes!, style: const TextStyle(color: Colors.white70)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

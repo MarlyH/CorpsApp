@@ -65,7 +65,6 @@ class _QrScanViewState extends State<QrScanView> {
         ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
       );
 
-  // Hot-reload camera fix
   @override
   void reassemble() {
     super.reassemble();
@@ -275,7 +274,8 @@ class _QrScanViewState extends State<QrScanView> {
         bool busy = false;
         _BookingScanDetail current = info;
 
-        final bool wrongEvent = widget.expectedEventId != null && widget.expectedEventId != current.eventId;
+        final bool wrongEvent =
+            widget.expectedEventId != null && widget.expectedEventId != current.eventId;
 
         String primaryLabel(BookingStatusX s) {
           switch (s) {
@@ -366,7 +366,10 @@ class _QrScanViewState extends State<QrScanView> {
                       Container(
                         width: 36,
                         height: 4,
-                        decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                       const SizedBox(height: 12),
 
@@ -377,7 +380,11 @@ class _QrScanViewState extends State<QrScanView> {
                           SizedBox(width: 8),
                           Text(
                             'Booking Details',
-                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -409,7 +416,10 @@ class _QrScanViewState extends State<QrScanView> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -428,64 +438,88 @@ class _QrScanViewState extends State<QrScanView> {
                             _kvRow('Date', current.eventDateText),
                             _kvRow('Time', '${current.startTime ?? '—'} - ${current.endTime ?? '—'}'),
                             _kvRow('Ticket', current.seatNumber?.toString() ?? '—'),
-
-                            
                             if (current.isForChild)
-                              _kvRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', current.canBeLeftAlone ? 'Yes' : 'No'),
-
+                              _kvRow(
+                                'Requires Parent/Guardian at collection?',
+                                current.canBeLeftAlone ?  'Yes (Do not let the attendee leave without parent/guardian)' : 'No (may leave alone)' ,
+                              ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                const Text('Status:', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
+                                const Text('Status:',
+                                    style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
                                 const SizedBox(width: 8),
                                 _statusChip(current.status),
                               ],
                             ),
-
                           ],
                         ),
                       ),
 
-                      // Child block
+                      // Child block + medical
                       if (current.child != null) ...[
                         const SizedBox(height: 12),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text('Child', style: TextStyle(fontWeight: FontWeight.w800)),
                               const SizedBox(height: 8),
-                              _kvRow('Childs Name', current.child!.fullName),
+                              _kvRow('Child’s Name', current.child!.fullName),
                               _kvRow('DOB', current.child!.dobText),
                               _kvRow('Age', '${current.child!.age}'),
-                              _kvRow('Emergency Contact', '${current.child!.emergencyContactName} • ${current.child!.emergencyContactPhone}'),
+                              _kvRow(
+                                'Emergency Contact',
+                                '${current.child!.emergencyContactName} • ${current.child!.emergencyContactPhone}',
+                              ),
+                              const SizedBox(height: 12),
+                              _medicalBlock(
+                                title: 'Medical / Allergy Info',
+                                hasAny: current.child!.hasMedicalConditions,
+                                items: current.child!.medicalConditions,
+                              ),
                             ],
                           ),
                         ),
                       ],
 
-                      // User mini block
+                      // User mini block + medical
                       if (current.user != null) ...[
                         const SizedBox(height: 12),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('User', style: TextStyle(fontWeight: FontWeight.w800)),
+                              const Text('Parent / Guardian', style: TextStyle(fontWeight: FontWeight.w800)),
                               const SizedBox(height: 8),
-                              _kvRow('Parent/Guardian Name', current.user!.fullName),
+                              _kvRow('Name', current.user!.fullName),
                               _kvRow('Email', current.user!.email ?? '—'),
                               _kvRow('Phone', current.user!.phoneNumber ?? '—'),
-                              _kvRow('Strikes', '${current.user!.attendanceStrikeCount}'
-                                  '${current.user!.isSuspended ? ' (SUSPENDED)' : ''}'),
+                              _kvRow(
+                                'Strikes',
+                                '${current.user!.attendanceStrikeCount}'
+                                '${current.user!.isSuspended ? ' (SUSPENDED)' : ''}',
+                              ),
                               if (current.user!.dateOfLastStrike != null)
-                                _kvRow('Last Strike Recieved On', current.user!.dateOfLastStrike!),
+                                _kvRow('Last Strike Received On', current.user!.dateOfLastStrike!),
+                              const SizedBox(height: 12),
+                              _medicalBlock(
+                                title: 'Medical / Allergy Info (User)',
+                                hasAny: current.user!.hasMedicalConditions,
+                                items: current.user!.medicalConditions,
+                              ),
                             ],
                           ),
                         ),
@@ -531,7 +565,8 @@ class _QrScanViewState extends State<QrScanView> {
                                   style: _pillMuted(),
                                   icon: const Icon(Icons.close, size: 16, color: Colors.white),
                                   label: const Text('Cancel',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -546,7 +581,8 @@ class _QrScanViewState extends State<QrScanView> {
                                   style: _pillOutline(),
                                   icon: const Icon(Icons.qr_code_scanner, size: 16, color: Colors.white),
                                   label: const Text('Scan Again',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
                                 ),
                               ),
                             ],
@@ -564,16 +600,16 @@ class _QrScanViewState extends State<QrScanView> {
     );
   }
 
-  // UI helpers
+  // ====== Small UI helpers ======
 
   static Widget _kvRow(String k, String v) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Text(k, style: const TextStyle(color: Colors.black54, fontFamily: 'WinnerSans', fontSize: 12)),
+          child: Text(k,
+              style: const TextStyle(color: Colors.black54, fontFamily: 'WinnerSans', fontSize: 12)),
         ),
-        
         Expanded(
           child: Text(
             v,
@@ -618,7 +654,86 @@ class _QrScanViewState extends State<QrScanView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans')),
+      child: Text(label,
+          style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans')),
+    );
+  }
+
+  // Medical block UI
+  static Widget _medicalBlock({
+    required String title,
+    required bool hasAny,
+    required List<_MedicalCondition> items,
+  }) {
+    final hasItems = items.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.black87)),
+        const SizedBox(height: 8),
+        if (!hasAny || !hasItems)
+          const Text('None reported',
+              style: TextStyle(color: Colors.black54, fontStyle: FontStyle.italic))
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: items.map((m) => _medicalTile(m)).toList(),
+          ),
+      ],
+    );
+  }
+
+  static Widget _medicalTile(_MedicalCondition m) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (m.isAllergy)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.only(right: 8, top: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEBEE),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0xFFC62828)),
+              ),
+              child: const Text(
+                'ALLERGY',
+                style: TextStyle(
+                  color: Color(0xFFC62828),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(m.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, color: Colors.black87)),
+                if ((m.notes ?? '').trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      m.notes!,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -687,7 +802,29 @@ class _QrScanViewState extends State<QrScanView> {
 
 /* ============================
  * Models for /api/booking/scan-info
+ * (extended with Medical data)
  * ============================ */
+
+class _MedicalCondition {
+  final int id;
+  final String name;
+  final String? notes;
+  final bool isAllergy;
+
+  _MedicalCondition({
+    required this.id,
+    required this.name,
+    required this.notes,
+    required this.isAllergy,
+  });
+
+  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
+        id: (j['id'] ?? j['Id'] ?? 0) as int,
+        name: (j['name'] ?? j['Name'] ?? '').toString(),
+        notes: (j['notes'] ?? j['Notes'])?.toString(),
+        isAllergy: j['isAllergy'] == true,
+      );
+}
 
 enum BookingStatusX { booked, checkedIn, checkedOut, cancelled, striked }
 
@@ -740,6 +877,10 @@ class _ScanChildDto {
   final String emergencyContactPhone;
   final int age;
 
+  // NEW: medical
+  final bool hasMedicalConditions;
+  final List<_MedicalCondition> medicalConditions;
+
   _ScanChildDto({
     required this.childId,
     required this.firstName,
@@ -748,6 +889,8 @@ class _ScanChildDto {
     required this.emergencyContactName,
     required this.emergencyContactPhone,
     required this.age,
+    required this.hasMedicalConditions,
+    required this.medicalConditions,
   });
 
   factory _ScanChildDto.fromJson(Map<String, dynamic> j) {
@@ -765,6 +908,12 @@ class _ScanChildDto {
       }
     }
 
+    final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
+    final meds = medsRaw
+        .whereType<Map<String, dynamic>>()
+        .map(_MedicalCondition.fromJson)
+        .toList();
+
     return _ScanChildDto(
       childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
       firstName: (j['firstName'] ?? j['FirstName'] ?? '').toString(),
@@ -773,6 +922,8 @@ class _ScanChildDto {
       emergencyContactName: (j['emergencyContactName'] ?? j['EmergencyContactName'] ?? '').toString(),
       emergencyContactPhone: (j['emergencyContactPhone'] ?? j['EmergencyContactPhone'] ?? '').toString(),
       age: (j['age'] ?? j['Age'] ?? 0) as int,
+      hasMedicalConditions: (j['hasMedicalConditions'] ?? j['HasMedicalConditions']) == true || meds.isNotEmpty,
+      medicalConditions: meds,
     );
   }
 
@@ -790,6 +941,10 @@ class _ScanUserMini {
   final String? dateOfLastStrike; // keep text for display
   final bool isSuspended;
 
+  // NEW: medical
+  final bool hasMedicalConditions;
+  final List<_MedicalCondition> medicalConditions;
+
   _ScanUserMini({
     required this.id,
     required this.email,
@@ -799,18 +954,30 @@ class _ScanUserMini {
     required this.attendanceStrikeCount,
     required this.dateOfLastStrike,
     required this.isSuspended,
+    required this.hasMedicalConditions,
+    required this.medicalConditions,
   });
 
-  factory _ScanUserMini.fromJson(Map<String, dynamic> j) => _ScanUserMini(
-        id: (j['id'] ?? '').toString(),
-        email: j['email']?.toString(),
-        phoneNumber: j['phoneNumber']?.toString(),
-        firstName: (j['firstName'] ?? '').toString(),
-        lastName: (j['lastName'] ?? '').toString(),
-        attendanceStrikeCount: (j['attendanceStrikeCount'] as int?) ?? 0,
-        dateOfLastStrike: j['dateOfLastStrike']?.toString(),
-        isSuspended: j['isSuspended'] == true,
-      );
+  factory _ScanUserMini.fromJson(Map<String, dynamic> j) {
+    final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
+    final meds = medsRaw
+        .whereType<Map<String, dynamic>>()
+        .map(_MedicalCondition.fromJson)
+        .toList();
+
+    return _ScanUserMini(
+      id: (j['id'] ?? '').toString(),
+      email: j['email']?.toString(),
+      phoneNumber: j['phoneNumber']?.toString(),
+      firstName: (j['firstName'] ?? '').toString(),
+      lastName: (j['lastName'] ?? '').toString(),
+      attendanceStrikeCount: (j['attendanceStrikeCount'] as int?) ?? 0,
+      dateOfLastStrike: j['dateOfLastStrike']?.toString(),
+      isSuspended: j['isSuspended'] == true,
+      hasMedicalConditions: (j['hasMedicalConditions'] ?? j['HasMedicalConditions']) == true || meds.isNotEmpty,
+      medicalConditions: meds,
+    );
+  }
 
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
 }
@@ -912,8 +1079,12 @@ class _BookingScanDetail {
       qrCodeData: (j['qrCodeData'] ?? '').toString(),
       isForChild: j['isForChild'] == true,
       attendeeName: (j['attendeeName'] ?? '').toString(),
-      child: j['child'] == null ? null : _ScanChildDto.fromJson(j['child'] as Map<String, dynamic>),
-      user: j['user'] == null ? null : _ScanUserMini.fromJson(j['user'] as Map<String, dynamic>),
+      child: j['child'] == null
+          ? null
+          : _ScanChildDto.fromJson(j['child'] as Map<String, dynamic>),
+      user: j['user'] == null
+          ? null
+          : _ScanUserMini.fromJson(j['user'] as Map<String, dynamic>),
     );
   }
 }

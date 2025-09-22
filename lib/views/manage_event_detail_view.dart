@@ -363,6 +363,10 @@ class _AdminUserMini {
   final String? dateOfLastStrike;
   final bool isSuspended;
 
+  // NEW:
+  final bool hasMedicalConditions;
+  final List<_MedicalCondition> medicalConditions;
+
   _AdminUserMini({
     required this.id,
     required this.email,
@@ -372,21 +376,31 @@ class _AdminUserMini {
     required this.strikes,
     required this.dateOfLastStrike,
     required this.isSuspended,
+    required this.hasMedicalConditions,
+    required this.medicalConditions,
   });
 
-  factory _AdminUserMini.fromJson(Map<String, dynamic> j) => _AdminUserMini(
-        id: (j['id'] ?? '').toString(),
-        email: j['email']?.toString(),
-        phoneNumber: j['phoneNumber']?.toString(),
-        firstName: (j['firstName'] ?? '').toString(),
-        lastName: (j['lastName'] ?? '').toString(),
-        strikes: (j['attendanceStrikeCount'] as int?) ?? 0,
-        dateOfLastStrike: j['dateOfLastStrike']?.toString(),
-        isSuspended: j['isSuspended'] == true,
-      );
+  factory _AdminUserMini.fromJson(Map<String, dynamic> j) {
+    final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+
+    return _AdminUserMini(
+      id: (j['id'] ?? '').toString(),
+      email: j['email']?.toString(),
+      phoneNumber: j['phoneNumber']?.toString(),
+      firstName: (j['firstName'] ?? '').toString(),
+      lastName: (j['lastName'] ?? '').toString(),
+      strikes: (j['attendanceStrikeCount'] as int?) ?? 0,
+      dateOfLastStrike: j['dateOfLastStrike']?.toString(),
+      isSuspended: j['isSuspended'] == true,
+      hasMedicalConditions: (j['hasMedicalConditions'] ?? j['HasMedicalConditions']) == true || meds.isNotEmpty,
+      medicalConditions: meds,
+    );
+  }
 
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
 }
+
 
 class _ChildDto {
   final int childId;
@@ -397,6 +411,10 @@ class _ChildDto {
   final String emergencyContactPhone;
   final int age;
 
+  // NEW:
+  final bool hasMedicalConditions;
+  final List<_MedicalCondition> medicalConditions;
+
   _ChildDto({
     required this.childId,
     required this.firstName,
@@ -405,6 +423,8 @@ class _ChildDto {
     required this.emergencyContactName,
     required this.emergencyContactPhone,
     required this.age,
+    required this.hasMedicalConditions,
+    required this.medicalConditions,
   });
 
   factory _ChildDto.fromJson(Map<String, dynamic> j) {
@@ -422,6 +442,9 @@ class _ChildDto {
       }
     }
 
+    final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+
     return _ChildDto(
       childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
       firstName: (j['firstName'] ?? j['FirstName'] ?? '').toString(),
@@ -430,11 +453,14 @@ class _ChildDto {
       emergencyContactName: (j['emergencyContactName'] ?? j['EmergencyContactName'] ?? '').toString(),
       emergencyContactPhone: (j['emergencyContactPhone'] ?? j['EmergencyContactPhone'] ?? '').toString(),
       age: (j['age'] ?? j['Age'] ?? 0) as int,
+      hasMedicalConditions: (j['hasMedicalConditions'] ?? j['HasMedicalConditions']) == true || meds.isNotEmpty,
+      medicalConditions: meds,
     );
   }
 
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
 }
+
 
 // ==============================
 // Local model & helpers (existing)
@@ -503,6 +529,27 @@ class _Attendee {
     required this.isForChild,
   });
 }
+class _MedicalCondition {
+  final int id;
+  final String name;
+  final String? notes;
+  final bool isAllergy;
+
+  _MedicalCondition({
+    required this.id,
+    required this.name,
+    required this.notes,
+    required this.isAllergy,
+  });
+
+  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
+        id: (j['id'] ?? j['Id'] ?? 0) as int,
+        name: (j['name'] ?? j['Name'] ?? '').toString(),
+        notes: (j['notes'] ?? j['Notes'])?.toString(),
+        isAllergy: j['isAllergy'] == true,
+      );
+}
+
 
 // ==============================
 // View helpers
@@ -524,7 +571,74 @@ String niceDayDate(DateTime d) {
   const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   final local = d.toLocal();
   return '${week[local.weekday - 1]} • ${local.day.toString().padLeft(2, '0')} ${mon[local.month - 1]} ${local.year}';
+  
 }
+Widget _medicalBlock({
+  required String title,
+  required bool hasAny,
+  required List<_MedicalCondition> items,
+}) {
+  final hasItems = items.isNotEmpty;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      const SizedBox(height: 6),
+      if (!hasAny || !hasItems)
+        const Text('None reported',
+            style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic))
+      else
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items.map((m) => _medicalTile(m)).toList(),
+        ),
+      const SizedBox(height: 12),
+    ],
+  );
+}
+
+Widget _medicalTile(_MedicalCondition m) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white12,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.white24),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (m.isAllergy)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(right: 8, top: 2),
+            decoration: BoxDecoration(
+              color: const Color(0x33FF5252),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFFF5252)),
+            ),
+            child: const Text('ALLERGY',
+                style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.w700)),
+          ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(m.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              if ((m.notes ?? '').trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(m.notes!, style: const TextStyle(color: Colors.white70)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
 // ==============================
 // Detail bottom sheet
@@ -609,6 +723,33 @@ class _AttendeeDetailSheet extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
+          // Child block when present
+          if (child != null) ...[
+            const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 6),
+            _kv('Name', child.fullName),
+            _kv('DOB', _fmtDob(child.dateOfBirth)),
+            _kv('Age', '${child.age}'),
+            _kv('Emergency Contact', child.emergencyContactName),
+            () {
+              final phone = (child.emergencyContactPhone).trim();
+              return _kvAction(
+                context,
+                label: 'Emergency Phone',
+                value: phone.isNotEmpty ? phone : '—',
+                kind: _ActionKind.phone,
+              );
+            }(),
+            const SizedBox(height: 8),
+
+            // NEW: medical for child
+            _medicalBlock(
+              title: 'Medical / Allergy Info',
+              hasAny: child.hasMedicalConditions,
+              items: child.medicalConditions,
+            ),
+          ],
+
           // Related user block
           if (user != null) ...[
             Text(isChildBooking ? 'Parent/Guardian' : 'User',
@@ -633,29 +774,17 @@ class _AttendeeDetailSheet extends StatelessWidget {
                 kind: _ActionKind.phone,
               );
             }(),
-            _kv('Strikes', '${user.strikes}${user.isSuspended ? ' (SUSPENDED)' : ''}'),
-            const SizedBox(height: 12),
+            _kv('Strikes', '${user.strikes}${user.isSuspended ? " (SUSPENDED)" : ""}'),
+            const SizedBox(height: 8),
+
+            // NEW: medical for user
+            _medicalBlock(
+              title: 'Medical / Allergy Info (User)',
+              hasAny: user.hasMedicalConditions,
+              items: user.medicalConditions,
+            ),
           ],
 
-          // Child block when present
-          if (child != null) ...[
-            const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 6),
-            _kv('Name', child.fullName),
-            _kv('DOB', _fmtDob(child.dateOfBirth)),
-            _kv('Age', '${child.age}'),
-            _kv('Emergency Contact', child.emergencyContactName),
-            () {
-              final phone = (child.emergencyContactPhone).trim();
-              return _kvAction(
-                context,
-                label: 'Emergency Phone',
-                value: phone.isNotEmpty ? phone : '—',
-                kind: _ActionKind.phone,
-              );
-            }(),
-            const SizedBox(height: 12),
-          ],
 
           // Booking block (for child bookings we also show canBeLeftAlone already)
           const Text('Booking', style: TextStyle(color: Colors.white70, fontSize: 14)),

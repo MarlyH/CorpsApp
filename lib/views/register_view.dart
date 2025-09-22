@@ -124,7 +124,27 @@ class _RegisterViewState extends State<RegisterView> {
     });
   }
 
-  String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
+  // Replaces: String _cap(String s) => ...
+  String _capName(String input) {
+    final s = input.trim().toLowerCase();
+    if (s.isEmpty) return s;
+
+    final buf = StringBuffer();
+    bool capNext = true; // capitalize at start and after space, hyphen, or apostrophe
+
+    for (int i = 0; i < s.length; i++) {
+      final ch = s[i];
+      if (capNext && RegExp(r'[a-z]').hasMatch(ch)) {
+        buf.write(ch.toUpperCase());
+        capNext = false;
+      } else {
+        buf.write(ch);
+        capNext = (ch == ' ' || ch == '-' || ch == '\'');
+      }
+    }
+    return buf.toString();
+  }
+
 
   String? _passwordComplexityError(String pwd) {
     if (pwd.length < 6) return 'Password must be at least 6 characters.';
@@ -173,14 +193,15 @@ class _RegisterViewState extends State<RegisterView> {
 
     // Build the base payload and hold it until FINISH
     _formPayload = {
-      'firstName': _cap(firstNameCtrl.text.trim()),
-      'lastName': _cap(lastNameCtrl.text.trim()),
-      'userName': userNameCtrl.text.trim(),
-      'email': emailCtrl.text.trim(),
+      'firstName': _capName(firstNameCtrl.text),
+      'lastName' : _capName(lastNameCtrl.text),
+      'userName' : userNameCtrl.text.trim(),
+      'email'    : emailCtrl.text.trim(),
       'dateOfBirth': dobCtrl.text.trim(),
-      'password': passwordCtrl.text,
+      'password' : passwordCtrl.text,
       'phoneNumber': phoneCtrl.text.trim(),
     };
+
 
     // If age 13–15 → go to medical step; else send immediately
     if (age != null && age >= 13 && age < 16) {
@@ -358,6 +379,7 @@ class _RegisterViewState extends State<RegisterView> {
                     label: 'First Name',
                     hintText: 'e.g. John',
                     controller: firstNameCtrl,
+                    textCapitalization: TextCapitalization.words,
                   ),
                 ),
                 const SizedBox(width: 20),
@@ -366,6 +388,7 @@ class _RegisterViewState extends State<RegisterView> {
                     label: 'Last Name',
                     hintText: 'e.g. Smith',
                     controller: lastNameCtrl,
+                    textCapitalization: TextCapitalization.words,
                   ),
                 ),
               ],

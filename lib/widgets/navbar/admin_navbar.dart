@@ -1,3 +1,4 @@
+// widgets/navbar/admin_navbar.dart
 import 'package:flutter/material.dart';
 import 'navbar_button.dart';
 
@@ -21,21 +22,41 @@ class AdminNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        NavBarButton(
-          icon: Icons.home,
-          label: 'HOME',
-          isSelected: selectedIndex == 0,
-          onTap: () => onTap(0),
+        // LEFT of notch: Home, Events
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: NavBarButton(
+                  icon: Icons.space_dashboard_rounded,
+                  label: 'HOME',
+                  isSelected: selectedIndex == 0,
+                  onTap: () => onTap(0),
+                ),
+              ),
+              Expanded(
+                child: NavBarButton(
+                  icon: Icons.event,
+                  label: 'EVENTS',
+                  isSelected: selectedIndex == 1,
+                  onTap: () => onTap(1),
+                ),
+              ),
+            ],
+          ),
         ),
 
-        // space for the QR scanner FAB
+        // Notch spacer
         SizedBox(width: fabDiameter + fabBorder * 2 + sideGap),
 
-        NavBarButton(
-          icon: Icons.person,
-          label: 'PROFILE',
-          isSelected: selectedIndex == 1,
-          onTap: () => onTap(1),
+        // RIGHT of notch: Profile
+        Expanded(
+          child: NavBarButton(
+            icon: Icons.person,
+            label: 'PROFILE',
+            isSelected: selectedIndex == 2,
+            onTap: () => onTap(2),
+          ),
         ),
       ],
     );

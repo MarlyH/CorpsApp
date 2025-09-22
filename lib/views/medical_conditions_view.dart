@@ -501,7 +501,7 @@ Future<void> showAddConditionSheet(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4C85D0),
                             ),
-                            child: const Text('SAVE'),
+                            child: const Text('SAVE', style: TextStyle(color: Colors.white)),
                           ),
                         ),
                       ],

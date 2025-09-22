@@ -349,6 +349,44 @@ class AuthHttpClient {
       },
     );
   }
+  /////////////////////////////////////
+  // for medical conditions 
+  // AuthHttpClient: profile medical
+  // Raw JSON PATCH with explicit body (needed by your medical view)
+  static Future<http.Response> patchRaw(String path,
+      {required String body, Map<String, String>? headers}) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+    final resp = await _client.patch(
+      Uri.parse('$_baseUrl$path'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        ...?headers,
+      },
+      body: body,
+    );
+    _checkForErrors(resp);
+    return resp;
+  }
+  static Future<Map<String, dynamic>> getMyMedical() async {
+    final r = await get('/api/profile/medical');
+    return jsonDecode(r.body) as Map<String,dynamic>;
+  }
+
+  static Future<void> updateMyMedical({
+    required bool hasMedicalConditions,
+    required List<Map<String, dynamic>> conditions, // [{name, notes, isAllergy}]
+  }) async {
+    final r = await patch('/api/profile/medical', body: {
+      'hasMedicalConditions': hasMedicalConditions,
+      'conditions': conditions,
+    });
+    if (r.statusCode != 200) {
+      throw Exception('Failed to update medical info: ${r.body}');
+    }
+  }
+
 
   ////////////////////////////////////
   // for updateing manuel attendence 

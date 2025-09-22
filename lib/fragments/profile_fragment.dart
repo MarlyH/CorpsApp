@@ -14,6 +14,7 @@ import '../views/support_and_feedback_view.dart';
 import '../views/ban_appeal_view.dart';
 import '../views/banned_users_view.dart';
 import '../views/show_account_users.dart';
+import '../views/medical_conditions_view.dart';
 
 class ProfileFragment extends StatelessWidget {
   const ProfileFragment({super.key});
@@ -184,6 +185,18 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
+                  // Medical Info (under 16 users)
+                  if (isUser && age < 16) ...[
+                    _OptionTile(
+                      icon: Icons.healing,
+                      label: "Medical Info",
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MedicalConditionsView()),
+                      ),
+                    ),
+                  ],
+
                   if (isUser && age >= 16) ...[
                     _OptionTile(
                       icon: Icons.child_care,

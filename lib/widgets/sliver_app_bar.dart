@@ -25,12 +25,12 @@ class EventBrowserAppBar extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final smallScreen = screenWidth < 360;
     final double baseFontSize = smallScreen ? 22 : 30;
-    const double _toolbarH = 56;
+    const double toolbarH = 56;
 
     // Rebuild dropdown when list changes (prevents stale internal state)
     final dropdownKey = ValueKey('loc-dd-${allLocations.join("|")}');
 
-    Widget _centeredLabel(String text) => Row(
+    Widget centeredLabel(String text) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
@@ -46,7 +46,7 @@ class EventBrowserAppBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 16),
         SvgPicture.asset(
           'assets/icons/dropdown.svg',
           width: smallScreen ? 20 : 24,
@@ -66,9 +66,9 @@ class EventBrowserAppBar extends StatelessWidget {
       pinned: false,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
-      toolbarHeight: _toolbarH,
+      toolbarHeight: toolbarH,
       title: ScrollGuard(
-        height: _toolbarH,
+        height: toolbarH,
         child: Center(
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String?>(
@@ -82,7 +82,7 @@ class EventBrowserAppBar extends StatelessWidget {
               icon: const SizedBox.shrink(),
 
               // Centered hint (text and chevron)
-              hint: _centeredLabel('All Locations'),
+              hint: centeredLabel('All Locations'),
 
               // Menu items (centered text only in the menu)
               items: <DropdownMenuItem<String?>>[
@@ -120,8 +120,8 @@ class EventBrowserAppBar extends StatelessWidget {
               // Centered selected display (text and chevron)
               selectedItemBuilder: (BuildContext context) {
                 return <Widget>[
-                  _centeredLabel('All Locations'),
-                  ...allLocations.map((value) => _centeredLabel(value.toUpperCase())),
+                  centeredLabel('All Locations'),
+                  ...allLocations.map((value) => centeredLabel(value.toUpperCase())),
                 ];
               },
             ),

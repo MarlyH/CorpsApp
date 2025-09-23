@@ -73,8 +73,8 @@ class _DraggableFABState extends State<CreateEventFAB> {
                 backgroundColor: Colors.white,
                 child: const Icon(
                   Icons.add,
-                  color: Colors.black,
-                  size: 24,
+                  color: AppColors.primaryColor,
+                  size: 32,
                 ),
                 onPressed: () {
                   Navigator.of(context).push(

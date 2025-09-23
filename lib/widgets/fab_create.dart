@@ -10,47 +10,49 @@ class CreateEventFAB extends StatefulWidget {
 }
 
 class _DraggableFABState extends State<CreateEventFAB> {
-  // Initial position
-  final double initialTop = 500;
-  final double initialLeft = 300;
+  // Relative initial position (percentage of screen size)
+  final double initialTopFactor = 0.7;   
+  final double initialLeftFactor = 0.8;  
 
-  double top = 500;
-  double left = 300;
-
+  double? top;
+  double? left;
   bool bouncingBack = false;
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
 
+    // Initialize relative position if not set
+    top ??= screenSize.height * initialTopFactor;
+    left ??= screenSize.width * initialLeftFactor;
+
     return Stack(
       children: [
         AnimatedPositioned(
           duration: Duration(milliseconds: bouncingBack ? 400 : 0),
           curve: Curves.elasticOut,
-          top: top,
-          left: left,
+          top: top!,
+          left: left!,
           child: GestureDetector(
             onPanUpdate: (details) {
               setState(() {
-                left += details.delta.dx;
-                top += details.delta.dy;
+                left = (left! + details.delta.dx).clamp(0, screenSize.width - 70);
+                top = (top! + details.delta.dy).clamp(0, screenSize.height - 100);
               });
             },
             onPanEnd: (_) {
-              final withinBounds = left >= 0 &&
-                  left <= screenSize.width - 70 &&
-                  top >= 0 &&
-                  top <= screenSize.height - 100;
+              final withinBounds = left! >= 0 &&
+                  left! <= screenSize.width - 70 &&
+                  top! >= 0 &&
+                  top! <= screenSize.height - 100;
 
               if (!withinBounds) {
                 setState(() {
                   bouncingBack = true;
-                  top = initialTop;
-                  left = initialLeft;
+                  top = screenSize.height * initialTopFactor;
+                  left = screenSize.width * initialLeftFactor;
                 });
 
-                // Reset bounce flag after animation
                 Future.delayed(const Duration(milliseconds: 400), () {
                   if (mounted) {
                     setState(() => bouncingBack = false);

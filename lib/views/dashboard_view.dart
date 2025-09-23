@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -28,9 +29,9 @@ class _DashboardViewState extends State<DashboardView> {
   late final PageController _pageController;
 
   // Sizes
-  static const double _fabDiameter = 64.0;
-  static const double _fabBorder = 16.0; // black border around FAB
-  static const double _bottomPad = 8.0; // extra bottom padding
+  static const double _fabDiameter = 84.0;
+  static const double _fabBorder = 8.0; // black border around FAB
+  static const double _bottomPad = 0.0; // extra bottom padding
   static const double _sideGap = 16.0; // extra horizontal gap around FAB
 
   @override
@@ -165,8 +166,8 @@ class _DashboardViewState extends State<DashboardView> {
     final isGuest = context.watch<AuthProvider>().isGuest;
 
     final usesCenterDocked = isManagerOrAdminOrStaff; // only admins/managers get the notch layout
-    final inset = MediaQuery.of(context).padding.bottom;
-    final barH  = kBottomNavigationBarHeight + _bottomPad;
+    final inset = 0;
+    final barH  = 0;
 
     // Extra body bottom clearance only when the FAB is center-docked
     final extraFabClearance = usesCenterDocked ? (_fabDiameter / 2) : 0.0;
@@ -212,18 +213,24 @@ class _DashboardViewState extends State<DashboardView> {
         //       : fab)
         //   : null,
 
-        floatingActionButton: isManagerOrAdminOrStaff ? fab : null,
+        floatingActionButton: isManagerOrAdminOrStaff
+          ? Transform.translate(
+              offset: const Offset(0, 20), 
+              child: fab,
+            )
+          : null,
 
         floatingActionButtonLocation: usesCenterDocked
             ? FloatingActionButtonLocation.centerDocked
             : FloatingActionButtonLocation.endFloat,
 
+
         bottomNavigationBar: BottomAppBar(
-          color: Colors.black,
-          shape: usesCenterDocked ? const CircularNotchedRectangle() : null,
-          notchMargin: usesCenterDocked ? _fabBorder : 0,
+          color: AppColors.background,
+          //shape: usesCenterDocked ? 0 : null,
+          notchMargin: usesCenterDocked ? 0 : 0,
           child: SizedBox(
-            height: barH + inset,
+            height: 0,
             child: _buildBottomNav(
               isManagerOrAdminOrStaff: isManagerOrAdminOrStaff,
               isGuest: isGuest,

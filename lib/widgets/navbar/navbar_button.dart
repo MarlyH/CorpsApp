@@ -27,13 +27,13 @@ class NavBarButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 24, color: color),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+                fontSize: 12,
                 color: color,
+                fontFamily: 'WinnerSans',
               ),
             ),
           ],

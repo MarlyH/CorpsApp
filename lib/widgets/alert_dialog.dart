@@ -1,7 +1,5 @@
-import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:corpsapp/widgets/button.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class CustomAlertDialog extends StatelessWidget {
   final String title;

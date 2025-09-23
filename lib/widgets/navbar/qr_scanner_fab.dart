@@ -1,4 +1,6 @@
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import '../../views/qr_scan_view.dart';
 
 class QrScanFab extends StatelessWidget {
@@ -15,24 +17,35 @@ class QrScanFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: diameter + borderWidth * 1,
-      height: diameter + borderWidth * 1,
-      child: FloatingActionButton(
-        heroTag: null,
-        backgroundColor: const Color(0xFFD01417),
-        elevation: 4,
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => QrScanView(expectedEventId: expectedEventId),
-            ),
-          );
-        },
-        shape: CircleBorder(
-          side: BorderSide(color: Colors.black, width: 5),
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.background, width: borderWidth),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Color(0xFF512728), width: borderWidth),
         ),
-        child: const Icon(Icons.qr_code_scanner, size: 32, color: Colors.white),
+        child: SizedBox(
+          width: diameter,
+          height: diameter,
+          child: FloatingActionButton(
+            heroTag: null,
+            backgroundColor: const Color(0xFFD01417),
+            elevation: 4,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      QrScanView(expectedEventId: expectedEventId),
+                ),
+              );
+            },
+            shape: const CircleBorder(),
+            child: SvgPicture.asset('assets/icons/scanner.svg', width: 32, height: 32, color: Colors.white),
+          ),
+        ),
       ),
     );
   }

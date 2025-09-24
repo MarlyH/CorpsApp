@@ -203,6 +203,8 @@ class _BookingFlowState extends State<BookingFlow> {
       body: SafeArea(
         bottom: false,
         child: Padding(
+          padding: AppPadding.screen,
+          child: Column(
           children: [
             if (_step > 0)
               _buildHeader(),
@@ -276,6 +278,7 @@ class _BookingFlowState extends State<BookingFlow> {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );
@@ -413,12 +416,6 @@ class _BookingFlowState extends State<BookingFlow> {
     return '${weekdays[d.weekday - 1]} ${d.day} ${months[d.month - 1]}';
   }
 
-  // TERMS PAGE
-
-  Widget _termsView({
-    required VoidCallback onCancel,
-    required VoidCallback onAgree,
-  }) {
   // SEAT SELECTION
   Widget _seatView() {
     return Padding(

@@ -53,7 +53,6 @@ class _BookingFlowState extends State<BookingFlow> {
     super.initState();
     _loadChildren();
     _detailFut = _loadEventDetail();
-    _fetchMascotImage();
 
     // If we don't need the full flow (no attendee step), force false
     if (!_needsFullFlow) {
@@ -75,20 +74,7 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
 
-  Future<void> _fetchMascotImage() async {
-    try {
-      final resp = await AuthHttpClient.getLocation(widget.event.locationId);
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final url = data['mascotImgSrc'] as String?;
-        if (url != null && url.isNotEmpty) {
-          setState(() => _mascotUrl = url);
-        }
-      }
-    } catch (_) {
-      // ignore errors
-    }
-  }
+  
 
   Future<void> _loadChildren() async {
     try {
@@ -102,11 +88,28 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   Future<EventDetail> _loadEventDetail() async {
-    final resp = await AuthHttpClient.get(
-      '/api/events/${widget.event.eventId}',
-    );
-    return EventDetail.fromJson(jsonDecode(resp.body));
+  final resp = await AuthHttpClient.get(
+    '/api/events/${widget.event.eventId}',
+  );
+
+  if (resp.statusCode == 200) {
+    final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
+    final detail = EventDetail.fromJson(jsonData);
+
+    // Assign locationMascotImgSrc to _mascotUrl
+    final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
+    if (mascotUrl != null &&
+        mascotUrl.isNotEmpty) {
+      _mascotUrl = mascotUrl;
+    } else {
+      _mascotUrl = null;
+    }
+
+    return detail;
+  } else {
+    throw Exception('Failed to load event detail: ${resp.statusCode}');
   }
+}
 
   bool get _needsFullFlow {
     final age = context.read<AuthProvider>().userProfile?['age'] as int? ?? 0;
@@ -287,47 +290,44 @@ class _BookingFlowState extends State<BookingFlow> {
 
   Widget _buildHeader() {
     final e = widget.event;
-    final hasMascot = e.mascotUrl != null && e.mascotUrl!.isNotEmpty;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double avatarSize = screenWidth < 360 ? 80 : 140;
 
-    // Build the avatar: either the mascot URL or a generic icon.
-    final avatar =
-        hasMascot
-            ? ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                e.mascotUrl!,
-                height: 56,
-                width: 56,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, __, ___) => const Icon(
-                      Icons.location_on,
-                      size: 56,
-                      color: Colors.white30,
-                    ),
-              ),
-            )
-            : const Icon(Icons.location_on, size: 56, color: Colors.white30);
+    Widget avatar;
+
+    if (_mascotUrl == null) {
+      avatar = Image.asset(
+        'assets/logo/logo_transparent_1024px.png',
+        width: avatarSize,
+        height: avatarSize,
+      );
+    } else {
+      avatar = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          _mascotUrl!,
+          height: avatarSize,
+          width: avatarSize,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Image.asset(
+            'assets/logo/logo_transparent_1024px.png',
+            width: avatarSize,
+            height: avatarSize,
+            color: Colors.white30,
+          ),
+        ),
+      );
+    }          
 
     return Container(
       width: double.infinity,
-      color: Colors.black,
-      padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+      color: AppColors.background,
       child: Column(
         children: [
           Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                onPressed: _back,
-              ),
-              const SizedBox(width: 8),
+            children: [             
               avatar,
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               // Event info
               Expanded(
                 child: Column(
@@ -340,38 +340,60 @@ class _BookingFlowState extends State<BookingFlow> {
                         fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 6),
+
+                    const SizedBox(height: 4),
+
                     Text(
                       friendlySession(e.sessionType),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 6),
+
+                    const SizedBox(height: 4),
+
                     Row(
                       children: [
                         Text(
                           _format12h(e.startTime),
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 14,
+                            fontSize: 16,
                           ),
                         ),
 
                         const Text(
                           ' • ',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
                         ),
+                        
                         Expanded(
-                          child: Text(
-                            e.locationName,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
+                          child: FutureBuilder<EventDetail>(
+                            future: _detailFut,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Text(
+                                  'Loading...',
+                                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                                );
+                              } else if (snapshot.hasError) {
+                                return const Text(
+                                  '—',
+                                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                                );
+                              } else {
+                                return Text(
+                                  snapshot.data?.address ?? '—',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.visible,
+                                );
+                              }
+                            },
                           ),
                         ),
                       ],
@@ -381,15 +403,14 @@ class _BookingFlowState extends State<BookingFlow> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          const Divider(color: Colors.white54, height: 1),
+          const SizedBox(height: 26),
+          const Divider(color: Colors.white30, height: 1),
         ],
       ),
     );
   }
 
   // ... make sure you still have this helper below in the same file:
-
   String _headerDate(DateTime d) {
     const months = [
       'January',

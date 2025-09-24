@@ -47,7 +47,7 @@ class EventSummary {
   final List<int>    availableSeats;
   final EventStatus  status;
   final String?      seatingMapImgSrc;
-  final String?      mascotImgSrc;
+  final String?      locationMascotImgSrc;
 
   EventSummary({
     required this.eventId,
@@ -62,11 +62,11 @@ class EventSummary {
     required this.availableSeats,
     required this.status,
     this.seatingMapImgSrc,
-    this.mascotImgSrc,
+    this.locationMascotImgSrc,
   });
 
   /// handy for `Image.network(mascotUrl)` or placeholder fallback
-  String? get mascotUrl => mascotImgSrc;
+  String? get mascotUrl => locationMascotImgSrc;
 
   factory EventSummary.fromJson(Map<String, dynamic> json) {
     int toInt(dynamic v) {
@@ -90,7 +90,7 @@ class EventSummary {
       availableSeats      : rawSeats.map((e) => toInt(e)).toList(),
       status              : statusFromRaw(toInt(json['status'])),
       seatingMapImgSrc    : (json['seatingMapImgSrc'] as String?)?.takeIf((s) => s.isNotEmpty),
-      mascotImgSrc        : (json['mascotImgSrc']    as String?)?.takeIf((s) => s.isNotEmpty),
+      locationMascotImgSrc        : (json['locationMascotImgSrc']    as String?)?.takeIf((s) => s.isNotEmpty),
     );
   }
 
@@ -107,7 +107,7 @@ class EventSummary {
     'availableSeats'      : availableSeats,
     'status'              : EventStatus.values.indexOf(status),
     'seatingMapImgSrc'    : seatingMapImgSrc,
-    'mascotImgSrc'        : mascotImgSrc,
+    'locationMascotImgSrc'        : locationMascotImgSrc,
   };
 }
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/booking_terms.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -215,7 +216,7 @@ class _BookingFlowState extends State<BookingFlow> {
                 index: _step,
                 children: [
                   // always Terms first
-                  _termsView(onCancel: _back, onAgree: _next),
+                  TermsView(onCancel: _back, onAgree: _next),
                   _seatView(),
                   if (_needsFullFlow) _attendeeView(),
                   _confirmView(),

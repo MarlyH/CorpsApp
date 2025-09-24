@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
@@ -133,7 +134,6 @@ class _BookingFlowState extends State<BookingFlow> {
     }
   }
 
-
   void _next() async {
   final last = _needsFullFlow ? 3 : 2;
 
@@ -149,7 +149,6 @@ class _BookingFlowState extends State<BookingFlow> {
     _submitBooking();
   }
 }
-
 
   void _back() {
     if (_step > 0) {
@@ -197,29 +196,15 @@ class _BookingFlowState extends State<BookingFlow> {
     // only hide nav on Terms (step 0)
     final showNav = _step > 0;
 
-    // labels per step
-    final labels =
-        _needsFullFlow
-            ? ['Terms', 'Ticket Select', 'Attendee', 'Confirm']
-            : ['Terms', 'Ticket Select', 'Confirm'];
-
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(),
-
-            // step title
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                labels[_step],
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
-              ),
-            ),
-
+            if (_step > 0)
+              _buildHeader(),
+   
             // content
             Expanded(
               child: IndexedStack(

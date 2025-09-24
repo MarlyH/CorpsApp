@@ -14,7 +14,7 @@ import '../widgets/navbar/admin_navbar.dart';
 import '../widgets/navbar/guest_navbar.dart';
 import '../widgets/navbar/qr_scanner_fab.dart';
 import '../widgets/navbar/user_navbar.dart';
-import '../widgets/navbar/staff_navbar.dart';
+//import '../widgets/navbar/staff_navbar.dart';
 import '../services/notification_prefs.dart';
 import '../widgets/in_app_push.dart';
 
@@ -31,7 +31,7 @@ class _DashboardViewState extends State<DashboardView> {
   // Sizes
   static const double _fabDiameter = 84.0;
   static const double _fabBorder = 8.0; // black border around FAB
-  static const double _bottomPad = 0.0; // extra bottom padding
+  //static const double _bottomPad = 8.0; // extra bottom padding
   static const double _sideGap = 16.0; // extra horizontal gap around FAB
 
   @override
@@ -166,8 +166,8 @@ class _DashboardViewState extends State<DashboardView> {
     final isGuest = context.watch<AuthProvider>().isGuest;
 
     final usesCenterDocked = isManagerOrAdminOrStaff; // only admins/managers get the notch layout
-    final inset = 0;
-    final barH  = 0;
+    final inset = MediaQuery.of(context).padding.bottom + 52.0;
+    final barH = 0;
 
     // Extra body bottom clearance only when the FAB is center-docked
     final extraFabClearance = usesCenterDocked ? (_fabDiameter / 2) : 0.0;
@@ -192,7 +192,7 @@ class _DashboardViewState extends State<DashboardView> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.background,
         extendBody: true,
 
         body: Padding(

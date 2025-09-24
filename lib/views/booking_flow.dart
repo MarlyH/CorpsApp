@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
@@ -183,7 +185,7 @@ class _BookingFlowState extends State<BookingFlow> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Booking failed: $e'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.errorColor,
         ),
       );
     }
@@ -200,7 +202,7 @@ class _BookingFlowState extends State<BookingFlow> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: Padding(
           children: [
             if (_step > 0)
               _buildHeader(),
@@ -417,100 +419,7 @@ class _BookingFlowState extends State<BookingFlow> {
     required VoidCallback onCancel,
     required VoidCallback onAgree,
   }) {
-    return Container(
-      color: Colors.black,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'TERMS AND CONDITIONS',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Registering Multiple People: You may register more than one person for a single-session, however you will have to repeat the process from the start for each person. (This prevents people abusing the FREE registration process, and signing up for all the tickets for a laugh.)',
-                        style: TextStyle(color: Colors.white70, height: 1.4),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        '• Kids Aged 8 to 11 years will only be allowed to play G and PG rated Games. We are unable to provide tailored experiences for individual kids if you do not approve of your child playing “Recommended Classifications” such as PG rated games, as it will mean your children will not be able to participate in the same experience as everyone else in the room. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
-                        style: TextStyle(color: Colors.white70, height: 1.4),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        '• Teens Ages 12 to 15 years will be allowed to play M rated games, which is an Unrestricted Rated Classification, and is not enforced by law. If you have an issue with this, then we apologize for the inconvenience, and recommend you do not attend.',
-                        style: TextStyle(color: Colors.white70, height: 1.4),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        '• By participating in our events, you understand and accept that you and/or your child participate at your own risk and release the event organizers and venue from any liability.',
-                        style: TextStyle(color: Colors.white70, height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onCancel,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9E9E9E),
-                        side: BorderSide.none,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: const Text(
-                        'CANCEL',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onAgree,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4C85D0),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: const Text(
-                        'AGREE & CONTINUE',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // SEAT SELECTION
-
   Widget _seatView() {
     return Padding(
       padding: const EdgeInsets.all(16),

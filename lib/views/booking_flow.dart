@@ -73,9 +73,6 @@ class _BookingFlowState extends State<BookingFlow> {
     return DateFormat('h:mm a',).format(dt); // e.g., 1:05 PM
   }
 
-
-  
-
   Future<void> _loadChildren() async {
     try {
       final resp = await AuthHttpClient.fetchChildren();
@@ -116,29 +113,6 @@ class _BookingFlowState extends State<BookingFlow> {
     return age >= 16;
   }
 
-  // opens a dedicated seat picker modal
-  // returns the selected seat number or null if cancelled
-  Future<void> _openSeatPicker() async {
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return FractionallySizedBox(
-          heightFactor: 0.9, // ~90% height, scrollable inside
-          child: _SeatPickerSheet(
-            futureDetail: _detailFut,
-            initialSelected: _selectedSeat,
-            eventTotalSeats: widget.event.totalSeats, // non-nullable in your model
-          ),
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() => _selectedSeat = picked);
-    }
-  }
 
   void _next() async {
   final last = _needsFullFlow ? 3 : 2;
@@ -200,14 +174,14 @@ class _BookingFlowState extends State<BookingFlow> {
     // fullFlow has 4 pages, under16 has 3
     final totalSteps = _needsFullFlow ? 4 : 3;
     // only hide nav on Terms (step 0)
-    final showNav = _step > 0;
+    //final showNav = _step > 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: Padding(
-          padding: AppPadding.screen,
+          padding: AppPadding.screen.copyWith(bottom:MediaQuery.of(context).padding.bottom + 8),
           child: Column(
           children: [
             if (_step > 0)
@@ -220,7 +194,16 @@ class _BookingFlowState extends State<BookingFlow> {
                 children: [
                   // always Terms first
                   TermsView(onCancel: _back, onAgree: _next),
-                  _seatView(),
+                  _SeatPickerSheet(
+                    futureDetail: _detailFut,
+                    initialSelected: _selectedSeat,
+                    eventTotalSeats: widget.event.totalSeats,
+                    onSeatPicked: (seat) {
+                      setState(() {
+                        _selectedSeat = seat;
+                      });
+                    }, 
+                  ),
                   if (_needsFullFlow) _attendeeView(),
                   _confirmView(),
                 ],
@@ -228,59 +211,53 @@ class _BookingFlowState extends State<BookingFlow> {
             ),
 
             // BACK / NEXT bar
-            if (showNav)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  16,
-                  16,
-                  MediaQuery.of(context).padding.bottom + 16,
-                ),
-                child: Row(
-                  children: [
-                    // Back
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _back,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: const Color(0xFF9E9E9E),
-                          side: BorderSide.none,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                        ),
-                        child: const Text(
-                          'BACK',
-                          style: TextStyle(color: Colors.white),
-                        ),
+              Row(
+                children: [
+                  if (_step == 0) ...[
+                    // Cancel just wraps content
+                    IntrinsicWidth(
+                      child: Button(
+                      label: 'CANCEL',
+                      onPressed: _back,
+                      buttonColor: AppColors.disabled,
                       ),
                     ),
+                    
                     const SizedBox(width: 12),
-                    // Next / Complete
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: (_step == 1 && _selectedSeat == null) ||
-                                      (_needsFullFlow && _step == 2 && _allowAlone == null)
-                                ? null
-                                : _next,
 
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4C85D0),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                        ),
-                        child: Text(
-                          (_step == totalSteps - 1) ? 'COMPLETE' : 'NEXT',
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                    // Expanded main button
+                    Expanded(
+                      child: Button(
+                        label: 'AGREE & CONTINUE',
+                        onPressed: _next,
+                      ),
+                    ),
+
+                  ] else ...[
+
+                    // Both buttons take equal space
+                    Expanded(
+                      child: Button(
+                        label: 'BACK',
+                        onPressed: _back,
+                        buttonColor: AppColors.disabled,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Button(
+                        label: _step == totalSteps - 1 ? 'COMPLETE' : 'NEXT',
+                        onPressed: (_step == 1 && _selectedSeat == null) ||
+                                  (_needsFullFlow && _step == 2 && _allowAlone == null)
+                            ? null
+                            : _next,
                       ),
                     ),
                   ],
-                ),
-              ),
+                ],
+              )
           ],
         ),
         ),
@@ -438,72 +415,8 @@ class _BookingFlowState extends State<BookingFlow> {
     return '${weekdays[d.weekday - 1]} ${d.day} ${months[d.month - 1]}';
   }
 
-  // SEAT SELECTION
-  Widget _seatView() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Seating map preview (more room by default)
-          // Expanded(
-          //   child: Center(
-          //     child: (widget.event.seatingMapImgSrc?.isNotEmpty ?? false)
-          //         ? Image.network(
-          //             widget.event.seatingMapImgSrc!,
-          //             fit: BoxFit.contain,
-          //           )
-          //         : const Text(
-          //             'No seating map available',
-          //             style: TextStyle(color: Colors.white70),
-          //           ),
-          //   ),
-          // ),
-          // const SizedBox(height: 12),
-
-          // Button that opens the overlay seat picker
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4C85D0),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              // icon: const Icon(Icons.event_seat, color: Colors.white),
-              icon: const Icon(Icons.select_all_outlined, color: Colors.white),
-              label: Text(
-                _selectedSeat == null
-                    ? 'Choose Ticket'
-                    : 'Change Ticket (Ticket #$_selectedSeat)',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              onPressed: _openSeatPicker,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Tiny hint showing the current choice
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _selectedSeat == null
-                  ? 'No ticket selected yet.'
-                  : 'Selected Ticket: $_selectedSeat',
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
 
   // ATTENDEE DETAILS
-
   Widget _attendeeView() {
     return SingleChildScrollView(
       child: Padding(
@@ -1215,11 +1128,13 @@ class _SeatPickerSheet extends StatefulWidget {
   final Future<EventDetail> futureDetail;
   final int? initialSelected;
   final int eventTotalSeats; // from EventSummary (non-nullable)
+  final ValueChanged<int> onSeatPicked;
 
   const _SeatPickerSheet({
     required this.futureDetail,
     required this.initialSelected,
     required this.eventTotalSeats,
+    required this.onSeatPicked,
   });
 
   @override
@@ -1238,16 +1153,13 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: AppColors.background,
       child: SafeArea(
         top: false,
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              child: Row(
+            // Header         
+              Row(
                 children: [
                   const Expanded(
                     child: Text(
@@ -1258,15 +1170,9 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+                  ),                 
                 ],
-              ),
-            ),
-            const Divider(color: Colors.white24, height: 1),
+              ),                                                                        
 
             // Content
             Expanded(
@@ -1281,7 +1187,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                   if (snap.hasError || snap.data == null) {
                     return const Center(
                       child: Text('Error loading Tickets',
-                          style: TextStyle(color: Colors.redAccent)),
+                          style: TextStyle(color: AppColors.errorColor)),
                     );
                   }
 
@@ -1309,20 +1215,26 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                     );
                   }
 
-                  final takenCount =
-                      totalSeats - availableSeats.length.clamp(0, totalSeats);
-
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+                  return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Little summary
-                        Text(
-                          '${availableSeats.length} of $totalSeats tickets available'
-                          '${_picked != null ? ' • selected: #$_picked' : ''}',
-                          style: const TextStyle(color: Colors.white70),
+                        // Legend
+                        Row(
+                          children: const [
+                            _LegendSwatch(color: Colors.white, border: Colors.white24),
+                            SizedBox(width: 6),
+                            Text('Available', style: TextStyle(color: Colors.white70)),
+                            SizedBox(width: 16),
+                            _LegendSwatch(color: Color(0xFF67788E), border: Colors.white24),
+                            SizedBox(width: 6),
+                            Text('Taken', style: TextStyle(color: Colors.white70)),
+                            SizedBox(width: 16),
+                            _LegendSwatch(color: Color(0xFF4C85D0), border: Colors.transparent),
+                            SizedBox(width: 6),
+                            Text('Selected', style: TextStyle(color: Colors.white70)),
+                          ],
                         ),
+                        
                         const SizedBox(height: 12),
 
                         // Grid (scrolls independently)
@@ -1331,7 +1243,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                             padding: EdgeInsets.zero,
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
+                              crossAxisCount: 4,
                               mainAxisSpacing: 8,
                               crossAxisSpacing: 8,
                               childAspectRatio: 1.4,
@@ -1347,80 +1259,19 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                                 available: available,
                                 selected: selected,
                                 onTap: available
-                                    ? () => setState(() => _picked = seat)
+                                    ? () {
+                                        setState(() => _picked = seat);
+                                        widget.onSeatPicked(seat); 
+                                      }
                                     : null,
                               );
                             },
                           ),
                         ),
 
-                        const SizedBox(height: 12),
-
-                        // Legend
-                        Row(
-                          children: const [
-                            _LegendSwatch(color: Colors.white, border: Colors.white24),
-                            SizedBox(width: 6),
-                            Text('Available', style: TextStyle(color: Colors.white70)),
-                            SizedBox(width: 16),
-                            _LegendSwatch(color: Color(0xFFD01417), border: Colors.white24),
-                            SizedBox(width: 6),
-                            Text('Taken', style: TextStyle(color: Colors.white70)),
-                            SizedBox(width: 16),
-                            _LegendSwatch(color: Color(0xFF4C85D0), border: Colors.transparent),
-                            SizedBox(width: 6),
-                            Text('Selected', style: TextStyle(color: Colors.white70)),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Actions
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9E9E9E),
-                                  side: BorderSide.none,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('CANCEL',
-                                    style: TextStyle(color: Colors.white)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF4C85D0),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: _picked == null
-                                    ? null
-                                    : () => Navigator.of(context).pop(_picked),
-                                child: Text(
-                                  _picked == null
-                                      ? 'USE SELECTED'
-                                      : 'USE TICKET #$_picked',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(height: 12),                                          
                       ],
-                    ),
-                  );
+                    );                
                 },
               ),
             ),
@@ -1449,7 +1300,7 @@ class _SeatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = !available
-        ? const Color(0xFFD01417)
+        ? const Color(0xFF67788E)
         : (selected ? const Color(0xFF4C85D0) : Colors.white);
     final fg = !available
         ? const Color.fromARGB(255, 255, 255, 255)
@@ -1470,8 +1321,6 @@ class _SeatTile extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // if (!available)
-              //   const Icon(Icons.event_seat, size: 14, color: Colors.white38),
               if (!available) const SizedBox(width: 6),
               Text(
                 seat.toString(),
@@ -1506,9 +1355,6 @@ class _LegendSwatch extends StatelessWidget {
     );
   }
 }
-
-
-
 
 class _MedicalEditor extends StatefulWidget {
   const _MedicalEditor({this.initial});

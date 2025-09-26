@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class Button extends StatelessWidget {
   final String label;
   final String? subLabel; 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color buttonColor;
   final Color textColor;
   final Color borderColor;

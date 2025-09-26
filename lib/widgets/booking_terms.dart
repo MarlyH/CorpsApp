@@ -63,27 +63,27 @@ class TermsView extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            Row(
-              children: [
-                IntrinsicWidth(
-                  child: Button(
-                    onPressed: onCancel,
-                    label: 'CANCEL',
-                    buttonColor: AppColors.disabled,
-                  ),
-                ),
+            // Row(
+            //   children: [
+            //     IntrinsicWidth(
+            //       child: Button(
+            //         onPressed: onCancel,
+            //         label: 'CANCEL',
+            //         buttonColor: AppColors.disabled,
+            //       ),
+            //     ),
 
-                const SizedBox(width: 12),
+            //     const SizedBox(width: 12),
 
-                Expanded(
-                  child: Button(
-                    onPressed: onAgree,
-                    label: 'Agree & Continue',
-                    buttonColor: AppColors.primaryColor,
-                  ),
-                ),
-              ],
-            ),
+            //     Expanded(
+            //       child: Button(
+            //         onPressed: onAgree,
+            //         label: 'Agree & Continue',
+            //         buttonColor: AppColors.primaryColor,
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),

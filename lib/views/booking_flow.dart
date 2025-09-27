@@ -214,7 +214,6 @@ class _BookingFlowState extends State<BookingFlow> {
               Row(
                 children: [
                   if (_step == 0) ...[
-                    // Cancel just wraps content
                     IntrinsicWidth(
                       child: Button(
                       label: 'CANCEL',
@@ -225,7 +224,6 @@ class _BookingFlowState extends State<BookingFlow> {
                     
                     const SizedBox(width: 12),
 
-                    // Expanded main button
                     Expanded(
                       child: Button(
                         label: 'AGREE & CONTINUE',
@@ -1122,8 +1120,7 @@ class _BookingFlowState extends State<BookingFlow> {
   );
 
 }
-
-
+ 
 class _SeatPickerSheet extends StatefulWidget {
   final Future<EventDetail> futureDetail;
   final int? initialSelected;
@@ -1158,22 +1155,34 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
         top: false,
         child: Column(
           children: [
-            // Header         
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Select a Ticket',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),                 
-                ],
-              ),                                                                        
+            const SizedBox(height: 16),
 
+            // Header         
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Select a Ticket Number',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),                             
+              ],
+            ),    
+
+            const SizedBox(height: 4),  
+
+            Text(
+              'Select a lucky number to represent your ticket for this event. This number does not represent a physical seat.',
+              style: TextStyle(
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),    
+
+            const SizedBox(height: 16),
+                                                                  
             // Content
             Expanded(
               child: FutureBuilder<EventDetail>(
@@ -1197,7 +1206,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                   // Determine total seats:
                   // Prefer EventDetail.totalSeats (if present) → EventSummary.totalSeats (passed in) → highest available seat number
                   int totalSeats = 0;
-                  final int? detailTotal = detail.totalSeats; // make sure your model includes this (int?)
+                  final int? detailTotal = detail.totalSeats; 
                   if (detailTotal != null && detailTotal > 0) {
                     totalSeats = detailTotal;
                   } else if (widget.eventTotalSeats > 0) {
@@ -1208,6 +1217,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                         : 0;
                   }
 
+                  //this should never happen
                   if (totalSeats <= 0) {
                     return const Center(
                       child: Text('No tickets available',
@@ -1222,20 +1232,20 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                         Row(
                           children: const [
                             _LegendSwatch(color: Colors.white, border: Colors.white24),
-                            SizedBox(width: 6),
+                            SizedBox(width: 4),
                             Text('Available', style: TextStyle(color: Colors.white70)),
                             SizedBox(width: 16),
                             _LegendSwatch(color: Color(0xFF67788E), border: Colors.white24),
-                            SizedBox(width: 6),
+                            SizedBox(width: 4),
                             Text('Taken', style: TextStyle(color: Colors.white70)),
                             SizedBox(width: 16),
                             _LegendSwatch(color: Color(0xFF4C85D0), border: Colors.transparent),
-                            SizedBox(width: 6),
+                            SizedBox(width: 4),
                             Text('Selected', style: TextStyle(color: Colors.white70)),
                           ],
                         ),
                         
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
 
                         // Grid (scrolls independently)
                         Expanded(
@@ -1244,10 +1254,11 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
-                              mainAxisSpacing: 8,
-                              crossAxisSpacing: 8,
-                              childAspectRatio: 1.4,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 1.2,
                             ),
+
                             itemCount: totalSeats,
                             itemBuilder: (_, idx) {
                               final seat = idx + 1;
@@ -1269,7 +1280,7 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                           ),
                         ),
 
-                        const SizedBox(height: 12),                                          
+                        const SizedBox(height: 16),                                          
                       ],
                     );                
                 },
@@ -1283,7 +1294,6 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
 }
 
 // widgets used inside the sheet for the seat tiles and legend
-
 class _SeatTile extends StatelessWidget {
   final int seat;
   final bool available;

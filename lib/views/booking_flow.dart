@@ -378,8 +378,9 @@ class _BookingFlowState extends State<BookingFlow> {
               ),
             ],
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 16),
           const Divider(color: Colors.white30, height: 1),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -417,79 +418,99 @@ class _BookingFlowState extends State<BookingFlow> {
   // ATTENDEE DETAILS
   Widget _attendeeView() {
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Who is attending?',
+              'Attendee',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
-                fontFamily: 'WinnerSans',
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 8),
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 6),
-                  child: Text(
-                    'Select Child',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                DropdownMenu<String>(
+                  width: MediaQuery.of(context).size.width,
+                  initialSelection: _selectedChildId,
+                  hintText: "Select Child",
+                  textStyle: const TextStyle(
+                    color: AppColors.normalText,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                ),
-                DropdownButtonFormField<String>(
-                  dropdownColor: Colors.white,
-                  decoration: InputDecoration(
+                  leadingIcon: const Icon(
+                    Icons.person_outline,
+                    color: AppColors.normalText,
+                  ),
+                  trailingIcon: const Icon(
+                    Icons.arrow_drop_down,
+                    color: AppColors.normalText,
+                    size: 20,
+                  ),
+                  inputDecorationTheme: InputDecorationTheme(
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
                     ),
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                      color: Colors.black54,
+                    hintStyle: const TextStyle(
+                      color: Color(0xFFA3A3A3),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                  style: const TextStyle(color: Colors.black),
-                  value: _selectedChildId,
-                  items: [
-                    ..._children.map(
-                      (c) => DropdownMenuItem(
-                        value: c.childId.toString(),
-                        child: Text('${c.firstName} ${c.lastName}'),
+                  menuStyle: MenuStyle(                   
+                    backgroundColor: WidgetStatePropertyAll(Colors.white),                   
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    const DropdownMenuItem(
-                      value: 'ADD',
-                      child: Text(
-                        'Add New Child',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    padding: WidgetStatePropertyAll(
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                  ],
-                  onChanged: (v) {
+                    elevation: WidgetStatePropertyAll(4),
+                  ),
+                  onSelected: (v) {
                     if (v == 'ADD') {
                       _showAddChildDialog();
                     } else {
                       setState(() => _selectedChildId = v);
                     }
                   },
+                  dropdownMenuEntries: [
+                    for (final c in _children)
+                      DropdownMenuEntry<String>(
+                        value: c.childId.toString(),
+                        label: '${c.firstName} ${c.lastName}',
+                        style: ButtonStyle(
+                          foregroundColor: WidgetStatePropertyAll(AppColors.normalText),
+                        ),
+                      ),
+                    DropdownMenuEntry<String>(
+                      value: 'ADD',
+                      label: 'Add Child',
+                      style: ButtonStyle(
+                        alignment: Alignment.center,
+                        foregroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
+                        textStyle: WidgetStatePropertyAll(
+                          const TextStyle(fontWeight: FontWeight.bold),                       
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
@@ -563,8 +584,6 @@ class _BookingFlowState extends State<BookingFlow> {
                     ),
                   ),
 
-
-
                   if (_allowAlone == null)
                     const Padding(
                       padding: EdgeInsets.only(left: 12, top: 4),
@@ -575,11 +594,9 @@ class _BookingFlowState extends State<BookingFlow> {
                     ),
                 ],
               ),
-
             ),
           ],
         ),
-      ),
     );
   }
 

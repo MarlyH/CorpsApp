@@ -4,10 +4,10 @@ import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
-class Modal extends StatelessWidget {
+class EventCancellationModal extends StatelessWidget {
   final TextEditingController? controller;
 
-  const Modal({
+  const EventCancellationModal({
     super.key,
     this.controller,
   });
@@ -93,7 +93,7 @@ class Modal extends StatelessWidget {
               buttonColor: AppColors.errorColor,
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
           ],
         ),
       ),

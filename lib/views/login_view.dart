@@ -192,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
                                       controller: _pwCtrl,
                                       obscureText: _obscure,
                                       keyboardType: TextInputType.visiblePassword,
-                                      iconLook: IconButton(
+                                      suffixIcon: IconButton(
                                         icon: Icon(
                                           _obscure
                                               ? Icons.visibility_off

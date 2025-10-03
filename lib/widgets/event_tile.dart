@@ -11,7 +11,7 @@ import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/views/reserve_flow.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
 import 'package:corpsapp/widgets/login_modal.dart';
-import 'package:corpsapp/widgets/modal.dart';
+import 'package:corpsapp/widgets/Modals/event_cancellation.dart';
 import 'package:corpsapp/widgets/snackbox.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -93,7 +93,7 @@ class EventTileState extends State<EventTile> {
       isDismissible: false,
       isScrollControlled: true, 
       context: context,
-      builder: (_) => Modal(controller: ctrl),
+      builder: (_) => EventCancellationModal(controller: ctrl),
     );
     if (msg != null) {
       try {

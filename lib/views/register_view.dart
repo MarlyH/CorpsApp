@@ -6,6 +6,7 @@ import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
@@ -425,12 +426,12 @@ class _RegisterViewState extends State<RegisterView> {
               hintText: 'Select your date of birth',
               controller: dobCtrl,
               onTap: () async {
-                final dt = await _pickDate(context);
+                final dt = await DatePickerUtil.pickDate(context);
                 if (dt != null) {
                   dobCtrl.text = dt.toIso8601String().split('T').first;
                 }
               },
-              iconLook: Padding(
+              suffixIcon: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: SvgPicture.asset(
                   'assets/icons/calendar.svg',
@@ -447,7 +448,7 @@ class _RegisterViewState extends State<RegisterView> {
               controller: passwordCtrl,
               obscureText: _obscure,
               keyboardType: TextInputType.visiblePassword,
-              iconLook: IconButton(
+              suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.black),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
@@ -975,55 +976,4 @@ class _MedicalEditorState extends State<_MedicalEditor> {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       );
-}
-
-// Platform date picker
-Future<DateTime?> _pickDate(BuildContext context) async {
-  if (Platform.isAndroid) {
-    return showDatePicker(
-      context: context,
-      initialDate: DateTime(2008, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-  } else if (Platform.isIOS) {
-    return showModalBottomSheet<DateTime>(
-      context: context,
-      builder: (BuildContext builder) {
-        DateTime tempPickedDate = DateTime(2008, 1, 1);
-        return Container(
-          height: 300,
-          color: AppColors.background,
-          child: Column(
-            children: [
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.date,
-                  initialDateTime: tempPickedDate,
-                  minimumDate: DateTime(1900),
-                  maximumDate: DateTime.now(),
-                  onDateTimeChanged: (DateTime picked) {
-                    tempPickedDate = picked;
-                  },
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(tempPickedDate),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    color: CupertinoColors.activeBlue,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              SizedBox(height: MediaQuery.of(builder).padding.bottom),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  return null;
 }

@@ -141,7 +141,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                             controller: _newPassCtrl,
                             obscureText: _obscureNew,
                             keyboardType: TextInputType.visiblePassword,
-                            iconLook: IconButton(
+                            suffixIcon: IconButton(
                               onPressed: () => setState(() => _obscureNew = !_obscureNew), 
                               icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, 
                               color: Colors.black,)),
@@ -156,7 +156,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                             controller: _confirmCtrl,
                             obscureText: _obscureConfirm,
                             keyboardType: TextInputType.visiblePassword,
-                            iconLook: IconButton(
+                            suffixIcon: IconButton(
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm), 
                               icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, 
                               color: Colors.black,)),

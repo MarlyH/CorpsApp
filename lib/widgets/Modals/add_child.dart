@@ -6,8 +6,6 @@ import 'package:corpsapp/widgets/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import '/services/auth_http_client.dart';
-import '/providers/auth_provider.dart';
-
 
 class AddChildModal extends StatefulWidget {
   final void Function(String? newChildId)? onChildAdded;

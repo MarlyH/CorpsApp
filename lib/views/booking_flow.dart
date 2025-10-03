@@ -26,11 +26,6 @@ class MedicalItem {
       };
 }
 
-String _cap(String s) =>
-    s.split(RegExp(r'\s+'))
-     .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
-     .join(' ');
-
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
   const BookingFlow({super.key, required this.event});
@@ -113,7 +108,6 @@ class _BookingFlowState extends State<BookingFlow> {
     final age = context.read<AuthProvider>().userProfile?['age'] as int? ?? 0;
     return age >= 16;
   }
-
 
   void _next() async {
   final last = _needsFullFlow ? 3 : 2;
@@ -249,7 +243,7 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: Button(
                         label: _step == totalSteps - 1 ? 'COMPLETE' : 'NEXT',
                         onPressed: (_step == 1 && _selectedSeat == null) ||
-                                  (_needsFullFlow && _step == 2 && _allowAlone == null)
+                                   (_needsFullFlow && _step == 2 && (_allowAlone == null || _selectedChildId == null))
                             ? null
                             : _next,
                       ),
@@ -483,6 +477,8 @@ class _BookingFlowState extends State<BookingFlow> {
                   ),
                   onSelected: (v) async {
                     if (v == 'ADD') {
+                      setState(() => _selectedChildId = null);
+
                       await showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -976,151 +972,6 @@ class _LegendSwatch extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MedicalEditor extends StatefulWidget {
-  const _MedicalEditor({this.initial});
-  final MedicalItem? initial;
-
-  @override
-  State<_MedicalEditor> createState() => _MedicalEditorState();
-}
-
-class _MedicalEditorState extends State<_MedicalEditor> {
-  late final TextEditingController _name;
-  late final TextEditingController _notes;
-  bool _isAllergy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController(text: widget.initial?.name ?? '');
-    _notes = TextEditingController(text: widget.initial?.notes ?? '');
-    _isAllergy = widget.initial?.isAllergy ?? false;
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _notes.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF121212),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 40, height: 4,
-          margin: const EdgeInsets.only(top: 8, bottom: 16),
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-        ),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Medical Condition / Allergy',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            controller: _name,
-            style: const TextStyle(color: Colors.white),
-            decoration: _dec('Name (required)'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            controller: _notes,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 3,
-            decoration: _dec('Notes (optional)'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SwitchListTile.adaptive(
-          value: _isAllergy,
-          onChanged: (v) => setState(() => _isAllergy = v),
-          activeColor: Colors.amber,
-          title: const Text('This is an allergy', style: TextStyle(color: Colors.white)),
-          subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
-              style: TextStyle(color: Colors.white70)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_name.text.trim().isEmpty) return;
-                    Navigator.pop(
-                      context,
-                      MedicalItem(
-                        name: _name.text.trim(),
-                        notes: _notes.text.trim(),
-                        isAllergy: _isAllergy,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('SAVE', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: MediaQuery.of(context).padding.bottom),
-      ]),
-    );
-  }
-
-  InputDecoration _dec(String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
-        filled: true,
-        fillColor: const Color(0xFF1E1E1E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.blueAccent),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      );
 }
 
 

@@ -20,7 +20,7 @@ class QrScanFab extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.background, width: borderWidth),
+        border: Border.all(color: Colors.black, width: borderWidth),
       ),
       child: Container(
         decoration: BoxDecoration(

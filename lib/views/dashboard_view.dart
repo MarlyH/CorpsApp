@@ -226,7 +226,7 @@ class _DashboardViewState extends State<DashboardView> {
 
 
         bottomNavigationBar: BottomAppBar(
-          color: AppColors.background,
+          color: Colors.black,
           //shape: usesCenterDocked ? 0 : null,
           notchMargin: usesCenterDocked ? 0 : 0,
           child: SizedBox(

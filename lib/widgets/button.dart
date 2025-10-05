@@ -10,6 +10,8 @@ class Button extends StatelessWidget {
   final double? buttonWidth;
   final bool loading;
   final double radius;
+  final double fontSize;
+  final bool isCancelOrBack;
 
   const Button({
     super.key,
@@ -22,6 +24,8 @@ class Button extends StatelessWidget {
     this.buttonWidth = double.infinity,
     this.loading = false,
     this.radius = 12,
+    this.fontSize = 16,
+    this.isCancelOrBack = false,
   });
 
   @override
@@ -31,11 +35,11 @@ class Button extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.all(16),
-          backgroundColor: buttonColor,
+          backgroundColor: isCancelOrBack == true? Colors.transparent : buttonColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radius),
             side: BorderSide(
-              color: borderColor,
+              color: isCancelOrBack == true? Colors.white70 : borderColor,
               width: 1.5,
             ),
           ),
@@ -58,7 +62,7 @@ class Button extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'WinnerSans',
                       color: textColor,
-                      fontSize: 16,
+                      fontSize: fontSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

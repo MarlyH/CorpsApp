@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/Modals/add_child.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/booking_terms.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
@@ -213,7 +214,8 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: Button(
                       label: 'CANCEL',
                       onPressed: _back,
-                      buttonColor: AppColors.disabled,
+                      isCancelOrBack: true,             
+                      fontSize: MediaQuery.of(context).size.width < 360 ? 12 : 16,
                       ),
                     ),
                     
@@ -223,6 +225,7 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: Button(
                         label: 'AGREE & CONTINUE',
                         onPressed: _next,
+                        fontSize: MediaQuery.of(context).size.width < 360 ? 12 : 16,
                       ),
                     ),
 
@@ -233,7 +236,7 @@ class _BookingFlowState extends State<BookingFlow> {
                       child: Button(
                         label: 'BACK',
                         onPressed: _back,
-                        buttonColor: AppColors.disabled,
+                        isCancelOrBack: true,
                       ),
                     ),
 
@@ -522,97 +525,127 @@ class _BookingFlowState extends State<BookingFlow> {
             ),
 
             const SizedBox(height: 16),
+            const Divider(color: Colors.white30, height: 1),
+            const SizedBox(height: 16),
             
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Permission to Leave',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+
                   const Text(
-                    'Allow child to leave on their own after the event?',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    'Do you allow child to leave on their own after the event?',
+                    style: TextStyle(fontSize: 16),
                   ),
-                  const SizedBox(height: 12),
 
-                  // YES: child may leave on their own  -> (store inverted) _allowAlone = false
-                  CheckboxListTile(
-                    value: _allowAlone == false, // inverted binding
-                    onChanged: (v) async {
-                      if (v == true) {
-                        final ok = await _confirmPermissionChange(true); // UI meaning = YES
-                        if (ok) setState(() => _allowAlone = false);     // invert when storing
+                  const SizedBox(height: 4),
+
+                  // Yes, allow child to leave                 
+                  ListTile(
+                    leading: Radio<bool?>(
+                      value: false,                
+                      groupValue: _allowAlone,     
+                      onChanged: (v) async {
+                        if (v == false) {
+                          final ok = await _confirmPermissionChange(true); 
+                          if (ok) setState(() => _allowAlone = false);     
+                        }
+                      },
+                      activeColor: AppColors.primaryColor,
+                    ),
+                    onTap: () async {
+                      // tap behavior: if already selected -> clear (null). Otherwise ask confirmation and set false.
+                      if (_allowAlone == false) {
+                        setState(() => _allowAlone = null); 
                       } else {
-                        setState(() => _allowAlone = null); // uncheck -> no selection
+                        final ok = await _confirmPermissionChange(true);
+                        if (ok) setState(() => _allowAlone = false);
                       }
                     },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    activeColor: Colors.blue,
-                    checkColor: Colors.white,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'Yes, my child may leave on their own',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-
-                  // NO: parent/guardian will collect  -> (store inverted) _allowAlone = true
-                  CheckboxListTile(
-                    value: _allowAlone == true, // inverted binding
-                    onChanged: (v) async {
-                      if (v == true) {
-                        final ok = await _confirmPermissionChange(false); // UI meaning = NO
-                        if (ok) setState(() => _allowAlone = true);        // invert when storing
-                      } else {
-                        setState(() => _allowAlone = null); // uncheck -> no selection
-                      }
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    activeColor: Colors.blue,
-                    checkColor: Colors.white,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'No, an authorised parent/guardian will collect',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    subtitle: const Text(
-                      'Authorised person must present the QR code for handover.',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ),
-
-                  if (_allowAlone == null)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 12, top: 4),
-                      child: Text(
-                        'Please choose one option to continue.',
-                        style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                    minLeadingWidth: 0,
+                    horizontalTitleGap: 4,
+                    title: const Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Yes', 
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ', allow the child to leave on their own.',
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
+
+                  // No, parent/guardian will collect
+                  ListTile(
+                    leading: Radio<bool?>(
+                      value: true,                 
+                      groupValue: _allowAlone,     
+                      onChanged: (v) async {
+                        if (v == true) {
+                          final ok = await _confirmPermissionChange(false); 
+                          if (ok) setState(() => _allowAlone = true);
+                        }
+                      },
+                      activeColor: AppColors.primaryColor,
+                    ),
+                    onTap: () async {
+                      if (_allowAlone == true) {
+                        setState(() => _allowAlone = null); 
+                      } else {
+                        final ok = await _confirmPermissionChange(false);
+                        if (ok) setState(() => _allowAlone = true);
+                      }
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    minLeadingWidth: 0,
+                    horizontalTitleGap: 4,
+                    title: const Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'No', 
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ', an authorised parent/guardian must pick the child up.',
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),                   
+                  ),                                       
                 ],
-              ),
-            ),
+              ),           
           ],
         ),
     );
   }
 
   // CONFIRM
-
   Widget _confirmView() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -625,72 +658,33 @@ class _BookingFlowState extends State<BookingFlow> {
       ),
     );
   }
+  
   Future<bool> _confirmPermissionChange(bool allowAlone) async {
     final title = allowAlone
-        ? 'Confirm: Child May Leave Alone'
-        : 'Confirm: Guardian Pickup Required';
+        ? 'Allow Child to Leave Alone?'
+        : 'Require Parent/Guardian to Pick Up?';
 
     final body = allowAlone
-        ? const [
-            Text(
-              'By selecting YES, you consent to your child leaving the venue on their own after the event concludes.',
-              style: TextStyle(height: 1.4),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '• Your Corps is not responsible for the child’s safety once they leave the venue.',
-              style: TextStyle(height: 1.4),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '• Staff will perform a manual sign-out at conclusion.',
-              style: TextStyle(height: 1.4),
-            ),
-          ]
-        : const [
-            Text(
-              'By selecting NO, your child must be checked in and checked out by an authorised parent/guardian.',
-              style: TextStyle(height: 1.4),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '• The authorised person must scan the child’s QR code on entry and again when collecting at the end.',
-              style: TextStyle(height: 1.4),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '• Your child will remain at the venue under supervision until they are claimed with the QR code.',
-              style: TextStyle(height: 1.4),
-            ),
-          ];
+      ? 'You consent to your child leaving the venue on their own after the event concludes.\n\n'
+        'Your Corps will not be responsible for the child’s safety once they leave the venue.'
+      : 'Your child is not allowed to leave on their own and must be picked up by an authorised parent/guardian.\n\n'
+        "The parent/guardian must present the ticket's QR code when picking them up at after the event.\n\n"
+        'Your child will remain at the venue under supervision until they are claimed with the QR code.';
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: body,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('CONFIRM'),
-          ),
-        ],
+      builder: (ctx) => CustomAlertDialog(
+        title: title,
+        info: body,
+        buttonAction: () => Navigator.of(ctx).pop(true),
+        buttonLabel: 'Confirm',
+        cancel: true,
       ),
     );
 
     return result == true;
   }
 
-  
   Future<void> _showPermissionInfoDialog() async {
     await showDialog(
       context: context,
@@ -763,8 +757,6 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
         top: false,
         child: Column(
           children: [
-            const SizedBox(height: 16),
-
             // Header         
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -772,8 +764,8 @@ class _SeatPickerSheetState extends State<_SeatPickerSheet> {
                 Text(
                   'Select a Ticket Number',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),                             
               ],

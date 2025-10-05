@@ -1,3 +1,4 @@
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:corpsapp/widgets/button.dart';
 
@@ -8,6 +9,7 @@ class CustomAlertDialog extends StatelessWidget {
   final VoidCallback? buttonAction;
   final String? extraContentText;
   final String? iconPath;
+  final bool? cancel;
 
   const CustomAlertDialog({
     super.key,
@@ -16,11 +18,15 @@ class CustomAlertDialog extends StatelessWidget {
     this.buttonLabel = 'OK',
     this.buttonAction,
     this.extraContentText,
-    this.iconPath
+    this.iconPath,
+    this.cancel,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double buttonFontSize = screenWidth < 360 ? 14 : 16;
+
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
       backgroundColor: Colors.white,
@@ -81,12 +87,35 @@ class CustomAlertDialog extends StatelessWidget {
               ),
             ],
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            Button(
-              label: buttonLabel,
-              onPressed: buttonAction ?? () => Navigator.of(context).pop(),
-            ),
+            if (cancel == true) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Button(
+                      label: 'Cancel',
+                      onPressed: () => Navigator.of(context).pop(),
+                      textColor: AppColors.normalText,
+                      fontSize: buttonFontSize,
+                      isCancelOrBack: true,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Button(
+                      label: buttonLabel,
+                      onPressed: buttonAction ?? () => Navigator.of(context).pop(),
+                      fontSize: buttonFontSize,
+                    ),
+                  ),
+                ],
+              ),
+            ] else 
+              Button(
+                label: buttonLabel,
+                onPressed: buttonAction ?? () => Navigator.of(context).pop(),
+              ),
           ],
         ),
       ),

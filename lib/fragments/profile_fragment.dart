@@ -1,3 +1,4 @@
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -54,7 +55,7 @@ class ProfileFragment extends StatelessWidget {
     }
 
     return Container(
-      color: Colors.black,
+      color: AppColors.background,
       child: SafeArea(
         bottom: false,
         child: Column(

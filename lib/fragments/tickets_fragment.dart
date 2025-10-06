@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/booking_model.dart';
@@ -54,7 +56,7 @@ class _BookingWithTime {
   }
 }
 
-// Buckets: striked now lives under "concluded"
+// Buckets
 enum _Bucket { upcoming, concluded, cancelled }
 
 // Concluded filter choices
@@ -143,12 +145,15 @@ class _TicketsFragmentState extends State<TicketsFragment>
 
   @override
   Widget build(BuildContext context) {
-    final dateFmtHeader = DateFormat.yMMMMEEEEd();
+    final dateFmtHeader = DateFormat('EEEE d MMMM, y');
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    double fontSize = screenWidth < 360 ? 12 : 16;
 
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.only(top: 24),
+        padding: AppPadding.screen,
         child: Column(
           children: [
             const Text(
@@ -156,32 +161,31 @@ class _TicketsFragmentState extends State<TicketsFragment>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'WinnerSans',
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.w600,
+                fontSize: 32,
               ),
             ),
+            
             const SizedBox(height: 16),
 
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(25),
               ),
               child: TabBar(
                 controller: _tabs,
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.white,
-                unselectedLabelColor: Colors.black,
+                unselectedLabelColor: AppColors.normalText,
+                labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
                 dividerColor: Colors.transparent,
                 dividerHeight: 0,
                 indicator: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(32),
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 indicatorPadding: const EdgeInsets.symmetric(
-                  horizontal: 4,
+                  horizontal: 6,
                   vertical: 6,
                 ),
                 tabs: const [
@@ -192,22 +196,18 @@ class _TicketsFragmentState extends State<TicketsFragment>
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Tap a booking to view details. Your entry QR code is inside.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
+            // Text(
+            //   'Tap a booking to view details. Your entry QR code is inside.',
+            //   textAlign: TextAlign.center,
+            //   style: TextStyle(
+            //     color: Colors.white70,
+            //     fontSize: 13,
+            //     height: 1.2,
+            //   ),
+            // ),
+            
             Expanded(
               child: FutureBuilder<List<_BookingWithTime>>(
                 future: _futureBookings,
@@ -219,17 +219,17 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   }
                   if (snap.hasError) {
                     return RefreshIndicator(
+                      color: Colors.white,
                       onRefresh: _refresh,
                       child: ListView(
                         children: const [
-                          SizedBox(height: 80),
+                          SizedBox(height: 88),
                           Center(
                             child: Text(
                               'Something went wrong. Pull to refresh.',
                               style: TextStyle(color: Colors.white),
                             ),
                           ),
-                          SizedBox(height: 400),
                         ],
                       ),
                     );
@@ -295,11 +295,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
         onRefresh: _refresh,
         child: ListView(
           children: const [
-            SizedBox(height: 80),
+            SizedBox(height: 88),
             Center(
-              child: Text('No bookings', style: TextStyle(color: Colors.white)),
+              child: Text('No bookings', style: TextStyle(fontSize: 16)),
             ),
-            SizedBox(height: 400),
           ],
         ),
       );
@@ -312,7 +311,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
       byDate.putIfAbsent(dateKey, () => []).add(bt);
     }
 
-    final dateKeys = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
+    final dateKeys = byDate.keys.toList()..sort((a, b) => a.compareTo(b));
 
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
@@ -320,25 +319,25 @@ class _TicketsFragmentState extends State<TicketsFragment>
           byDate[key]!
             ..sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
       items.add(_Header(headerLabel));
-      for (final bt in day!) {
+      for (final bt in day) {
         items.add(_Row(bt));
       }
     }
 
     return RefreshIndicator(
       onRefresh: _refresh,
+      color: Colors.white,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final it = items[index];
           if (it is _Header) {
             return Padding(
               key: ValueKey('h:${it.label}'),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.only(bottom: 4, top: 8),
               child: Text(
                 it.label,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
               ),
             );
           }
@@ -381,16 +380,16 @@ class _TicketsFragmentState extends State<TicketsFragment>
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
+              color: Colors.white,
               child: ListView(
                 children: const [
-                  SizedBox(height: 80),
+                  SizedBox(height: 88),
                   Center(
                     child: Text(
                       'No concluded bookings',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
-                  SizedBox(height: 400),
                 ],
               ),
             ),
@@ -412,10 +411,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
     for (final key in dateKeys) {
       final headerLabel = dateFmtHeader.format(key);
       final day =
-          byDate[key]!
-            ..sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
+        byDate[key]!
+          ..sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
       items.add(_Header(headerLabel));
-      for (final bt in day!) {
+      for (final bt in day) {
         items.add(_Row(bt));
       }
     }
@@ -429,8 +428,8 @@ class _TicketsFragmentState extends State<TicketsFragment>
         Expanded(
           child: RefreshIndicator(
             onRefresh: _refresh,
+            color: Colors.white,
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final it = items[index];
@@ -440,7 +439,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       it.label,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   );
                 }
@@ -589,7 +588,7 @@ class _BookingCard extends StatelessWidget {
     if (parts.length > 1) m = int.tryParse(parts[1]) ?? 0;
 
     final dt = DateTime(day.year, day.month, day.day, h, m);
-    return DateFormat('h:mm a').format(dt); // e.g., 1:05 PM
+    return DateFormat('h:mma').format(dt); // e.g., 1:05 PM
   }
 
 
@@ -622,74 +621,118 @@ class _BookingCard extends StatelessWidget {
 
     return Card(
       color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () async {
           final didCancel = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder:
-                  (_) => TicketDetailView(
-                    booking: booking,
-                    allowCancel: allowCancel,
-                  ),
+              builder: (_) => TicketDetailView(
+                booking: booking,
+                allowCancel: allowCancel,
+              ),
             ),
           );
           if (didCancel == true) onCancelled(booking);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          padding: const EdgeInsets.only(top: 16, right: 16, bottom: 24 ),
+          child: Stack(
             children: [
-              Row(
+              // main content
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Booking for',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          booking.attendeeName,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  
+                  const SizedBox(height: 8), 
+
+                  Text(
+                    'Booking For',
+                    style: TextStyle(
+                      color: AppColors.normalText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  chip,
+
+                  Text(
+                    booking.attendeeName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      color: AppColors.normalText,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Starts ',
+                              style: TextStyle(
+                                color: AppColors.normalText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: startLabel,
+                              style: TextStyle(
+                                color: AppColors.normalText,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Ends ',
+                              style: TextStyle(
+                                color: AppColors.normalText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: endLabel,
+                              style: TextStyle(
+                                color: AppColors.normalText,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.schedule, size: 16, color: Colors.black54),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Starts $startLabel • Ends $endLabel',
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
+
+              // status chip pinned top-right
+              Positioned(
+                top: 0,
+                right: 0,
+                child: chip,
               ),
             ],
           ),
         ),
       ),
     );
+
   }
 
   Widget _statusChip(_Bucket b, BookingStatus s, bool isLive, bool missed) {
@@ -703,31 +746,31 @@ class _BookingCard extends StatelessWidget {
           bg = Colors.green.shade700;
         } else {
           label = isLive ? 'UPCOMING • LIVE' : 'UPCOMING';
-          bg = Colors.black87;
+          bg = AppColors.background;
         }
         break;
 
       case _Bucket.concluded:
         if (s == BookingStatus.Striked) {
-          label = 'STRIKED';
-          bg = Colors.red.shade700;
+          label = 'STRUCK';
+          bg = AppColors.errorColor;
         } else if (s == BookingStatus.CheckedOut) {
           label = 'CHECKED OUT';
-          bg = Colors.grey.shade800;
+          bg = AppColors.background;
         } else {
           label = missed ? 'MISSED' : 'COMPLETED';
-          bg = Colors.grey.shade800;
+          bg = AppColors.background;
         }
         break;
 
       case _Bucket.cancelled:
         label = 'CANCELLED';
-        bg = Colors.grey.shade800;
+        bg = AppColors.background;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
@@ -735,9 +778,8 @@ class _BookingCard extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

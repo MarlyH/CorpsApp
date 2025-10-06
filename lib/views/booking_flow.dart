@@ -113,12 +113,6 @@ class _BookingFlowState extends State<BookingFlow> {
   void _next() async {
   final last = _needsFullFlow ? 3 : 2;
 
-  // On Attendee step in full flow, require a selection
-  if (_needsFullFlow && _step == 2 && _allowAlone == null) {
-    await _showPermissionInfoDialog();
-    return;
-  }
-
   if (_step < last) {
     setState(() => _step++);
   } else {
@@ -150,15 +144,32 @@ class _BookingFlowState extends State<BookingFlow> {
       await AuthHttpClient.post('/api/booking', body: dto);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Booking successful'),
+          content: Text('Booking successful!'),
           backgroundColor: Colors.white,
         ),
       );
       Navigator.pop(context, true);
     } catch (e) {
+      String errorMessage = 'Booking failed.';
+
+      try {
+        // Extract JSON part from the exception string
+        final jsonStart = e.toString().indexOf('{');
+        if (jsonStart != -1) {
+          final jsonString = e.toString().substring(jsonStart);
+          final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
+          if (jsonMap.containsKey('message')) {
+            errorMessage = jsonMap['message'];
+          }
+        }
+      } catch (_) {
+        // Fallback: if parsing fails, keep the default error message
+        errorMessage = 'Booking failed. Please try again.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Booking failed: $e'),
+          content: Text(errorMessage),
           backgroundColor: AppColors.errorColor,
         ),
       );
@@ -646,19 +657,33 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   // CONFIRM
-  Widget _confirmView() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          'About to book ticket #$_selectedSeat\nfor ${widget.event.locationName}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white70, fontSize: 16),
-        ),
-      ),
-    );
-  }
-  
+Widget _confirmView() {
+  final selectedChild = _children.firstWhere(
+    (c) => c.childId.toString() == _selectedChildId,
+    orElse: () => ChildModel(
+      childId: -1,
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      age: 0,
+      ageGroup: '',
+      ageGroupLabel: ''
+    ),
+  );
+
+  final childName = '${selectedChild.firstName} ${selectedChild.lastName}';
+
+  return Center(
+    child: Text(
+      'About to book Ticket #$_selectedSeat\nfor $childName',
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 16),
+    ),
+  );
+}
+
   Future<bool> _confirmPermissionChange(bool allowAlone) async {
     final title = allowAlone
         ? 'Allow Child to Leave Alone?'
@@ -683,44 +708,7 @@ class _BookingFlowState extends State<BookingFlow> {
     );
 
     return result == true;
-  }
-
-  Future<void> _showPermissionInfoDialog() async {
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Permission to Leave'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Please choose one option before continuing.',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 12),
-              Text('YES – Child may leave on their own after the event.'),
-              SizedBox(height: 4),
-              Text('• You consent to your child leaving independently.', style: TextStyle(height: 1.4)),
-              Text('• Your Corps is not responsible once they leave the venue.', style: TextStyle(height: 1.4)),
-              Text('• Staff will perform a manual sign-out at conclusion.', style: TextStyle(height: 1.4)),
-              SizedBox(height: 12),
-              Text('NO – An authorised parent/guardian will collect.'),
-              SizedBox(height: 4),
-              Text('• The authorised person must scan the QR code to check in and check out.', style: TextStyle(height: 1.4)),
-              Text('• The child remains at the venue until they are claimed with the QR code.', style: TextStyle(height: 1.4)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
+  } 
 }
  
 class _SeatPickerSheet extends StatefulWidget {

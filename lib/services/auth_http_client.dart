@@ -213,7 +213,10 @@ class AuthHttpClient {
 
   static void _checkForErrors(http.Response response) {
     if (response.statusCode >= 400) {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      final Map<String, dynamic> body = jsonDecode(response.body);
+      // Extract 'message' field, or fallback to the entire body if not present
+      final String message = body['message'] ?? response.body;
+      throw message;
     }
   }
   /// GET /api/Locations

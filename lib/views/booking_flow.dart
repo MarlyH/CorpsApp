@@ -142,34 +142,19 @@ class _BookingFlowState extends State<BookingFlow> {
 
     try {
       await AuthHttpClient.post('/api/booking', body: dto);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Booking successful!'),
           backgroundColor: Colors.white,
         ),
       );
+
       Navigator.pop(context, true);
-    } catch (e) {
-      String errorMessage = 'Booking failed.';
-
-      try {
-        // Extract JSON part from the exception string
-        final jsonStart = e.toString().indexOf('{');
-        if (jsonStart != -1) {
-          final jsonString = e.toString().substring(jsonStart);
-          final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
-          if (jsonMap.containsKey('message')) {
-            errorMessage = jsonMap['message'];
-          }
-        }
-      } catch (_) {
-        // Fallback: if parsing fails, keep the default error message
-        errorMessage = 'Booking failed. Please try again.';
-      }
-
+    } catch (errorMessage) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
+          content: Text(errorMessage.toString()),
           backgroundColor: AppColors.errorColor,
         ),
       );

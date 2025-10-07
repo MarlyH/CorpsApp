@@ -197,16 +197,6 @@ class _TicketsFragmentState extends State<TicketsFragment>
             ),
 
             const SizedBox(height: 16),
-
-            // Text(
-            //   'Tap a booking to view details. Your entry QR code is inside.',
-            //   textAlign: TextAlign.center,
-            //   style: TextStyle(
-            //     color: Colors.white70,
-            //     fontSize: 13,
-            //     height: 1.2,
-            //   ),
-            // ),
             
             Expanded(
               child: FutureBuilder<List<_BookingWithTime>>(
@@ -386,8 +376,8 @@ class _TicketsFragmentState extends State<TicketsFragment>
                   SizedBox(height: 88),
                   Center(
                     child: Text(
-                      'No concluded bookings',
-                      style: TextStyle(color: Colors.white),
+                      'No bookings',
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ],
@@ -476,96 +466,50 @@ class _ConcludedFilterBar extends StatelessWidget {
     final baseChip = ChipTheme.of(context);
 
     // State-based background color
-    final MaterialStateProperty<Color?> chipFill =
-        MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.disabled)) {
-            return Colors.transparent;
-          }
-          if (states.contains(MaterialState.selected)) {
-            return Colors.white;
-          }
-          return Colors.transparent;
-        });
+    final WidgetStateProperty<Color?> chipFill =
+        WidgetStateProperty.resolveWith((states) {
+      if (states.contains(MaterialState.selected)) {
+        return Colors.white;
+      }
+      return AppColors.background;
+    });
 
-    // State-based border
-    final MaterialStateProperty<BorderSide?> chipBorder =
-        MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return const BorderSide(color: Colors.black, width: 1.2);
-          }
-          return BorderSide(color: Colors.grey[400]!, width: 1.0);
-        });
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-      child: Theme(
-        data: baseTheme.copyWith(
-          splashFactory: NoSplash.splashFactory,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          chipTheme: baseChip.copyWith(
-            backgroundColor: Colors.transparent,
-            selectedColor: Colors.white,
-            secondarySelectedColor: Colors.white,
-            disabledColor: Colors.transparent,
-            shadowColor: Colors.transparent,
+    ChoiceChip buildChip(String label, _ConcludedFilter value) {
+      final isSelected = selected == value;
+      return ChoiceChip(
+        label: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppColors.normalText : Colors.white,
           ),
         ),
-        child: Wrap(
-          spacing: 8,
-          children: [
-            ChoiceChip(
-              label: Text(
-                'All',
-                style: TextStyle(
-                  color:
-                      selected == _ConcludedFilter.all
-                          ? Colors.black
-                          : const Color.fromARGB(255, 255, 255, 255),
-                ),
-              ),
-              selected: selected == _ConcludedFilter.all,
-              showCheckmark: true,
-              surfaceTintColor: Colors.transparent,
-              color: chipFill,
-              onSelected: (_) => onChanged(_ConcludedFilter.all),
-            ),
-            ChoiceChip(
-              label: Text(
-                'Checked Out',
-                style: TextStyle(
-                  color:
-                      selected == _ConcludedFilter.checkedOut
-                          ? Colors.black
-                          : const Color.fromARGB(255, 255, 255, 255),
-                ),
-              ),
-              selected: selected == _ConcludedFilter.checkedOut,
-              showCheckmark: true,
-              surfaceTintColor: Colors.transparent,
-              color: chipFill,
+        selected: isSelected,
+        showCheckmark: false,
+        surfaceTintColor: Colors.transparent,
+        color: chipFill,
+        onSelected: (_) => onChanged(value),
+      );
+    }
 
-              onSelected: (_) => onChanged(_ConcludedFilter.checkedOut),
-            ),
-            ChoiceChip(
-              label: Text(
-                'Striked',
-                style: TextStyle(
-                  color:
-                      selected == _ConcludedFilter.striked
-                          ? Colors.black
-                          : const Color.fromARGB(255, 255, 255, 255),
-                ),
-              ),
-              selected: selected == _ConcludedFilter.striked,
-              showCheckmark: true,
-              surfaceTintColor: Colors.transparent,
-              color: chipFill,
-
-              onSelected: (_) => onChanged(_ConcludedFilter.striked),
-            ),
-          ],
+    return Theme(
+      data: baseTheme.copyWith(
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        chipTheme: baseChip.copyWith(
+          backgroundColor: Colors.transparent,
+          secondarySelectedColor: Colors.white,
+          disabledColor: Colors.transparent,
+          shadowColor: Colors.transparent,
         ),
+      ),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          buildChip('All', _ConcludedFilter.all),
+          buildChip('Checked Out', _ConcludedFilter.checkedOut),
+          buildChip('Struck', _ConcludedFilter.striked),
+        ],
       ),
     );
   }

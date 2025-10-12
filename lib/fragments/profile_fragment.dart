@@ -16,6 +16,7 @@ import '../views/ban_appeal_view.dart';
 import '../views/banned_users_view.dart';
 import '../views/show_account_users.dart';
 import '../views/medical_conditions_view.dart';
+import '../views/report_generation_view.dart';
 
 class ProfileFragment extends StatelessWidget {
   const ProfileFragment({super.key});
@@ -287,6 +288,16 @@ class ProfileFragment extends StatelessWidget {
                               builder: (_) => const ManageLocationsView(),
                             ),
                           ),
+                    ),
+                  ],
+                  if (isAdmin) ...[
+                    _OptionTile(
+                      icon: Icons.bar_chart_rounded,
+                      label: "Reporting",
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ReportGenerationView()),
+                      ),
                     ),
                   ],
                   const Divider(

@@ -343,6 +343,30 @@ class AuthHttpClient {
     return res;
   }
 
+  /// POST /api/events/report
+  static Future<http.Response> generateReport({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
+
+    final uri = Uri.parse('$_baseUrl/api/events/report');
+    final body = {
+      'startDate': startDate.toIso8601String().split('T')[0],
+      'endDate': endDate.toIso8601String().split('T')[0],
+    };
+
+    final resp = await _client.post(
+      uri,
+      headers: _buildHeaders(token),
+      body: jsonEncode(body),
+    );
+
+    _checkForErrors(resp);
+    return resp;
+  }
+
   /// PUT /api/events/{id}/cancel
   static Future<http.Response> cancelEvent(int id, {String? cancellationMessage}) {
     return put(

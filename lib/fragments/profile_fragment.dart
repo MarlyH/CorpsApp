@@ -250,20 +250,20 @@ class ProfileFragment extends StatelessWidget {
                           ),
                     ),
                   ],
-                  if (isAdmin) ...[
-                    _OptionTile(
-                      icon: Icons.history,
-                      label: "Events History",
-                      onTap:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AccountSecurityView(),
-                            ),
-                            // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
-                          ),
-                    ),
-                  ],
+                  // if (isAdmin) ...[
+                  //   _OptionTile(
+                  //     icon: Icons.history,
+                  //     label: "Events History",
+                  //     onTap:
+                  //         () => Navigator.push(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //             builder: (_) => const AccountSecurityView(),
+                  //           ),
+                  //           // MaterialPageRoute(builder: (_) => const EventsHistoryView()),
+                  //         ),
+                  //   ),
+                  // ],
                   if (isAdmin || isManager) ...[
                     _OptionTile(
                       icon: Icons.admin_panel_settings,

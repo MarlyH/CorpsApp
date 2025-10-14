@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
-import 'package:corpsapp/widgets/button.dart';
 
 class TermsView extends StatelessWidget {
   final VoidCallback onCancel;
@@ -62,28 +61,6 @@ class TermsView extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-
-            // Row(
-            //   children: [
-            //     IntrinsicWidth(
-            //       child: Button(
-            //         onPressed: onCancel,
-            //         label: 'CANCEL',
-            //         buttonColor: AppColors.disabled,
-            //       ),
-            //     ),
-
-            //     const SizedBox(width: 12),
-
-            //     Expanded(
-            //       child: Button(
-            //         onPressed: onAgree,
-            //         label: 'Agree & Continue',
-            //         buttonColor: AppColors.primaryColor,
-            //       ),
-            //     ),
-            //   ],
-            // ),
           ],
         ),
       ),

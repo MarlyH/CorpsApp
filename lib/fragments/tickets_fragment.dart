@@ -426,10 +426,10 @@ class _TicketsFragmentState extends State<TicketsFragment>
                 if (it is _Header) {
                   return Padding(
                     key: ValueKey('h:${it.label}'),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.only(bottom: 4, top: 8),
                     child: Text(
                       it.label,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                   );
                 }

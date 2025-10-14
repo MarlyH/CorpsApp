@@ -1,7 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -9,6 +16,7 @@ import 'package:pdf/pdf.dart';
 import 'package:barcode/barcode.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
@@ -85,6 +93,8 @@ class TicketDetailView extends StatefulWidget {
 class _TicketDetailViewState extends State<TicketDetailView> {
   late Future<EventDetail> _detailFuture;
   bool _isCancelling = false;
+  final GlobalKey _ticketKey = GlobalKey();
+
 
   @override
   void initState() {
@@ -323,6 +333,70 @@ class _TicketDetailViewState extends State<TicketDetailView> {
   }
   // ---------- /DOWNLOAD ----------
 
+  Future<Uint8List?> _captureTicketImage() async {
+    try {
+      final boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to capture ticket: $e')));
+      return null;
+    }
+  }
+
+  Future<void> _shareTicketImage() async {
+    final pngBytes = await _captureTicketImage();
+    if (pngBytes == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final filePath = '${dir.path}/ticket_${widget.booking.bookingId}.png';
+    final file = File(filePath);
+    await file.writeAsBytes(pngBytes);
+
+    await Share.shareXFiles([XFile(filePath)], text: 'My Event Ticket');
+  }
+
+  Future<void> _saveTicketImage() async {
+    final pngBytes = await _captureTicketImage();
+    if (pngBytes == null) return;
+
+    try {
+      // Request permission (important on Android & iOS)
+      final status = await Permission.photos.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission to access photos is required.')),
+        );
+        return;
+      }
+
+      // Save to gallery
+      final result = await ImageGallerySaverPlus.saveImage(
+        pngBytes,
+        name: "YourCorps_Ticket_${widget.booking.bookingId}",
+        quality: 100,
+      );
+
+      final isSuccess = result['isSuccess'] ?? false;
+
+      if (!mounted) return;
+      if (isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ticket saved to gallery!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save image to gallery.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to save image: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateLabel = DateFormat('d MMM, yyyy').format(widget.booking.eventDate);
@@ -343,12 +417,12 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 children: [
                   IconButton(
                     tooltip: 'Share PDF',
-                    onPressed: enabled ? () => _sharePdf(snap.data!) : null,
+                    onPressed: enabled ? _shareTicketImage : null,
                     icon: const Icon(Icons.share, color: Colors.white),
                   ),
                   IconButton(
                     tooltip: 'Download PDF',
-                    onPressed: enabled ? () => _downloadPdf(snap.data!) : null,
+                    onPressed: enabled ? _saveTicketImage : null,
                     icon: const Icon(Icons.download_rounded, color: Colors.white),
                   ),
                 ],
@@ -392,74 +466,85 @@ class _TicketDetailViewState extends State<TicketDetailView> {
 
             return Column(
               children: [
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    widget.booking.attendeeName,
-                    style: const TextStyle(
-                      fontFamily: 'WinnerSans',
-                      color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(
-                    friendlySession(detail.sessionType),
-                    style: const TextStyle(color: Colors.white70, fontSize: 18),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _detailRow('Location', widget.booking.eventName),
-                          _detailRow('Address', detail.address),
-                          _detailRow('Date', dateLabel),
-                          _detailRow('Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
-                          _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
-                          // Only show for child bookings:
-                          if (widget.booking.isForChild)
-                            _detailRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
-
-                          const SizedBox(height: 16),
-                          const Divider(color: Colors.black26),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Description',
-                            style: TextStyle(color: Colors.black54, fontSize: 14),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            detail.description,
-                            style: const TextStyle(color: Colors.black87, fontSize: 14),
-                          ),
-                          const SizedBox(height: 16),
-                          const Divider(color: Colors.black26),
-                          const SizedBox(height: 16),
-                          // On-screen QR (remains QR format via qr_flutter)
-                          Center(
-                            child: QrImageView(
-                              data: widget.booking.qrCodeData,
-                              version: QrVersions.auto,
-                              size: 200,
-                              backgroundColor: Colors.white,
+                    child: RepaintBoundary(
+                      key: _ticketKey,
+                      child: Container(
+                        color: AppColors.background,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Text(
+                                widget.booking.attendeeName,
+                                style: const TextStyle(
+                                  fontFamily: 'WinnerSans',
+                                  color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                            const SizedBox(height: 4),
+                            Center(
+                              child: Text(
+                                friendlySession(detail.sessionType),
+                                style: const TextStyle(color: Colors.white70, fontSize: 18),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _detailRow('Location', widget.booking.eventName),
+                                  _detailRow('Address', detail.address),
+                                  _detailRow('Date', dateLabel),
+                                  _detailRow('Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
+                                  _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
+                                  if (widget.booking.isForChild)
+                                    _detailRow(
+                                      'Does the attendee require a Parent/Guardian to be present on event conclusion?',
+                                      widget.booking.canBeLeftAlone ? 'Yes' : 'No',
+                                    ),
+                                  const SizedBox(height: 16),
+                                  const Divider(color: Colors.black26),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Description',
+                                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    detail.description,
+                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Divider(color: Colors.black26),
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: QrImageView(
+                                      data: widget.booking.qrCodeData,
+                                      version: QrVersions.auto,
+                                      size: 200,
+                                      backgroundColor: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+
                     ),
                   ),
                 ),

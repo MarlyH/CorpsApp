@@ -118,7 +118,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
 
     // any date works; we just want the time formatting
     final dt = DateTime(2000, 1, 1, h, min);
-    return DateFormat('h:mm a').format(dt); // e.g., 1:05 PM
+    return DateFormat('h:mma').format(dt); // e.g., 1:05 PM
   }
 
 
@@ -468,93 +468,101 @@ class _TicketDetailViewState extends State<TicketDetailView> {
             return Padding(
               padding: AppPadding.screen.copyWith(top: 0),
               child: SingleChildScrollView(
-                child: RepaintBoundary(
-                  key: _ticketKey,
-                  child: Container(
-                    color: AppColors.background,
-                    child: Column(
-                      children: [
-                        Center(
-                          child: Text(
-                            widget.booking.attendeeName,
-                            style: const TextStyle(
-                              fontFamily: 'WinnerSans',
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Center(
-                          child: Text(
-                            friendlySession(detail.sessionType),
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _detailRow('Address', detail.address),
-                              _detailRow('Location', widget.booking.eventName),
-                              _detailRow('Date', dateLabel),
-                              _detailRow(
-                                  'Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
-                              _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
-                              if (widget.booking.isForChild)
-                                _detailRow(
-                                    'MUST the attendee be picked up?',
-                                    widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
-                              const Divider(color: Color(0xFFA2A2A2)),
-                              if (detail.description.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Description',
-                                  style: TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
+                child: Column(
+                  children: [
+                    RepaintBoundary(
+                      key: _ticketKey,
+                      child: Container(
+                        color: AppColors.background,
+                        child: Column(
+                          children: [
+
+                            Center(
+                              child: Text(
+                                widget.booking.attendeeName,
+                                style: const TextStyle(
+                                  fontFamily: 'WinnerSans',
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                Text(
-                                  detail.description,
-                                  style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                const Divider(color: Color(0xFFA2A2A2)),
-                              ],
-                              Center(
-                                child: QrImageView(
-                                  data: widget.booking.qrCodeData,
-                                  version: QrVersions.auto,
-                                  size: 300,
-                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              // Add the button inside the scrollable column
-                              
-                            ],
-                          ),
-                        ),
-                        if (canCancel) ... [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 24),
-                            child: _isCancelling
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : Button(
-                                    label: 'Cancel Booking',
-                                    onPressed: _cancelBooking,
-                                    isCancelOrBack: true,
+                            ),
+
+                            Center(
+                              child: Text(
+                                friendlySession(detail.sessionType),
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.all(20),                       
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _detailRow('Address', detail.address),
+                                  _detailRow('Location', widget.booking.eventName),
+                                  _detailRow('Date', dateLabel),
+                                  _detailRow('Time',
+                                      '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
+                                  _detailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
+                                  if (widget.booking.isForChild)
+                                    _detailRow(
+                                        'MUST the attendee be picked up?',
+                                        widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
+                                  const Divider(color: Color(0xFFA2A2A2)),
+                                  if (detail.description.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Description',
+                                      style: TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      detail.description,
+                                      style: const TextStyle(
+                                          color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Divider(color: Color(0xFFA2A2A2)),
+                                  ],
+                                  Center(
+                                    child: QrImageView(
+                                      data: widget.booking.qrCodeData,
+                                      version: QrVersions.auto,
+                                      size: 300,
+                                    ),
                                   ),
-                          ),
-                        ]
-                      ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+
+                    // Cancel button outside RepaintBoundary, but still inside scrollable column
+                    if (canCancel)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: _isCancelling
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Button(
+                                label: 'Cancel Booking',
+                                onPressed: _cancelBooking,
+                                isCancelOrBack: true,
+                              ),
+                      ),
+                  ],
                 ),
               ),
             );

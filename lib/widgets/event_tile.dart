@@ -21,7 +21,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class EventTile extends StatefulWidget {
   final event_summary.EventSummary summary;
-  final bool isUser, canManage;
+  final bool isUser, canManage, isStaff;
 
   final bool isSuspended;
   final DateTime? suspensionUntil;
@@ -38,6 +38,7 @@ class EventTile extends StatefulWidget {
     required this.onAction,
     required this.isSuspended,
     required this.suspensionUntil,
+    required this.isStaff
   });
 
   @override
@@ -275,7 +276,8 @@ class EventTileState extends State<EventTile> {
             ),
 
             // Action buttons when expanded
-            _buildActionButtons(),
+            if(!widget.isStaff)
+              _buildActionButtons(),
           ],
         ),
       ),

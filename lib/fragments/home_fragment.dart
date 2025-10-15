@@ -97,7 +97,7 @@ class HomeFragmentState extends State<HomeFragment> {
     final auth = context.watch<AuthProvider>();
     final canManage = auth.isAdmin || auth.isEventManager;
     final isUser = auth.isUser;
-
+    final isStaff = auth.isStaff;
     final user = auth.userProfile ?? {};
     final bool isSuspended = (user['isSuspended'] as bool?) ?? false;
 
@@ -252,6 +252,7 @@ class HomeFragmentState extends State<HomeFragment> {
                                   .map(
                                     (e) => EventTile(
                                       summary: e,
+                                      isStaff: isStaff,
                                       isUser: isUser,
                                       isSuspended: isSuspended,
                                       suspensionUntil: suspensionUntil,

@@ -1,12 +1,8 @@
-// lib/views/account_security_view.dart
-
-import 'dart:convert';
 
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/Modals/edit_modal.dart';
 import 'package:corpsapp/widgets/button.dart';
-import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

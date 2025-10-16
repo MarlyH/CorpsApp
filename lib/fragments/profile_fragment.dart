@@ -10,6 +10,7 @@ import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../views/account_security_view.dart';
@@ -265,6 +266,15 @@ class _StrikesBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.userProfile ?? {};
+    final suspendedTillRaw = user['suspensionUntil']; 
+    print('Suspended till raw: $suspendedTillRaw (${suspendedTillRaw.runtimeType})'); // 👈 Add this line
+
+    final suspendedTill = suspendedTillRaw != null
+        ? DateFormat('MMM d, yyyy').format(DateTime.parse(suspendedTillRaw))
+        : null;
+
     final flags = List.generate(
       3,
       (i) => Icon(
@@ -303,18 +313,21 @@ class _StrikesBanner extends StatelessWidget {
               border: Border.all(color: AppColors.errorColor),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.block, size: 16, color: AppColors.errorColor),
-                SizedBox(width: 6),
+                //const Icon(Icons.block, size: 16, color: AppColors.errorColor),
+                const SizedBox(width: 6),
                 Text(
-                  'Bookings temporarily suspended',
-                  style: TextStyle(
+                  suspendedTill != null
+                      ? 'Bookings suspended until \n$suspendedTill'
+                      : 'Bookings Suspended',
+                  style: const TextStyle(
                     color: AppColors.errorColor,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -324,6 +337,14 @@ class _StrikesBanner extends StatelessWidget {
     );
   }
 }
+
+String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
 
 /// Confirm Log Out
 class _ConfirmLogoutDialog extends StatelessWidget {

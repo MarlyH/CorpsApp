@@ -381,7 +381,7 @@ class EventTileState extends State<EventTile> {
           : null;
 
     final title = formattedDate != null
-        ? 'Account Suspended Till $formattedDate'
+        ? 'Account Suspended Until\n $formattedDate'
         : 'Account Suspended';
 
     showDialog(

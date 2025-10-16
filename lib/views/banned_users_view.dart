@@ -1,4 +1,9 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_http_client.dart';
 
@@ -22,9 +27,6 @@ class _BannedUsersViewState extends State<BannedUsersView> {
   }
 
   Future<List<BannedUser>> _load() async {
-    // If you want to be extra sure this isn't cached by proxies:
-    // final resp = await AuthHttpClient.get('/api/UserManagement/banned-users',
-    //   extraHeaders: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'});
     final resp = await AuthHttpClient.getBannedUsers();
     final list = (jsonDecode(resp.body) as List)
         .map((e) => BannedUser.fromJson(e as Map<String, dynamic>))
@@ -40,23 +42,13 @@ class _BannedUsersViewState extends State<BannedUsersView> {
   Future<void> _unban(BannedUser u) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear strikes?', style: TextStyle(color: Colors.white)),
-        content: Text('This will restore access for ${u.displayName}.',
-            style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('CLEAR STRIKES', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
+      builder: (_) => CustomAlertDialog(
+        title: 'Clear Strikes?', 
+        info: 'This will unban ${u.displayName} and clear all the associated strikes.',
+        cancel: true,
+        buttonLabel: 'Confirm',
+        buttonAction: () => Navigator.pop(context, true),
+      )
     ) ?? false;
 
     if (!ok) return;
@@ -93,12 +85,12 @@ class _BannedUsersViewState extends State<BannedUsersView> {
           'Unban failed (HTTP ${resp.statusCode}).';
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text(msg), backgroundColor: AppColors.errorColor),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Network error'), backgroundColor: Colors.redAccent),
+        const SnackBar(content: Text('Network error'), backgroundColor: AppColors.errorColor),
       );
     } finally {
       if (mounted) {
@@ -118,75 +110,61 @@ class _BannedUsersViewState extends State<BannedUsersView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Ban Management', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Ban Management'),    
       body: SafeArea(
-        child: RefreshIndicator(
-          color: Colors.white,
-          onRefresh: _refresh,
-          child: FutureBuilder<List<BannedUser>>(
-            future: _future,
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Colors.white));
-              }
-              if (snap.hasError) {
-                return Center(
-                  child: Text('Error: ${snap.error}', style: const TextStyle(color: Colors.white)),
-                );
-              }
-              final users = snap.data ?? const [];
-              if (users.isEmpty) {
-                return const Center(
-                  child: Text('No active bans', style: TextStyle(color: Colors.white70)),
-                );
-              }
-
-              return ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: users.length,
-                separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
-                itemBuilder: (ctx, i) {
-                  final u = users[i];
-                  final isBusy = _busyIds.contains(u.userId);
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: const Icon(Icons.person_off, color: Colors.white70),
-                    title: Text(u.displayName, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(
-                      '${u.email}\n'
-                      'Strikes: ${u.attendanceStrikeCount}  •  '
-                      'Last: ${u.lastStrikeLabel}  •  '
-                      'Until: ${u.untilLabel}',
-                      style: const TextStyle(color: Colors.white70, height: 1.25),
-                    ),
-                    trailing: ElevatedButton(
-                      onPressed: isBusy ? null : () => _unban(u),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4C85D0),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                      ),
-                      child: isBusy
-                          ? const SizedBox(
-                              width: 18, height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('UNBAN',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    ),
+        child: Padding(
+          padding: AppPadding.screen,
+          child: RefreshIndicator(
+            color: Colors.white,
+            onRefresh: _refresh,
+            child: FutureBuilder<List<BannedUser>>(
+              future: _future,
+              builder: (ctx, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text('Error: ${snap.error}', style: const TextStyle(color: Colors.white)),
                   );
-                },
-              );
-            },
+                }
+                final users = snap.data ?? const [];
+                if (users.isEmpty) {
+                  return const Center(
+                    child: Text('No active bans', style: TextStyle(color: Colors.white70)),
+                  );
+                }
+
+                return ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: users.length,
+                  separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 0),
+                  itemBuilder: (ctx, i) {
+                    final u = users[i];
+                    final isBusy = _busyIds.contains(u.userId);
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      title: Text(u.displayName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                        '${u.email}\n'
+                        'Banned Until: ${u.untilLabel}',
+                      ),
+                      trailing: Button(
+                        label: 'Unban', 
+                        onPressed: isBusy ? null : () => _unban(u),
+                        loading: isBusy,
+                        buttonWidth: 100,
+                        radius: 100,
+                      ),                    
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
+        )     
       ),
     );
   }

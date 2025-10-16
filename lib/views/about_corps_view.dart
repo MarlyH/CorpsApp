@@ -1,7 +1,6 @@
 // lib/views/about_corps_view.dart
 
 import 'dart:io';
-
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:flutter/material.dart';

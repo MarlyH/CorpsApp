@@ -2,6 +2,10 @@
 
 import 'dart:convert';
 
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/Modals/edit_modal.dart';
+import 'package:corpsapp/widgets/button.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,12 +23,11 @@ class AccountSecurityView extends StatefulWidget {
 
 class _AccountSecurityViewState extends State<AccountSecurityView> {
   bool _isLoading = false;
-  String? _emailError;
 
-  void _showSnack(String msg, {Color bg = Colors.redAccent}) {
+  void _showSnack(String msg, {Color bg = AppColors.errorColor}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        content: Text(msg, style: const TextStyle(fontSize: 16)),
         backgroundColor: bg,
         behavior: SnackBarBehavior.floating,
       ),
@@ -36,17 +39,19 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     required String initial,
     required String hint,
     required Future<void> Function(String) onSubmit,
-    bool isPhone = false,
   }) async {
-    final result = await showDialog<String?>(
+    final result = await showModalBottomSheet<String>(
       context: context,
-      builder: (_) => _SingleFieldDialog(
-        title: title,
-        initial: initial,
-        hint: hint,
-        isEmail: false,
-        isPhone: isPhone,
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsetsGeometry.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SingleFieldDialog(
+          title: title,
+          initial: initial,
+          hint: hint,
+        ),
+      )     
     );
     if (result == null || result.trim() == initial.trim()) return;
 
@@ -62,56 +67,14 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     }
   }
 
-  Future<void> _changeEmail() async {
-    final auth = context.read<AuthProvider>();
-    final current = auth.userProfile?['email'] as String? ?? '';
-    final newEmail = await showDialog<String?>(
-      context: context,
-      builder: (_) => _SingleFieldDialog(
-        title: 'Change Email',
-        initial: current,
-        hint: 'you@example.com',
-        isEmail: true,
-      ),
-    );
-    if (newEmail == null || newEmail.trim() == current.trim()) return;
-
-    if (!EmailValidator.validate(newEmail)) {
-      setState(() => _emailError = "Enter a valid email");
-      _showSnack("Enter a valid email");
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _emailError = null;
-    });
-
-    try {
-      final res = await AuthHttpClient.requestEmailChange(newEmail.trim());
-      if (res.statusCode == 200) {
-        _showSnack("Check your new email to confirm", bg: Colors.green);
-      } else {
-        final body = jsonDecode(res.body) as Map<String, dynamic>;
-        final msg = body['message'] as String? ?? 'Unknown error';
-        setState(() => _emailError = msg);
-        _showSnack(msg);
-      }
-    } catch (e) {
-      _showSnack("Network error: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _confirmDelete() async {
     final ok = await showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true, // keyboard-safe
-          backgroundColor: Colors.transparent,
-          builder: (_) => const _DeleteConfirmSheet(),
-        ) ??
-        false;
+      context: context,
+      isScrollControlled: true, // keyboard-safe
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _DeleteConfirmSheet(),
+    ) ??
+    false;
 
     if (!ok) return;
 
@@ -135,123 +98,140 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     final isAdmin = auth.isAdmin;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.background,
         title: const Text('Account & Security'),
         titleTextStyle: const TextStyle(
           fontFamily: 'WinnerSans',
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+          fontSize: 16,
         ),
-        leading: const BackButton(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          iconSize: 24, 
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : Padding(
-              padding: const EdgeInsets.all(16),
+              padding: AppPadding.screen,
               child: Column(
                 children: [
                   // ───── Info Card ─────────
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white10,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                  Expanded(
                     child: Column(
                       children: [
-                        _buildTile(
-                          label: 'First Name',
-                          value: user['firstName'] as String? ?? '',
-                          onTap: () => _editField(
-                            title: 'First Name',
-                            initial: user['firstName'] as String? ?? '',
-                            hint: 'new first name',
-                            onSubmit: (v) =>
-                                AuthHttpClient.updateProfile(newFirstName: v),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFF242424),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          showArrow: true,
-                        ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Last Name',
-                          value: user['lastName'] as String? ?? '',
-                          onTap: () => _editField(
-                            title: 'Last Name',
-                            initial: user['lastName'] as String? ?? '',
-                            hint: 'new last name',
-                            onSubmit: (v) =>
-                                AuthHttpClient.updateProfile(newLastName: v),
+                          child: Column(
+                            children: [
+                              _buildTile(
+                                label: 'First Name',
+                                value: user['firstName'] as String? ?? '',                         
+                              ),
+
+                              _divider(),
+
+                              _buildTile(
+                                label: 'Last Name',
+                                value: user['lastName'] as String? ?? '',                         
+                              ),
+
+                              _divider(),
+
+                              _buildTile(
+                                label: 'Username',
+                                value: user['userName'] as String? ?? '',                        
+                              ),
+
+                              _divider(),
+
+                              _buildTile(
+                                label: 'Email',
+                                value: user['email'] as String? ?? '',
+                                showArrow: false,
+                              ),
+
+                              _divider(),
+
+                              _buildTile(
+                                label: 'Phone',
+                                value: user['phoneNumber'] as String? ?? '',
+                                onTap: () => _editField(
+                                  title: 'Phone',
+                                  initial: user['phoneNumber'] as String? ?? '',
+                                  hint: 'e.g. 0211234567',
+                                  onSubmit: (v) => AuthHttpClient.updateProfile(
+                                    newPhoneNumber: v,
+                                  ),
+                                ),
+                                showArrow: true,
+                              ),
+
+                              _divider(),
+
+                              _buildTile(
+                                label: 'Age',
+                                value: (user['age']?.toString() ?? ''),
+                              ),                       
+                            ],
                           ),
-                          showArrow: true,
                         ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Username',
-                          value: user['userName'] as String? ?? '',
-                          onTap: () => _editField(
-                            title: 'Username',
-                            initial: user['userName'] as String? ?? '',
-                            hint: 'new username',
-                            onSubmit: (v) =>
-                                AuthHttpClient.updateProfile(newUserName: v),
+
+                        const SizedBox(height: 16),
+
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFF242424),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          showArrow: true,
-                        ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Email',
-                          value: user['email'] as String? ?? '',
-                          onTap: _changeEmail,
-                          showArrow: true,
-                          errorText: _emailError,
-                        ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Phone',
-                          value: user['phoneNumber'] as String? ?? '',
-                          onTap: () => _editField(
-                            title: 'Phone',
-                            initial: user['phoneNumber'] as String? ?? '',
-                            hint: 'e.g. 021 123 4567',
-                            isPhone: true,
-                            onSubmit: (v) => AuthHttpClient.updateProfile(
-                              newPhoneNumber: v,
+                          child: Column(
+                            children: [
+                              _buildTile(
+                                label: 'Change Password',
+                                value: '●●●●●●●●',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const ChangePasswordView()),
+                                ),
+                                showArrow: true,
+                              ),
+                            ],
+                          ),
+                        ),           
+                      ],
+                    ),                   
+                  ),     
+                  
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Color(0xFF242424),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (!isAdmin) ... [
+                          TextButton(
+                            onPressed: _confirmDelete,
+                            child: const Text(
+                              'Delete Account',
+                              style: TextStyle(color: AppColors.errorColor, fontSize: 16, fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          showArrow: true,
-                        ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Age',
-                          value: (user['age']?.toString() ?? ''),
-                        ),
-                        _divider(),
-                        _buildTile(
-                          label: 'Password',
-                          value: '●●●●●●●●',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const ChangePasswordView()),
-                          ),
-                          showArrow: true,
-                        ),
+                        ]
                       ],
                     ),
-                  ),
+                  ), 
 
-                  const SizedBox(height: 24),
-
-                  if (!isAdmin)
-                    TextButton(
-                      onPressed: _confirmDelete,
-                      child: const Text(
-                        'Delete Account',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
+                  const SizedBox(height: 32)          
                 ],
               ),
             ),
@@ -266,103 +246,31 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     String? errorText,
   }) {
     return ListTile(
-      title: Text(label, style: const TextStyle(color: Colors.white70)),
+      title: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
       subtitle: errorText != null
-          ? Text(errorText, style: const TextStyle(color: Colors.redAccent))
-          : null,
+        ? Text(errorText, style: const TextStyle(color: AppColors.errorColor, fontSize: 16))
+        : null,
       trailing: showArrow
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(value, style: const TextStyle(color: Colors.white)),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: Colors.white30),
-              ],
-            )
-          : Text(value, style: const TextStyle(color: Colors.white)),
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: Colors.white),
+            ],
+          )
+        : Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );
   }
 
   Widget _divider() => const Divider(
-        color: Colors.white24,
-        height: 1,
-        indent: 16,
-        endIndent: 16,
-      );
-}
-
-/// A simple dialog for editing a single field.
-class _SingleFieldDialog extends StatefulWidget {
-  final String title;
-  final String initial;
-  final String hint;
-  final bool isEmail;
-  final bool isPhone;
-  const _SingleFieldDialog({
-    super.key,
-    required this.title,
-    required this.initial,
-    required this.hint,
-    this.isEmail = false,
-    this.isPhone = false,
-  });
-
-  @override
-  __SingleFieldDialogState createState() => __SingleFieldDialogState();
-}
-
-class __SingleFieldDialogState extends State<_SingleFieldDialog> {
-  late TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.initial);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(widget.title, style: const TextStyle(color: Colors.white)),
-      content: TextField(
-        controller: _ctrl,
-        keyboardType: widget.isEmail
-            ? TextInputType.emailAddress
-            : (widget.isPhone ? TextInputType.phone : TextInputType.text),
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: const TextStyle(color: Colors.white24),
-          filled: true,
-          fillColor: Colors.white10,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, null),
-          child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
-          child: const Text('SUBMIT', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    );
-  }
+    color: Colors.white24,
+    height: 0,
+    indent: 16,
+    endIndent: 16,
+  );
 }
 
 /// Bottom-sheet delete confirmation (keyboard-safe, tidy)
@@ -391,76 +299,61 @@ class _DeleteConfirmSheetState extends State<_DeleteConfirmSheet> {
       padding: EdgeInsets.only(bottom: bottom),
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                // grabber
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-
+              children: [             
                 // header
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Delete Account',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Text(
+                      'Delete Account',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      icon: const Icon(Icons.close, color: Colors.white70),
-                    ),
+                      textAlign: TextAlign.center,
+                    ),               
                   ],
                 ),
-                const SizedBox(height: 8),
+
+                const SizedBox(height: 4),
 
                 // scrollable body in case of small screens
                 Flexible(
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Type “delete” to confirm permanent removal.',
-                          style: TextStyle(color: Colors.white70),
+                        Text(
+                          'Type “delete” to confirm permanent account deletion.',
+                          style: TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 12),
+
+                        const SizedBox(height: 16),
+
                         TextField(
                           controller: _ctrl,
                           autofocus: true,
-                          textInputAction: TextInputAction.done,
+                          keyboardType: TextInputType.text,
                           onChanged: (_) => setState(() {}),
-                          style: const TextStyle(color: Colors.black),
+                          style: const TextStyle(fontSize: 16, color: AppColors.normalText, fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
-                            hintText: 'delete',
                             filled: true,
                             fillColor: Colors.white,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
                           ),
                         ),
                       ],
@@ -468,35 +361,16 @@ class _DeleteConfirmSheetState extends State<_DeleteConfirmSheet> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
 
                 // actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('CANCEL',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextButton(
-                        onPressed:
-                            isValid ? () => Navigator.pop(context, true) : null,
-                        child: Text(
-                          'DELETE',
-                          style: TextStyle(
-                            color: isValid
-                                ? Colors.redAccent
-                                : Colors.redAccent.withOpacity(0.4),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                Button(
+                  label: 'Delete', 
+                  onPressed: isValid ? () => Navigator.pop(context, true) : null,
+                  buttonColor: isValid
+                    ? Colors.redAccent
+                    : Colors.redAccent.withOpacity(0.4),
+                ),                                                                        
               ],
             ),
           ),

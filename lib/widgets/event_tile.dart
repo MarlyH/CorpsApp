@@ -328,12 +328,13 @@ class EventTileState extends State<EventTile> {
     final s = widget.summary;
     final isSuspended =
         context.read<AuthProvider>().userProfile?['isSuspended'] == true;
+    final suspensionUntil = widget.suspensionUntil;
 
     //do not allow user to make bookings or join waitlsit if suspended
     if (isSuspended) {
       return Button(
         label: s.availableSeatsCount > 0 ? 'Book Now': 'Join Waitlist', 
-        onPressed: () => _showSuspensionOverlay(context, DateTime.now().add(Duration(days: 90))),
+        onPressed: () => _showSuspensionOverlay(context, suspensionUntil),
         buttonColor: AppColors.disabled,
         radius: 100,
       );
@@ -374,14 +375,20 @@ class EventTileState extends State<EventTile> {
     );
   }
 
-  void _showSuspensionOverlay(BuildContext context, DateTime unsuspendDate) {
-    final formattedDate = DateFormat('MMM d, yyyy').format(unsuspendDate);
+  void _showSuspensionOverlay(BuildContext context, DateTime? unsuspendDate) {
+    final formattedDate = unsuspendDate != null
+          ? DateFormat('MMM d, yyyy').format(unsuspendDate)
+          : null;
+
+    final title = formattedDate != null
+        ? 'Account Suspended Till $formattedDate'
+        : 'Account Suspended';
 
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (_) => CustomAlertDialog(
-        title: 'Account Suspended Till $formattedDate',
+        title: title,
         info: 'Your account is suspended from booking events due to 3 attendance strikes. '
             'If you believe this is a mistake, you can submit an appeal through Profile -> Appeal Ban.',
       ),

@@ -455,7 +455,6 @@ class _ConcludedFilterBar extends StatelessWidget {
   final ValueChanged<_ConcludedFilter> onChanged;
 
   const _ConcludedFilterBar({
-    super.key,
     required this.selected,
     required this.onChanged,
   });

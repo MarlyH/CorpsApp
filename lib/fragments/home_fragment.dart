@@ -72,7 +72,7 @@ class HomeFragmentState extends State<HomeFragment> {
 
   // this is  tolerant of "09:30", "9:30", "9:30 AM", and null endTime
   DateTime eventEndDateTime(event_summary.EventSummary e) {
-    final t = (e.endTime ?? '').trim();
+    final t = (e.endTime).trim();
     final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
 
     int hh = 0, mm = 0;

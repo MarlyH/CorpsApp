@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -444,14 +442,9 @@ class _RegisterViewState extends State<RegisterView> {
             const SizedBox(height: 20),
             InputField(
               label: 'Password',
-              hintText: 'At least 6 chars, 1 number, 1 special',
+              hintText: 'At least 6 characters',
               controller: passwordCtrl,
-              obscureText: _obscure,
-              keyboardType: TextInputType.visiblePassword,
-              suffixIcon: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.black),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
+              isPassword: true,
             ),
             const SizedBox(height: 8),
             const Text(
@@ -463,8 +456,7 @@ class _RegisterViewState extends State<RegisterView> {
               label: 'Confirm Password',
               hintText: 'Re-enter password',
               controller: confirmCtrl,
-              keyboardType: TextInputType.visiblePassword,
-              obscureText: _obscure,
+              isPassword: true,
             ),
             const SizedBox(height: 20),
             if (_error != null) ...[

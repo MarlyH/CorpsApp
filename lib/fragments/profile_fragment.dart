@@ -269,7 +269,6 @@ class _StrikesBanner extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final user = auth.userProfile ?? {};
     final suspendedTillRaw = user['suspensionUntil']; 
-    print('Suspended till raw: $suspendedTillRaw (${suspendedTillRaw.runtimeType})'); // 👈 Add this line
 
     final suspendedTill = suspendedTillRaw != null
         ? DateFormat('MMM d, yyyy').format(DateTime.parse(suspendedTillRaw))

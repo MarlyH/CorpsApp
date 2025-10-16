@@ -1,7 +1,7 @@
 import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 
-class InputField extends StatelessWidget {
+class InputField extends StatefulWidget {
   final String? label;
   final String hintText;
   final TextEditingController controller;
@@ -16,6 +16,7 @@ class InputField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final TextCapitalization textCapitalization;
   final int maxLines;
+  final bool isPassword;
 
   const InputField({
     super.key,
@@ -33,18 +34,32 @@ class InputField extends StatelessWidget {
     this.autofillHints,
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
+    this.isPassword = false,
   });
 
   @override
+  State<InputField> createState() => _InputFieldState();
+}
+
+class _InputFieldState extends State<InputField> {
+  late bool _obscure;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscure = widget.isPassword;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final readOnly = onTap != null;
+    final readOnly = widget.onTap != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label != null) ...[
+        if (widget.label != null) ...[
           Text(
-            label!,
+            widget.label!,
             style: const TextStyle(
               fontFamily: 'WinnerSans',
               color: Colors.white,
@@ -53,34 +68,48 @@ class InputField extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-        ],       
+        ],
         TextFormField(
-          controller: controller,
-          textCapitalization: textCapitalization,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          onTap: onTap,
-          readOnly: readOnly, 
-          maxLines: maxLines,
+          controller: widget.controller,
+          textCapitalization: widget.textCapitalization,
+          keyboardType: widget.isPassword
+              ? TextInputType.visiblePassword
+              : widget.keyboardType,
+          obscureText: _obscure,
+          onTap: widget.onTap,
+          readOnly: readOnly,
+          maxLines: widget.maxLines,
           style: const TextStyle(color: Colors.black),
-          autofillHints: autofillHints,
-          textInputAction: textInputAction,
-          onFieldSubmitted: onFieldSubmitted,
+          autofillHints: widget.autofillHints,
+          textInputAction: widget.textInputAction,
+          onFieldSubmitted: widget.onFieldSubmitted,
           decoration: InputDecoration(
-            hintText: hintText,
+            hintText: widget.hintText,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
             fillColor: Colors.white,
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            prefixIcon: widget.prefixIcon,
+            suffixIcon: widget.isPassword
+                ? IconButton(
+                    icon: Icon(
+                      _obscure ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.black,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscure = !_obscure);
+                    },
+                  )
+                : widget.suffixIcon,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             border: OutlineInputBorder(
               borderSide: BorderSide.none,
               borderRadius: BorderRadius.circular(8),
             ),
             errorStyle: TextStyle(color: AppColors.errorColor),
           ),
-          validator: validator ?? (v) => v == null || v.isEmpty ? 'Required' : null,
+          validator: widget.validator ??
+              (v) => v == null || v.isEmpty ? 'Required' : null,
         ),
       ],
     );

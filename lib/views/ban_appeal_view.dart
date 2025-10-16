@@ -1,3 +1,8 @@
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,57 +25,40 @@ class _BanAppealViewState extends State<BanAppealView> {
       'yourcorps@yourcorps.co.nz';
 
   final _formKey = GlobalKey<FormState>();
-  final _subjectCtrl = TextEditingController(text: 'Ban Appeal');
   final _messageCtrl = TextEditingController();
   bool _sending = false;
 
   @override
-  void initState() {
-    super.initState();
-    _seedTemplate();
-  }
-
-  void _seedTemplate() {
-    final auth = context.read<AuthProvider>();
-    final profile = auth.userProfile ?? const <String, dynamic>{};
-    final handle = (profile['userName'] ?? '').toString();
-    final email  = (profile['email'] ?? '').toString();
-    final strikes = auth.attendanceStrikeCount;
-    final suspended = auth.isSuspended;
-
-    _messageCtrl.text = [
-      'Hi Admin team,',
-      '',
-      'I would like to appeal my booking suspension.',
-      '',
-      'Account:',
-      '— Username: ${handle.isEmpty ? '(unknown)' : handle}',
-      '— Email:    ${email.isEmpty ? '(unknown)' : email}',
-      '— Strikes recorded: $strikes',
-      '— Currently suspended: ${suspended ? 'Yes' : 'No'}',
-      '',
-      'Reason / context for appeal:',
-      '(Please describe briefly what happened, any misunderstandings, or why you believe the suspension should be lifted.)',
-      '',
-      'Thank you.',
-    ].join('\n');
-  }
-
-  @override
   void dispose() {
-    _subjectCtrl.dispose();
     _messageCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_messageCtrl.text.trim().isEmpty) {
+      _snack('Please enter a message before sending.');
+      return;
+    }
 
     setState(() => _sending = true);
     try {
+      final auth = context.read<AuthProvider>();
+      final profile = auth.userProfile ?? const <String, dynamic>{};
+      final handle = (profile['userName'] ?? '').toString();
+      final email = (profile['email'] ?? '').toString();
+      final strikes = auth.attendanceStrikeCount;
+      final suspended = auth.isSuspended;
+
       final to = _appealsEmail;
-      final subject = _subjectCtrl.text.trim();
-      final body = _messageCtrl.text.trim();
+      final subject = 'Ban Appeal Request';
+      final body = [
+        'Reason / context for appeal:\n${_messageCtrl.text.trim()}\n',
+        '---',
+        'Account Information:',
+        '• Username: ${handle.isEmpty ? '(unknown)' : handle}',
+        '• Email: ${email.isEmpty ? '(unknown)' : email}',
+        '• Currently suspended: ${suspended ? 'Yes' : 'No'}',
+      ].join('\n');
 
       // 1) Native mail app
       final mailUri = Uri(
@@ -80,41 +68,20 @@ class _BanAppealViewState extends State<BanAppealView> {
             'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
       );
       if (await canLaunchUrl(mailUri)) {
-        if (await launchUrl(mailUri, mode: LaunchMode.externalApplication)) return;
+        await launchUrl(mailUri, mode: LaunchMode.externalApplication);
+        return;
       }
 
-      // 2) Gmail web
-      final gmailUri = Uri.parse(
-        'https://mail.google.com/mail/?view=cm&fs=1'
-        '&to=${Uri.encodeComponent(to)}'
-        '&su=${Uri.encodeComponent(subject)}'
-        '&body=${Uri.encodeComponent(body)}',
-      );
-      if (await canLaunchUrl(gmailUri)) {
-        if (await launchUrl(gmailUri, mode: LaunchMode.externalApplication)) return;
-      }
-
-      // 3) Outlook web
-      final outlookUri = Uri.parse(
-        'https://outlook.office.com/mail/deeplink/compose'
-        '?to=${Uri.encodeComponent(to)}'
-        '&subject=${Uri.encodeComponent(subject)}'
-        '&body=${Uri.encodeComponent(body)}',
-      );
-      if (await canLaunchUrl(outlookUri)) {
-        if (await launchUrl(outlookUri, mode: LaunchMode.externalApplication)) return;
-      }
-
-      // 4) Clipboard fallback
+      // 2) Fallback: copy to clipboard
       _copyToClipboard(to: to, subject: subject, body: body);
       _snack('Could not open an email app. A ready-to-send message was copied to your clipboard.');
     } catch (_) {
       _copyToClipboard(
         to: _appealsEmail,
-        subject: _subjectCtrl.text,
+        subject: 'Ban Appeal Request',
         body: _messageCtrl.text,
       );
-      _snack('Something went wrong. A ready-to-send message was copied to your clipboard.');
+      _snack('Something went wrong. The message was copied to your clipboard.');
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -139,158 +106,94 @@ class _BanAppealViewState extends State<BanAppealView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // height to clear: keyboard inset + fixed button height + some spacing
-    final kb = MediaQuery.of(context).viewInsets.bottom;
-    const buttonHeight = 56.0; // matches ElevatedButton typical height
-    final bottomPad = kb + buttonHeight + 32;
+    final auth = context.watch<AuthProvider>();
+    final profile = auth.userProfile ?? const <String, dynamic>{};
+    final handle = (profile['userName'] ?? '').toString();
+    final email = (profile['email'] ?? '').toString();
+    final strikes = auth.attendanceStrikeCount;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Ban Appeal',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-      ),
-
-      // unchanged: fixed CTA at bottom
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _sending ? null : _send,
-            icon: _sending
-                ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            label: Text(_sending ? 'Opening…' : 'Send Email'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4C85D0),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-              textStyle: const TextStyle(
-                fontFamily: 'WinnerSans',
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ),
-      ),
-
-      // NOTE: bottom: false here to avoid double-safe-area squeeze
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Ban Appeal'),
       body: SafeArea(
-        top: true,
-        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.fromLTRB(0, 0, 0, bottomPad),
-              children: [
-                Text(
-                  'Request a review',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Your account is temporarily suspended due to attendance policy. '
-                  'Send us an appeal below—this will open your email app with a pre-filled message.',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 24),
-
-                // email row (tap to open compose)
-                InkWell(
-                  onTap: _sending ? null : _send,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.email, color: Color(0xFF4C85D0)),
-                      const SizedBox(width: 8),
-                      Text(
-                        _appealsEmail,
-                        style: const TextStyle(
-                          color: Color(0xFF4C85D0),
-                          fontWeight: FontWeight.w600,
-                        ),
+          padding: AppPadding.screen,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [
+                    const Text(
+                      'Request a Review',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 4),
 
-                // Subject label + field
-                const Text(
-                  'Subject',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _subjectCtrl,
-                  style: const TextStyle(color: Colors.black),
-                  decoration: _fieldDecoration(),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
+                    const Text(
+                      'Your account has been temporarily suspended after receiving three strikes under the attendance policy. '
+                      'Please use the form below to open your email app and submit a ban appeal request.',
+                      style: TextStyle(fontSize: 16),
+                    ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                // Message label + field (shorter)
-                const Text(
-                  'Message',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    // Read-only account info
+                    _readonlyRow('Username', handle),
+                    _readonlyRow('Email', email),
+                    _readonlyRow('Strikes', '$strikes'),
+
+                    const SizedBox(height: 24),
+
+                    // Message field
+                    InputField(
+                      label: 'Reason or Context',
+                      hintText: 'Please describe briefly what happened, any misunderstandings, or why you believe the suspension should be lifted.',
+                      controller: _messageCtrl,
+                      maxLines: 12,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _messageCtrl,
-                  style: const TextStyle(color: Colors.black),
-                  minLines: 6,
-                  maxLines: 10,
-                  decoration: _fieldDecoration(),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-              ],
-            ),
+              ),
+
+              // Fixed button at the bottom
+              Button(
+                label: _sending ? 'Opening...' : 'Send Email',
+                onPressed: _sending ? null : _send,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // labels live above inputs; field is plain white
-  InputDecoration _fieldDecoration() => InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        hintStyle: const TextStyle(color: Colors.black45),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white24),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFF40C4FF)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      );
+  Widget _readonlyRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: const TextStyle(color: Colors.white70)),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value.isEmpty ? '(unknown)' : value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

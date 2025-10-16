@@ -2,6 +2,7 @@
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/Modals/edit_modal.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -95,19 +96,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: const Text('Account & Security'),
-        titleTextStyle: const TextStyle(
-          fontFamily: 'WinnerSans',
-          fontSize: 16,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          iconSize: 24, 
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+      appBar: ProfileAppBar(title: 'Account'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : Padding(

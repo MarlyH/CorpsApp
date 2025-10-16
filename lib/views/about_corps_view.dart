@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,19 +14,7 @@ class AboutCorpsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: const BackButton(color: Colors.white),
-        centerTitle: true,
-        title: const Text(
-          'ABOUT CORPS',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            fontSize: 24, 
-          ),
-        ),
-      ),
+      appBar: ProfileAppBar(title: 'About Corps'),
       body: SafeArea(
         child: Padding(
           padding: AppPadding.screen,

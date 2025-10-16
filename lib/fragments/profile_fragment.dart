@@ -161,7 +161,7 @@ class ProfileFragment extends StatelessWidget {
                           children: [
                             OptionTile(
                               icon: Icons.lock,
-                              label: "Account & Security",
+                              label: "Account",
                               view: AccountSecurityView(),           
                             ),
                             OptionTile(

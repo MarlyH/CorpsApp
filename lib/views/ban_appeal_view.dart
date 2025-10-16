@@ -24,7 +24,6 @@ class _BanAppealViewState extends State<BanAppealView> {
       dotenv.env['SUPPORT_EMAIL'] ??
       'yourcorps@yourcorps.co.nz';
 
-  final _formKey = GlobalKey<FormState>();
   final _messageCtrl = TextEditingController();
   bool _sending = false;
 
@@ -46,7 +45,6 @@ class _BanAppealViewState extends State<BanAppealView> {
       final profile = auth.userProfile ?? const <String, dynamic>{};
       final handle = (profile['userName'] ?? '').toString();
       final email = (profile['email'] ?? '').toString();
-      final strikes = auth.attendanceStrikeCount;
       final suspended = auth.isSuspended;
 
       final to = _appealsEmail;
@@ -155,7 +153,7 @@ class _BanAppealViewState extends State<BanAppealView> {
                       label: 'Reason or Context',
                       hintText: 'Please describe briefly what happened, any misunderstandings, or why you believe the suspension should be lifted.',
                       controller: _messageCtrl,
-                      maxLines: 12,
+                      maxLines: 8,
                     ),
                   ],
                 ),

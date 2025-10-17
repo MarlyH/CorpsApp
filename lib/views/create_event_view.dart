@@ -8,11 +8,9 @@ import 'package:corpsapp/widgets/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-// import 'package:file_picker/file_picker.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 import '../models/location.dart';
 import '../services/auth_http_client.dart';
 import '../services/token_service.dart';
@@ -42,7 +40,6 @@ class _CreateEventViewState extends State<CreateEventView> {
   TimeOfDay?   _startTime;
   TimeOfDay?   _endTime;
   DateTime?    _availableDate;
-  // File?        _seatMapFile;
 
   bool _isLoading = false;
   List<Location> _locations = [];

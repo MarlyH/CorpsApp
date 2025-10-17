@@ -1,5 +1,13 @@
 import 'dart:convert';
+import 'package:corpsapp/providers/auth_provider.dart';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/search_bar.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
@@ -98,10 +106,10 @@ class _ManageUsersViewState extends State<ManageUsersView> {
       }
 
       final pageUsers = items
-          .cast<Map<String, dynamic>>()
-          .map<_User>((j) => _User.fromJson(j))
-          .toList();
-
+        .cast<Map<String, dynamic>>()
+        .map<_User>((j) => _User.fromJson(j))
+        .toList();
+    
       // Enrich this page with strike info (bulk request)
       if (pageUsers.isNotEmpty) {
         final ids = pageUsers.map((u) => u.id).where((id) => id.isNotEmpty).toList();
@@ -207,172 +215,294 @@ class _ManageUsersViewState extends State<ManageUsersView> {
   // Children + Medical (user details)
   // ---------------------------
 
-  Future<void> _openUserDetail(_User u) async {
-    List<_Child> kids = [];
-    bool userHasMedical = false;
-    List<_MedicalCondition> userMedical = [];
+Future<void> _openUserDetail(_User u) async {
+  List<_Child> kids = [];
+  bool userHasMedical = false;
+  List<_MedicalCondition> userMedical = [];
 
-    // Children (now includes medical)
-    try {
-      final resp = await AuthHttpClient.get('/api/UserManagement/user/${u.id}/children');
-      if (resp.statusCode == 200) {
-        final arr = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
-        kids = arr.map((e) => _Child.fromJson(e)).toList();
-      } else {
-        _snack('Failed to fetch children (${resp.statusCode})', error: true);
-      }
-    } catch (e) {
-      _snack('Failed to fetch children: $e', error: true);
+  final auth = context.read<AuthProvider>();
+  final isAdmin = auth.isAdmin;
+  final isManager = auth.isEventManager;
+
+  final canEditRoles = isAdmin
+      ? ['Event Manager', 'Staff', 'User']
+      : isManager
+          ? ['Staff', 'User']
+          : <String>[];
+
+  // --- Fetch children ---
+  try {
+    final resp =
+        await AuthHttpClient.get('/api/UserManagement/user/${u.id}/children');
+    if (resp.statusCode == 200) {
+      final arr = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
+      kids = arr.map((e) => _Child.fromJson(e)).toList();
+    } else {
+      _snack('Failed to fetch children (${resp.statusCode})', error: true);
     }
+  } catch (e) {
+    _snack('Failed to fetch children: $e', error: true);
+  }
 
-    // User medical
-    try {
-      final medResp = await AuthHttpClient.get('/api/UserManagement/user/${u.id}/medical');
-      if (medResp.statusCode == 200) {
-        final js = jsonDecode(medResp.body) as Map<String, dynamic>;
-        userHasMedical = (js['hasMedicalConditions'] == true);
-        final list = (js['medicalConditions'] as List?) ?? const [];
-        userMedical = list.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
-      }
-    } catch (_) {/* best effort */}
+  // --- Fetch medical info ---
+  try {
+    final medResp =
+        await AuthHttpClient.get('/api/UserManagement/user/${u.id}/medical');
+    if (medResp.statusCode == 200) {
+      final js = jsonDecode(medResp.body) as Map<String, dynamic>;
+      userHasMedical = (js['hasMedicalConditions'] == true);
+      final list = (js['medicalConditions'] as List?) ?? const [];
+      userMedical = list
+          .whereType<Map<String, dynamic>>()
+          .map(_MedicalCondition.fromJson)
+          .toList();
+    }
+  } catch (_) {/* ignore */}
+  if (!mounted) return;
 
-    if (!mounted) return;
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    barrierColor: Colors.white12,
+    builder: (ctx) {
+      String? selectedRole;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.7,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          builder: (ctx, scrollCtrl) {
-            return SafeArea(
-              top: false,
-              bottom: true,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      return StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return SafeArea(
+            child: Padding(
+              padding: AppPadding.screen,
+              child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
                             u.fullName,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white70),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          ActionableContact(
+                              value: u.email,
+                              type: 'Email',
+                              scheme: 'mailto'),
+                          const SizedBox(height: 4),
+                          ActionableContact(
+                              value: u.phoneNumber,
+                              type: 'Phone',
+                              scheme: 'tel'),
+                        ],
+                      ),
                     ),
-                    _ActionableEmail(email: u.email),
-                    _ActionPhone(phone: u.phoneNumber),
+                    
+                    const SizedBox(height: 16),
 
-                    const SizedBox(height: 12),
-
-                    // User medical
                     _medicalBlock(
-                      title: 'Medical / Allergy Info (User)',
+                      title: 'Medical / Allergy Info',
                       hasAny: userHasMedical,
                       items: userMedical,
                     ),
+                    const SizedBox(height: 16),
 
-                    const Text('Children', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    Text(
+                      'Children',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-
-                    if (kids.isEmpty)
-                      const Text('No children on file.', style: TextStyle(color: Colors.white54))
-                    else
-                      Expanded(
-                        child: ListView.separated(
-                          controller: scrollCtrl,
-                          itemCount: kids.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (_, i) {
-                            final c = kids[i];
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white12),
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    c.fullName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
+                    kids.isEmpty
+                        ? const Text(
+                            'No children registered',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        : CupertinoListSection.insetGrouped(
+                            backgroundColor: AppColors.background,
+                            margin: EdgeInsets.zero,
+                            hasLeading: false,
+                            children: kids
+                                .map(
+                                  (kid) => CupertinoListTile(
+                                    title: Text(kid.fullName),
+                                    subtitle: Text(
+                                      'Age ${kid.age}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
                                     ),
+                                    padding: const EdgeInsets.all(16),
+                                    trailing: const Icon(
+                                        Icons.navigate_next_rounded,
+                                        color: Colors.white70),
+                                    onTap: () =>
+                                        openChildDetail(context, kid),
                                   ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.cake, size: 14, color: Colors.white70),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        c.dobLabel,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text('Age: ${c.age}',
-                                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.phone, size: 14, color: Colors.white70),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          '${c.emergencyContactName} • ${c.emergencyContactPhone}',
-                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
+                                )
+                                .toList(),
+                          ),
 
-                                  // Child medical
-                                  _medicalBlock(
-                                    title: 'Medical / Allergy Info',
-                                    hasAny: c.hasMedicalConditions,
-                                    items: c.medicalConditions,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                    if (u.roles.any((r) => r.toLowerCase() == 'user')) ...[
+                      const SizedBox(height: 16),
+                      attendanceStrikeRow(
+                          context,
+                          u,
+                          _updating,
+                          _changeStrike,
+                          () => setModalState(() {})),
+                    ],
+
+                    const SizedBox(height: 16),
+
+                    if (canEditRoles.isNotEmpty) ...[   
+                      Text(
+                        'Role',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16
                         ),
                       ),
+
+                      const SizedBox(height: 8),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              u.roles.first,
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16),
+                            )
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero, 
+                              minimumSize: Size(0, 0),  
+                            ),
+                            onPressed: () async {
+                              await showDialog(
+                                context: context,
+                                builder: (dialogCtx) {
+                                  String? dialogSelectedRole = selectedRole;
+                                  bool dialogLoading = false;
+
+                                  return StatefulBuilder(
+                                    builder: (ctx, setDialogState) {
+                                      return CustomAlertDialog(
+                                        title: 'Change Role',
+                                        info: 'Select a new role for ${u.fullName}.',
+                                        cancel: true,
+                                        buttonLabel: dialogLoading ? 'Saving...' : 'Save',
+                                        content: DropdownButtonHideUnderline(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.black12,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            child: DropdownButton<String>(
+                                              icon: const Icon(Icons.arrow_drop_down, color: AppColors.normalText,),
+                                              value: dialogSelectedRole,
+                                              isExpanded: true,
+                                              dropdownColor: Colors.white,
+                                              hint: const Text(
+                                                'Select role',
+                                                style: TextStyle(color: AppColors.normalText),
+                                              ),
+                                              items: canEditRoles
+                                                  .map((r) => DropdownMenuItem(
+                                                        value: r,
+                                                        child: Text(
+                                                          r,
+                                                          style: const TextStyle(color: AppColors.normalText),
+                                                        ),
+                                                      ))
+                                                  .toList(),
+                                              onChanged: (v) =>
+                                                  setDialogState(() => dialogSelectedRole = v),
+                                            ),
+                                          ),
+                                        ),
+                                        buttonAction: dialogLoading
+                                            ? null
+                                            : () async {
+                                                if (dialogSelectedRole == null) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Please select a role')),
+                                                  );
+                                                  return;
+                                                }
+
+                                                setDialogState(() => dialogLoading = true);
+                                                try {
+                                                  final resp = await AuthHttpClient.changeUserRole(
+                                                    email: u.email,
+                                                    role: dialogSelectedRole!,
+                                                  );
+
+                                                  final body = resp.body.isNotEmpty
+                                                      ? jsonDecode(resp.body)
+                                                      : <String, dynamic>{};
+
+                                                  _snack(
+                                                    body['message'] ??
+                                                        (resp.statusCode == 200
+                                                            ? 'Role changed successfully'
+                                                            : 'Failed (${resp.statusCode})'),
+                                                    error: resp.statusCode != 200,
+                                                  );
+
+                                                  if (resp.statusCode == 200) {
+                                                    setModalState(() {
+                                                      selectedRole = dialogSelectedRole;
+                                                      u.roles
+                                                        ..clear()
+                                                        ..add(dialogSelectedRole!);
+                                                    });
+                                                    Navigator.pop(ctx);
+                                                  }
+                                                } catch (e) {
+                                                  _snack('Error: $e', error: true);
+                                                } finally {
+                                                  setDialogState(() => dialogLoading = false);
+                                                }
+                                              },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                            child: Text('Edit Role', style: TextStyle(color: AppColors.primaryColor, fontSize: 16)))
+                        ],
+                      ) ,             
+                    ],
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 
   // ---------------------------
   // UI
@@ -382,8 +512,8 @@ class _ManageUsersViewState extends State<ManageUsersView> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.black)),
-        backgroundColor: error ? Colors.redAccent : Colors.white,
+        content: Text(msg, style: const TextStyle(color: AppColors.normalText)),
+        backgroundColor: error ? AppColors.errorColor : Colors.white,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -391,79 +521,49 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final isAdmin = auth.isAdmin;
+    final isManager = auth.isEventManager;
+
+    final canViewRoles = isAdmin ? ['event manager', 'staff', 'user']
+                       : isManager ? ['staff', 'user'] : <String>[]; 
+
+    String titleCase(String role) {
+      return role
+          .split(' ')
+          .map((word) =>
+              word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '')
+          .join(' ');
+    }
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'User Management',
-          style: TextStyle(
-            letterSpacing: 1.2,
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _loadingFirstPage ? null : _fetchFirstPage,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-          )
-        ],
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'User Management'),
       body: SafeArea(
         top: false,
         bottom: true,
-        child: Column(
-          children: [
-            // Search
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Colors.black54),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        style: const TextStyle(color: Colors.black),
-                        cursorColor: Colors.black,
-                        decoration: const InputDecoration(
-                          hintText: 'Search by name or email',
-                          hintStyle: TextStyle(color: Colors.black),
-                          border: InputBorder.none,
-                        ),
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (_) {
-                          _query = _searchCtrl.text;
-                          _fetchFirstPage();
-                        },
-                      ),
-                    ),
-                    if (_searchCtrl.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.black54),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          _query = '';
-                          _fetchFirstPage();
-                        },
-                      ),
-                  ],
-                ),
+        child: Padding(
+          padding: AppPadding.screen,
+          child: Column(
+            children: [
+              // Search
+              CustomSearchBar(
+                controller: _searchCtrl,
+                onSearch: () {
+                  _query = _searchCtrl.text;
+                  _fetchFirstPage();
+                },
+                onClear: () {
+                  _searchCtrl.clear();
+                  _query = '';
+                  _fetchFirstPage();
+                },
               ),
-            ),
 
-            Expanded(
-              child: _loadingFirstPage
+              const SizedBox(height: 16),
+
+              Expanded(
+                child: _loadingFirstPage
                   ? const Center(child: CircularProgressIndicator(color: Colors.white))
                   : RefreshIndicator(
                       color: Colors.white,
@@ -472,44 +572,49 @@ class _ManageUsersViewState extends State<ManageUsersView> {
                           ? ListView(
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: const [
-                                SizedBox(height: 80),
-                                Center(
-                                  child: Text('No users found', style: TextStyle(color: Colors.white54)),
-                                ),
-                                SizedBox(height: 400),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text('No users found', style: TextStyle(fontSize: 16)),
+                                  ],
+                                )
                               ],
                             )
-                          : ListView.separated(
-                              controller: _scroll,
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                              itemCount: _users.length + (_loadingMore || _hasMore ? 1 : 0),
-                              separatorBuilder: (_, __) => const SizedBox(height: 8),
-                              itemBuilder: (context, i) {
-                                if (i >= _users.length) {
-                                  // Loader at the end
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(
-                                      child: _hasMore
-                                          ? const CircularProgressIndicator(color: Colors.white)
-                                          : const Text('No more users', style: TextStyle(color: Colors.white54)),
+                          : ListView(
+                            controller: _scroll,
+                            children: [
+                              for (final role in canViewRoles) ...[
+                                if (_users.any((u) =>
+                                    u.roles.any((r) => r.toLowerCase() == role)))
+                                  CupertinoListSection.insetGrouped(
+                                    margin: EdgeInsets.all(0),
+                                    backgroundColor: AppColors.background,
+                                    header: Text(
+                                      // Capitalize the role for display
+                                      '${titleCase(role)}s',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  );
-                                }
-                                final u = _users[i];
-                                return _UserTile(
-                                  user: u,
-                                  busy: _updating,
-                                  onAddStrike: () => _changeStrike(u, 1),
-                                  onRemoveStrike: () => _changeStrike(u, -1),
-                                  onTap: () => _openUserDetail(u),
-                                );
-                              },
-                            ),
-                    ),
-            ),
-          ],
-        ),
+                                    children: [
+                                      for (final u in _users)
+                                        if (u.roles.any((r) => r.toLowerCase() == role))
+                                          _UserTile(
+                                            user: u,
+                                            onTap: () => _openUserDetail(u),
+                                          ),
+                                    ],                             
+                                  ),
+                                  const SizedBox(height: 8)
+                              ]
+                            ],
+                          )                                               
+                      ),
+              ),
+            ],
+          ),
+        ),       
       ),
     );
   }
@@ -517,73 +622,198 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 
 // ---------------------------
 // Widgets
-// ---------------------------
+// --------------------------- 
+Widget attendanceStrikeRow(
+  BuildContext context,
+  _User u,
+  bool updating,
+  Future<void> Function(_User, int) changeStrike,
+  void Function() refresh,
+) {
+  Future<void> confirmChange(int oldValue, int newValue) async {
+    newValue = newValue.clamp(0, 3);
+    if (newValue == oldValue) return;
 
-class _ActionableEmail extends StatelessWidget {
-  final String email;
-  const _ActionableEmail({required this.email});
-
-  @override
-  Widget build(BuildContext context) {
-    final trimmed = email.trim();
-    final isEmpty = trimmed.isEmpty;
-
-    final style = TextStyle(
-      color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
-      fontSize: 12,
-      decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
-      decorationColor: const Color(0xFF4A90E2),
+    final confirmed = await showDialog<bool>(
+      context: context, 
+      builder: (ctx) => CustomAlertDialog(
+        title: 'Confirm Strike Change', 
+        info: 'Change strikes from $oldValue to $newValue?',
+        cancel: true,
+        buttonAction: () => Navigator.of(ctx).pop(true),
+      )
     );
 
-    Future<void> _launch() async {
-      if (isEmpty) return;
-      final uri = Uri(scheme: 'mailto', path: trimmed);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        _copy(context);
-      }
+    if (confirmed == true) {
+      await changeStrike(u, newValue - oldValue); 
     }
-
-    return GestureDetector(
-      onTap: _launch,
-      onLongPress: () => _copy(context),
-      child: Text(isEmpty ? '—' : trimmed, style: style),
-    );
   }
 
-  void _copy(BuildContext context) {
-    if (email.trim().isEmpty) return;
-    Clipboard.setData(ClipboardData(text: email.trim()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Email copied to clipboard'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+  return Row(
+    children: [
+      Expanded(
+        child: Text(
+          'Attendance Strikes',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        )
       ),
-    );
-  }
+      
+      const SizedBox(width: 16),
+
+      Container(
+        padding: EdgeInsets.all(0),
+        decoration: BoxDecoration(
+          color: Color(0xFF242424),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white38),
+        ),
+
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: updating
+                ? null
+                : () async {
+                    await confirmChange(u.strikes, u.strikes - 1);
+                    refresh();
+                  },
+              icon: Icon(Icons.remove, size: 16, color: Colors.white),
+            ),
+
+            Text(
+              '${u.strikes}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+
+            IconButton(
+              onPressed: updating
+                  ? null
+                  : () async {
+                      await confirmChange(u.strikes, u.strikes + 1);
+                      refresh();
+                    },
+              icon: Icon(Icons.add, size: 16, color: Colors.white)
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
-class _ActionPhone extends StatelessWidget {
-  final String? phone;
-  const _ActionPhone({required this.phone});
+
+Future<void> openChildDetail(BuildContext context, _Child child) async {
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    isDismissible: true,
+    useSafeArea: true,
+    barrierColor: Colors.black87,
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: AppPadding.screen,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      child.fullName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Birthdate: ${child.dobLabel}', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        const SizedBox(width: 16),
+                        Text('Age: ${child.age}', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                      ],
+                    ),                                  
+                  ],                
+                ),               
+              ),
+
+              const SizedBox(height: 16),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Emergency Contact', 
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Row(
+                    children: [
+                      Text(child.emergencyContactName, style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const SizedBox(width: 8),
+                      ActionableContact(value: child.emergencyContactPhone, type: 'Phone', scheme: 'tel'),
+                    ],
+                  ),
+                ],
+              ),
+               
+              const SizedBox(height: 16),
+
+              _medicalBlock(
+                title: 'Medical / Allergy Info',
+                hasAny: child.hasMedicalConditions,
+                items: child.medicalConditions,
+              ),            
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class ActionableContact extends StatelessWidget {
+  final String? value; 
+  final String type; 
+  final String scheme; 
+
+  const ActionableContact({
+    required this.value,
+    required this.type,
+    required this.scheme
+  });
 
   @override
   Widget build(BuildContext context) {
-    final trimmed = (phone ?? '').trim();
+    final trimmed = (value ?? '').trim();
     final isEmpty = trimmed.isEmpty;
 
     final style = TextStyle(
-      color: isEmpty ? Colors.white38 : const Color(0xFF4A90E2),
-      fontSize: 12,
-      decoration: isEmpty ? TextDecoration.none : TextDecoration.underline,
-      decorationColor: const Color(0xFF4A90E2),
+      color: isEmpty ? Colors.white38 : AppColors.primaryColor,
+      fontSize: 16,
+      decoration: TextDecoration.none,
     );
 
-    Future<void> _launch() async {
+    Future<void> launch() async {
       if (isEmpty) return;
-      final uri = Uri(scheme: 'tel', path: trimmed);
+
+      final uri = Uri(scheme: scheme, path: trimmed);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
@@ -592,20 +822,21 @@ class _ActionPhone extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: _launch,
+      onTap: launch,
       onLongPress: () => _copy(context),
-      child: Text(isEmpty ? '—' : trimmed, style: style),
+      child: Text(isEmpty ? '' : trimmed, style: style),
     );
   }
 
   void _copy(BuildContext context) {
-    if ((phone ?? '').trim().isEmpty) return;
-    Clipboard.setData(ClipboardData(text: (phone ?? '').trim()));
+    if ((value ?? '').trim().isEmpty) return;
+
+    Clipboard.setData(ClipboardData(text: value!.trim()));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Phone number copied to clipboard'),
+      SnackBar(
+        content: Text('$type copied to clipboard'),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -613,17 +844,12 @@ class _ActionPhone extends StatelessWidget {
 
 class _UserTile extends StatelessWidget {
   final _User user;
-  final VoidCallback onAddStrike;
-  final VoidCallback onRemoveStrike;
+
   final VoidCallback onTap;
-  final bool busy;
 
   const _UserTile({
     required this.user,
-    required this.onAddStrike,
-    required this.onRemoveStrike,
     required this.onTap,
-    required this.busy,
   });
 
   @override
@@ -633,79 +859,49 @@ class _UserTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: suspended ? Colors.red.shade700 : Colors.white24,
-              child: Text(initials, style: const TextStyle(color: Colors.white)),
+              backgroundColor: suspended ? AppColors.errorColor : Colors.white12,
+              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 16)),
             ),
-            const SizedBox(width: 12),
+
+            const SizedBox(width: 16),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user.fullName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(user.email, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  if (suspended)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'SUSPENDED',
-                        style: TextStyle(
-                          color: Colors.red.shade400,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Strike controls
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white24),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: busy ? null : onRemoveStrike,
-                    icon: const Icon(Icons.remove, size: 18, color: Colors.white),
-                    tooltip: 'Remove strike',
-                    splashRadius: 18,
-                  ),
                   Text(
-                    '${user.strikes}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
+                    user.fullName,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
                   ),
-                  IconButton(
-                    onPressed: busy ? null : onAddStrike,
-                    icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                    tooltip: 'Add strike',
-                    splashRadius: 18,
-                  ),
+
+                  const SizedBox(height: 4),
+                  
+                  Text(user.email, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+
+                  if (suspended) ... [
+                    const SizedBox(height: 4),
+
+                    Text(
+                      'SUSPENDED',
+                      style: TextStyle(
+                        color: AppColors.errorColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),   
+                  ]                
                 ],
               ),
             ),
+            const SizedBox(width: 4),
+
+            Icon(Icons.navigate_next, color: Colors.white70),
           ],
         ),
       ),
@@ -729,6 +925,7 @@ class _User {
   final String phoneNumber;
   final String firstName;
   final String lastName;
+  final List<String> roles;
 
   int strikes; // enriched via /users/by-ids
   String? dateOfLastStrike;
@@ -743,20 +940,22 @@ class _User {
     this.strikes = 0,
     this.dateOfLastStrike,
     this.isSuspended,
+    required this.roles,
   });
 
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
 
   factory _User.fromJson(Map<String, dynamic> j) => _User(
-        id: (j['id'] ?? '').toString(),
-        email: (j['email'] ?? '').toString(),
-        phoneNumber: j['phoneNumber'].toString(),
-        firstName: (j['firstName'] ?? '').toString(),
-        lastName: (j['lastName'] ?? '').toString(),
-        strikes: j['attendanceStrikeCount'] is int ? j['attendanceStrikeCount'] as int : 0,
-        dateOfLastStrike: j['dateOfLastStrike']?.toString(),
-        isSuspended: j['isSuspended'] as bool?,
-      );
+    id: (j['id'] ?? '').toString(),
+    email: (j['email'] ?? '').toString(),
+    phoneNumber: j['phoneNumber'].toString(),
+    firstName: (j['firstName'] ?? '').toString(),
+    lastName: (j['lastName'] ?? '').toString(),
+    strikes: j['attendanceStrikeCount'] is int ? j['attendanceStrikeCount'] as int : 0,
+    dateOfLastStrike: j['dateOfLastStrike']?.toString(),
+    isSuspended: j['isSuspended'] as bool?,
+    roles: (j['roles'] as List?)?.map((e) => e.toString()).toList() ?? [],
+  );
 }
 
 class _MedicalCondition {
@@ -860,59 +1059,83 @@ Widget _medicalBlock({
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-      const SizedBox(height: 6),
+      Text(title, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
       if (showNone)
-        const Text('None reported',
-            style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic))
+        Text('None reported',
+            style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500, fontSize: 14))
       else
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: items.map(_medicalTile).toList(),
         ),
-      const SizedBox(height: 12),
     ],
   );
 }
 
 Widget _medicalTile(_MedicalCondition m) {
   return Container(
-    margin: const EdgeInsets.only(bottom: 6),
-    padding: const EdgeInsets.all(12),
+    margin: const EdgeInsets.only(bottom: 8),
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white12,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white24),
+      border: Border.all(color: Colors.white38),
+      color: Color(0xFF242424),
+      borderRadius: BorderRadius.circular(12),
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Stack(
       children: [
-        if (m.isAllergy)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            margin: const EdgeInsets.only(right: 8, top: 2),
-            decoration: BoxDecoration(
-              color: const Color(0x33FF5252),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFFF5252)),
-            ),
-            child: const Text('ALLERGY',
-                style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.w700)),
+        Padding(
+          padding: EdgeInsets.only(
+            top: m.isAllergy ? 8 : 0,   
+            right: m.isAllergy ? 8 : 0, 
           ),
-        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(m.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              if ((m.notes ?? '').trim().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(m.notes!, style: const TextStyle(color: Colors.white70)),
+              Text(
+                m.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16
                 ),
+              ),
+              if ((m.notes ?? '').trim().isNotEmpty)...[
+                const SizedBox(height: 4),
+                Text(
+                  m.notes!,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ]
             ],
           ),
         ),
+
+        if (m.isAllergy)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0x33FF5252),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.errorColor),
+              ),
+              child: const Text(
+                'ALLERGY',
+                style: TextStyle(
+                  color: AppColors.errorColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
       ],
     ),
   );
 }
+

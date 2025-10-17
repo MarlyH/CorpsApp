@@ -1,5 +1,4 @@
 import 'package:corpsapp/views/banned_users_view.dart';
-import 'package:corpsapp/views/change_user_role_view.dart';
 import 'package:corpsapp/views/manage_events_view.dart';
 import 'package:corpsapp/views/manage_locations_view.dart';
 import 'package:corpsapp/views/report_generation_view.dart';
@@ -51,12 +50,6 @@ class AdminList extends StatelessWidget {
               icon: Icons.block,
               label: "Ban Management",
               view: BannedUsersView(),
-            ),
-
-            OptionTile(
-              icon: Icons.admin_panel_settings,
-              label: "Roles Management",
-              view: ChangeUserRoleView(),
             ),
 
             OptionTile(

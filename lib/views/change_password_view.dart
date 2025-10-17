@@ -131,7 +131,7 @@ Future<void> _submit() async {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     if (_error != null) ...[
                       Text(

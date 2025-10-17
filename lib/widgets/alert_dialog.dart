@@ -10,6 +10,7 @@ class CustomAlertDialog extends StatelessWidget {
   final String? extraContentText;
   final String? iconPath;
   final bool? cancel;
+  final Widget? content;
 
   const CustomAlertDialog({
     super.key,
@@ -20,6 +21,7 @@ class CustomAlertDialog extends StatelessWidget {
     this.extraContentText,
     this.iconPath,
     this.cancel,
+    this.content
   });
 
   @override
@@ -58,6 +60,11 @@ class CustomAlertDialog extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
+
+            if (content != null) ...[
+              const SizedBox(height: 16),
+              content!,
+            ],
 
             if (extraContentText != null) ...[
               const SizedBox(height: 16),

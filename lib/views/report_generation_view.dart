@@ -8,6 +8,8 @@ import 'package:corpsapp/widgets/button.dart';
 import '../widgets/date_picker.dart';
 import '../widgets/input_field.dart';
 import '../services/auth_http_client.dart';
+import '../models/event_report.dart';
+import '../services/gen_report_pdf_service.dart';
 
 class ReportGenerationView extends StatefulWidget {
   const ReportGenerationView({super.key});
@@ -37,18 +39,21 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
     });
 
     try {
+      // fetch report data from API
       final resp = await AuthHttpClient.generateReport(
         startDate: _startDate!,
         endDate: _endDate!,
       );
 
+      // parse response
       final data = jsonDecode(resp.body);
-      // just displaying total event count for now on success
-      final msg = data['totalEvents'].toString() ?? 'Report generated successfully';
+      final report = EventReport.fromJson(data);
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+
+      // generate and share PDF
+      await ReportService.generateAndSharePdf(report);
+
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());

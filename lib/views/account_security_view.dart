@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/Modals/edit_modal.dart';
@@ -6,7 +8,7 @@ import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:email_validator/email_validator.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
 import 'change_password_view.dart';
@@ -20,6 +22,7 @@ class AccountSecurityView extends StatefulWidget {
 
 class _AccountSecurityViewState extends State<AccountSecurityView> {
   bool _isLoading = false;
+  String? _emailError;
 
   void _showSnack(String msg, {Color bg = AppColors.errorColor}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -63,6 +66,28 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
       setState(() => _isLoading = false);
     }
   }
+
+  Future<void> _changeEmail() async {
+  final auth = context.read<AuthProvider>();
+  final current = auth.userProfile?['email'] as String? ?? '';
+
+  await _editField(
+    title: 'Email',
+    initial: current,
+    hint: 'you@example.com',
+    onSubmit: (value) async {
+      if (!EmailValidator.validate(value)) {
+        throw 'Enter a valid email';
+      }
+
+      final res = await AuthHttpClient.requestEmailChange(value.trim());
+      if (res.statusCode != 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        throw body['message'] ?? 'Unknown error';
+      }
+    },
+  );
+}
 
   Future<void> _confirmDelete() async {
     final ok = await showModalBottomSheet<bool>(
@@ -138,8 +163,25 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                               _buildTile(
                                 label: 'Email',
                                 value: user['email'] as String? ?? '',
-                                showArrow: false,
+                                showArrow: true,
+                                onTap: () => _editField(
+                                  title: 'Email',
+                                  initial: user['email'] as String? ?? '',
+                                  hint: 'you@example.com',
+                                  onSubmit: (value) async {
+                                    if (!EmailValidator.validate(value)) {
+                                      throw 'Enter a valid email';
+                                    }
+
+                                    final res = await AuthHttpClient.requestEmailChange(value.trim());
+                                    if (res.statusCode != 200) {
+                                      final body = jsonDecode(res.body) as Map<String, dynamic>;
+                                      throw body['message'] ?? 'Unknown error';
+                                    }
+                                  },
+                                ),
                               ),
+
 
                               _divider(),
 

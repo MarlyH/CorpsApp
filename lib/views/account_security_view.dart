@@ -182,7 +182,6 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                                 ),
                               ),
 
-
                               _divider(),
 
                               _buildTile(

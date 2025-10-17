@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class InputField extends StatefulWidget {
   final String? label;
   final String hintText;
-  final TextEditingController controller;
+  final TextEditingController? controller;
   final TextInputType? keyboardType;
   final bool obscureText;
   final VoidCallback? onTap;
@@ -17,12 +17,13 @@ class InputField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final int maxLines;
   final bool isPassword;
+  final Widget? customContent;
 
   const InputField({
     super.key,
     this.label,
     required this.hintText,
-    required this.controller,
+    this.controller,
     this.keyboardType,
     this.obscureText = false,
     this.onTap,
@@ -35,6 +36,7 @@ class InputField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
     this.isPassword = false,
+    this.customContent
   });
 
   @override
@@ -69,7 +71,10 @@ class _InputFieldState extends State<InputField> {
           ),
           const SizedBox(height: 4),
         ],
-        TextFormField(
+
+        widget.customContent != null
+          ? widget.customContent!
+          : TextFormField(
           controller: widget.controller,
           textCapitalization: widget.textCapitalization,
           keyboardType: widget.isPassword
@@ -110,7 +115,7 @@ class _InputFieldState extends State<InputField> {
           ),
           validator: widget.validator ??
               (v) => v == null || v.isEmpty ? 'Required' : null,
-        ),
+        ),        
       ],
     );
   }

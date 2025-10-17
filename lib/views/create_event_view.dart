@@ -1,18 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/date_picker.dart';
+import 'package:corpsapp/widgets/input_field.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 // import 'package:file_picker/file_picker.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import '../models/location.dart';
 import '../services/auth_http_client.dart';
 import '../services/token_service.dart';
 
-enum SessionType { Ages8to11, Ages12to15 }
+enum SessionType { Ages8to11, Ages12to15, Adults }
 const _sessionTypeValues = {
   SessionType.Ages8to11: 0,
   SessionType.Ages12to15: 1,
+  SessionType.Adults: 2
 };
 
 class CreateEventView extends StatefulWidget {
@@ -62,8 +71,8 @@ class _CreateEventViewState extends State<CreateEventView> {
 
   Future<void> _pickDate({ required bool eventDate }) async {
     final now = DateTime.now();
-    final d = await showDatePicker(
-      context: context,
+    final d = await DatePickerUtil.pickDate(
+      context,
       initialDate: now,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate:  now.add(const Duration(days: 365 * 5)),
@@ -79,19 +88,75 @@ class _CreateEventViewState extends State<CreateEventView> {
     }
   }
 
-  Future<void> _pickTime({ required bool start }) async {
+  Future<void> _pickTime({required bool start}) async {
     final now = TimeOfDay.now();
-    final t = await showTimePicker(context: context, initialTime: now);
-    if (t != null) {
-      setState(() {
-        if (start) {
-          _startTime = t;
-        } else {
-          _endTime = t;
-        }
-      });
+
+    if (Platform.isIOS) {
+      // Cupertino-style picker
+      TimeOfDay? selectedTime = await showCupertinoModalPopup<TimeOfDay>(
+        context: context,
+        builder: (_) {
+          DateTime tempDate = DateTime.now();
+          return Container(
+            height: 300,
+            color: AppColors.background,
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: DateTime(
+                      0, 0, 0, now.hour, now.minute,
+                    ),
+                    use24hFormat: false,
+                    onDateTimeChanged: (DateTime dt) {
+                      tempDate = dt;
+                    },
+                  ),
+                ),
+                CupertinoButton(
+                  child: const Text('Done',style: TextStyle(
+                      color: CupertinoColors.activeBlue,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),),
+                  onPressed: () {
+                    Navigator.of(context).pop(
+                      TimeOfDay(hour: tempDate.hour, minute: tempDate.minute)
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (selectedTime != null) {
+        setState(() {
+          if (start) {
+            _startTime = selectedTime;
+          } else {
+            _endTime = selectedTime;
+          }
+        });
+      }
+
+    } else {
+      final t = await showTimePicker(context: context, initialTime: now);
+      if (t != null) {
+        setState(() {
+          if (start) {
+            _startTime = t;
+          } else {
+            _endTime = t;
+          }
+        });
+      }
     }
   }
+
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
@@ -106,7 +171,7 @@ class _CreateEventViewState extends State<CreateEventView> {
   }) =>
     InputDecoration(
       labelText: labelText,
-      labelStyle: const TextStyle(color: Colors.white70),
+      labelStyle: const TextStyle(color: Colors.black),
       hintText: hintText,
       hintStyle: const TextStyle(color: Colors.grey),
       filled: true,
@@ -179,13 +244,13 @@ class _CreateEventViewState extends State<CreateEventView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg, style: const TextStyle(color: Colors.black)),
-          backgroundColor: resp.statusCode == 200 ? Colors.white : Colors.redAccent,
+          backgroundColor: resp.statusCode == 200 ? Colors.white : AppColors.errorColor
         ),
       );
       if (resp.statusCode == 200) Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.redAccent)
+        SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.errorColor)
       );
     } finally {
       setState(() => _isLoading = false);
@@ -195,242 +260,195 @@ class _CreateEventViewState extends State<CreateEventView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('CREATE AN EVENT' ,
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold , fontSize: 28, )),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Create an Event'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: AppPadding.screen,
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // Session Type
-                const Text('Session Type', style: TextStyle(color: Colors.white)),
-                Row(children: [
+                InputField(
+                  label: 'Session Type',
+                  hintText: '',
+                  customContent: Row(children: [
                   Expanded(child: RadioListTile<SessionType>(
-                    title: const Text('Ages 8–11', style: TextStyle(color: Colors.white)),
+                    contentPadding: EdgeInsets.all(0),
+                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4), 
+                    title: const Text('Ages 8 – 11', style: TextStyle(color: Colors.white)),
                     value: SessionType.Ages8to11,
                     groupValue: _sessionType,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primaryColor,
                     onChanged: (v) => setState(() => _sessionType = v),
                   )),
                   Expanded(child: RadioListTile<SessionType>(
-                    title: const Text('Ages 12–15', style: TextStyle(color: Colors.white)),
+                    contentPadding: EdgeInsets.all(0),
+                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4), 
+                    title: const Text('Ages 12 – 15', style: TextStyle(color: Colors.white)),
                     value: SessionType.Ages12to15,
                     groupValue: _sessionType,
-                    activeColor: Colors.blue,
+                    activeColor: AppColors.primaryColor,
                     onChanged: (v) => setState(() => _sessionType = v),
                   )),
                 ]),
+                ),
 
                 const SizedBox(height: 16),
+
                 // Location
-                const Text('Location', style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<Location>(
-                  decoration: _inputDecoration(hintText: 'Select city or town'),
-                  dropdownColor: Colors.white,
-                  style: const TextStyle(color: Colors.black),
-                  items: _locations.map((loc) => DropdownMenuItem<Location>(
-                    value: loc,
-                    child: Text(loc.name, style: const TextStyle(color: Colors.black)),
-                  )).toList(),
-                  value: _location,
-                  onChanged: (v) => setState(() => _location = v),
-                  validator: (v) => v == null ? 'Please select a location' : null,
-                ),
+                InputField(
+                  label: 'Location',
+                  hintText: 'Select city or town',
+                  customContent: DropdownButtonFormField<Location>(
+                    hint: Text('Select city or town', style: TextStyle(color: AppColors.disabled, fontWeight: FontWeight.bold)),
+                    decoration: _inputDecoration(),
+                    icon: Icon(Icons.arrow_drop_down, color: Colors.black87),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: AppColors.normalText),
+                    items: _locations.map((loc) => DropdownMenuItem<Location>(
+                      value: loc,
+                      child: Text(loc.name, style: const TextStyle(color: AppColors.normalText)),
+                    )).toList(),
+                    value: _location,
+                    onChanged: (v) => setState(() => _location = v),
+                    validator: (v) => v == null ? 'Please select a location' : null,
+                  ),
+                ),            
 
                 const SizedBox(height: 16),
+
                 // Address
-                const Text('Address', style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 6),
-                TextFormField(
+                InputField(
+                  label: 'Address',
+                  hintText: 'Enter venue address',
                   controller: _addressCtl,
-                  decoration: _inputDecoration(hintText: 'Enter venue address'),
-                  style: const TextStyle(color: Colors.black),
-                  validator: (v) => (v?.trim().isEmpty ?? true) ? 'Required' : null,
                 ),
 
                 const SizedBox(height: 16),
+
                 // Date & Time section
-                const Text('Date & Time', style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 6),
-                // Event Date
-                TextFormField(
-                  style: const TextStyle(color: Colors.black),
-                  readOnly: true,
+                InputField(
+                  label: 'Date & Time',
+                  hintText: 'When will the event happen?',
+                  controller: TextEditingController(
+                    text: _eventDate == null ? '' : _fmtDate(_eventDate!)
+                  ),
                   onTap: () => _pickDate(eventDate: true),
-                  decoration: _inputDecoration(
-                    hintText: 'Select the date the event will take place',
-                    suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
-                  ),
-                  controller: TextEditingController(
-                    text: _eventDate == null ? '' : _fmtDate(_eventDate!),
-                  ),
-                  validator: (_) => _eventDate == null ? 'Required' : null,
-                ),
-
-                const SizedBox(height: 12),
-                // Time range
-                Row(children: [
-                  Expanded(child: TextFormField(
-                    style: const TextStyle(color: Colors.black),
-                    readOnly: true,
-                    onTap: () => _pickTime(start: true),
-                    decoration: _inputDecoration(
-                      hintText: 'Starting Time',
-                      suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SvgPicture.asset(
+                      'assets/icons/calendar.svg',
+                      width: 12,
+                      height: 12,
+                      colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
                     ),
-                    controller: TextEditingController(
-                      text: _startTime == null ? '' : _startTime!.format(context),
-                    ),
-                    validator: (_) => _startTime == null ? 'Req.' : null,
-                  )),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('to', style: TextStyle(color: Colors.white, fontSize: 16)),
                   ),
-                  Expanded(child: TextFormField(
-                    style: const TextStyle(color: Colors.black),
-                    readOnly: true,
-                    onTap: () => _pickTime(start: false),
-                    decoration: _inputDecoration(
-                      hintText: 'Finish Time',
-                      suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
-                    ),
-                    controller: TextEditingController(
-                      text: _endTime == null ? '' : _endTime!.format(context),
-                    ),
-                    validator: (_) => _endTime == null ? 'Req.' : null,
-                  )),
-                ]),
-
-                const SizedBox(height: 12),
-                // Booking Opens On
-                TextFormField(
-                  style: const TextStyle(color: Colors.black),
-                  readOnly: true,
-                  onTap: () => _pickDate(eventDate: false),
-                  decoration: _inputDecoration(
-                    hintText: 'Make booking available on',
-                    suffixIcon: const Icon(Icons.calendar_today, color: Colors.black54),
-                  ),
-                  controller: TextEditingController(
-                    text: _availableDate == null ? '' : _fmtDate(_availableDate!),
-                  ),
-                  validator: (_) => _availableDate == null ? 'Required' : null,
                 ),
 
                 const SizedBox(height: 16),
 
-                // Seats map (optional)
-                // const Text('Seats map', style: TextStyle(color: Colors.white70)),
-                // const SizedBox(height: 6),
-                // GestureDetector(
-                //   onTap: _pickSeatMap,
-                //   child: Container(
-                //     height: 150,
-                //     width: double.infinity,
-                //     decoration: BoxDecoration(
-                //       color: Colors.white,
-                //       borderRadius: BorderRadius.circular(8),
-                //       border: Border.all(color: Colors.grey.shade300),
-                //     ),
-                //     child: Center(
-                //       child: _seatMapFile == null
-                //           ? const Text('Upload Seat Map',
-                //               style: TextStyle(color: Colors.black38))
-                //           : Text(p.basename(_seatMapFile!.path),
-                //               style: const TextStyle(color: Colors.black)),
-                //     ),
-                //   ),
-                // ),
+                // Time range
+                Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: InputField(
+                        hintText: 'Start',
+                        onTap: () => _pickTime(start: true),
+                        controller: TextEditingController(
+                          text: _startTime == null ? '' : _startTime!.format(context),
+                        ),
+                        suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.black54),
+                      ),
+                    ),
 
-                // const SizedBox(height: 16),
-                // Total seats
+                    const SizedBox(width: 16),
+
+                    Text('to'),
+
+                    const SizedBox(width: 16),
+                   
+                    Expanded(
+                      child: InputField(
+                        hintText: 'End',
+                        onTap: () => _pickTime(start: false),
+                        controller: TextEditingController(
+                          text: _endTime == null ? '' : _endTime!.format(context),
+                        ),
+                        suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.black54),
+                      ),
+                    )                   
+                  ],
+                ),
+              
+                const SizedBox(height: 16),
+
+                // Booking Opens On
+                InputField(
+                  label: 'Booking Available Date',
+                  hintText: 'When should the booking be made available?',
+                  controller: TextEditingController(
+                    text: _availableDate == null ? '' : _fmtDate(_availableDate!)
+                  ),
+                  onTap: () => _pickDate(eventDate: false),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SvgPicture.asset(
+                      'assets/icons/calendar.svg',
+                      width: 12,
+                      height: 12,
+                      colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+                    ),
+                  ),
+                ),
+            
+                const SizedBox(height: 16),
+                           
                 Row(children: [
                   const Expanded(
                     flex: 2,
-                    child: Text('Total number of seats',
-                        style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      'Total number of seats',
+                      style: TextStyle(
+                        fontFamily: 'WinnerSans',
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                      )
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  
                   Expanded(
                     flex: 1,
-                    child: TextFormField(
+                    child: InputField(
+                      hintText: '',
                       controller: _seatsCtl,
                       keyboardType: TextInputType.number,
-                      decoration: _inputDecoration(
-                        hintText: 'e.g. 20',
-                        suffixIcon: const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Icon(Icons.event_seat, color: Colors.black54
-                          ),
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.black),
-                      validator: (v) {
-                        if (v == null || int.tryParse(v.trim()) == null) {
-                          return 'Enter a number';
-                        }
-                        return null;
-                      },
-                    ),
+                      suffixIcon: Icon(Icons.event_seat, color: AppColors.normalText),
+                    )                   
                   ),
                 ]),
 
                 const SizedBox(height: 16),
+
                 // Description
-                const Text('Description', style: TextStyle(color: Colors.white)),
-                const SizedBox(height: 6),
-                TextFormField(
+                InputField(
+                  label: 'Description',
+                  hintText: 'Enter a description, additional notes, or requirements for the event.',
                   controller: _descCtl,
-                  maxLines: 4,
-                  decoration: _inputDecoration(
-                    hintText: 'Enter a description, additional notes or requirements for the event.',
-                  ),
-                  style: const TextStyle(color: Colors.black),
-                ),
+                  maxLines: 5,
+                ),         
 
                 const SizedBox(height: 24),
-                // Create Event Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'CREATE EVENT',
-                            style: TextStyle(fontSize: 16, color: Colors.white
-                            
 
-                          ),
-                  ),
-                ),
-                ),
+                // Create Event Button
+                Button(
+                  label: 'Create Event', 
+                  onPressed: _submit,
+                  loading: _isLoading,
+                ),             
               ],
           ),
         ),

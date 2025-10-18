@@ -18,6 +18,8 @@ class InputField extends StatefulWidget {
   final int maxLines;
   final bool isPassword;
   final Widget? customContent;
+  final bool isReadOnly;
+  final bool isDisabled;
 
   const InputField({
     super.key,
@@ -36,7 +38,9 @@ class InputField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
     this.isPassword = false,
-    this.customContent
+    this.customContent,
+    this.isReadOnly = false,
+    this.isDisabled = false,
   });
 
   @override
@@ -54,8 +58,6 @@ class _InputFieldState extends State<InputField> {
 
   @override
   Widget build(BuildContext context) {
-    final readOnly = widget.onTap != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,47 +77,48 @@ class _InputFieldState extends State<InputField> {
         widget.customContent != null
           ? widget.customContent!
           : TextFormField(
-          controller: widget.controller,
-          textCapitalization: widget.textCapitalization,
-          keyboardType: widget.isPassword
-              ? TextInputType.visiblePassword
-              : widget.keyboardType,
-          obscureText: _obscure,
-          onTap: widget.onTap,
-          readOnly: readOnly,
-          maxLines: widget.maxLines,
-          style: const TextStyle(color: Colors.black),
-          autofillHints: widget.autofillHints,
-          textInputAction: widget.textInputAction,
-          onFieldSubmitted: widget.onFieldSubmitted,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-            filled: true,
-            fillColor: Colors.white,
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: widget.isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscure ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.black,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscure = !_obscure);
-                    },
-                  )
-                : widget.suffixIcon,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            errorStyle: TextStyle(color: AppColors.errorColor),
-          ),
-          validator: widget.validator ??
-              (v) => v == null || v.isEmpty ? 'Required' : null,
-        ),        
+              readOnly: widget.isReadOnly,
+              enabled: !widget.isDisabled,
+              controller: widget.controller,
+              textCapitalization: widget.textCapitalization,
+              keyboardType: widget.isPassword
+                  ? TextInputType.visiblePassword
+                  : widget.keyboardType,
+              obscureText: _obscure,
+              onTap: widget.onTap,
+              maxLines: widget.maxLines,
+              style: const TextStyle(color: Colors.black),
+              autofillHints: widget.autofillHints,
+              textInputAction: widget.textInputAction,
+              onFieldSubmitted: widget.onFieldSubmitted,
+              decoration: InputDecoration(
+                hintText: widget.hintText,
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: widget.prefixIcon,
+                suffixIcon: widget.isPassword
+                    ? IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscure = !_obscure);
+                        },
+                      )
+                    : widget.suffixIcon,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                errorStyle: TextStyle(color: AppColors.errorColor),
+              ),
+              validator: widget.validator ??
+                  (v) => v == null || v.isEmpty ? 'Required' : null,
+            ),        
       ],
     );
   }

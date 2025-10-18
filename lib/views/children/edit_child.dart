@@ -1,26 +1,16 @@
 import 'dart:convert';
+import 'package:corpsapp/models/medical_item.dart';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
+import 'package:corpsapp/widgets/medical_editor.dart';
 import 'package:flutter/material.dart';
 import '/models/child_model.dart';
 import '/services/auth_http_client.dart';
 
-class MedicalItem {
-  MedicalItem({required this.name, this.notes = '', this.isAllergy = false});
-  String name;
-  String notes;
-  bool isAllergy;
-
-  factory MedicalItem.fromJson(Map<String, dynamic> j) => MedicalItem(
-        name: (j['name'] ?? '').toString(),
-        notes: (j['notes'] ?? '').toString(),
-        isAllergy: (j['isAllergy'] as bool?) ?? false,
-      );
-
-  Map<String, dynamic> toJson() => {
-        'name': name.trim(),
-        'notes': notes.trim(),
-        'isAllergy': isAllergy,
-      };
-}
 
 class EditChildView extends StatefulWidget {
   final ChildModel child;
@@ -108,14 +98,14 @@ class _EditChildViewState extends State<EditChildView> {
     final body = {
       'firstName': _cap(_firstName.text.trim()),
       'lastName': _cap(_lastName.text.trim()),
-      'dateOfBirth': _dob.text.trim(), // your API expects it on update
+      'dateOfBirth': _dob.text.trim(), 
       'emergencyContactName': _cap(_contactName.text.trim()),
       'emergencyContactPhone': _contactPhone.text.trim(),
       'hasMedicalConditions': _hasMedical,
       if (_hasMedical)
         'medicalConditions': _medicalItems
-            .where((m) => m.name.trim().isNotEmpty)
-            .map((m) => m.toJson())
+            .where((m) => m!.name.trim().isNotEmpty)
+            .map((m) => m!.toJson())
             .toList(),
     };
 
@@ -137,17 +127,12 @@ class _EditChildViewState extends State<EditChildView> {
   Future<void> _delete() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        title: const Text('Delete Child', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Are you sure you want to delete this child? This action cannot be undone.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.white))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
-        ],
+      builder: (context) => CustomAlertDialog(
+        title: 'Delete Child', 
+        info: 'Are you sure you want to remove this child from your account? This action cannot be undone.',
+        cancel: true,
+        buttonLabel: 'Delete',
+        buttonAction: () => Navigator.pop(context, true),
       ),
     );
     if (confirm != true) return;
@@ -178,7 +163,7 @@ class _EditChildViewState extends State<EditChildView> {
 
   void _snack(String msg, {bool err = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: err ? Colors.redAccent : Colors.green),
+      SnackBar(content: Text(msg), backgroundColor: err ? AppColors.errorColor : Colors.green),
     );
   }
 
@@ -187,16 +172,11 @@ class _EditChildViewState extends State<EditChildView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => SafeArea(
-        top: false,
-        bottom: true,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom + 16,
-            left: 16, right: 16, top: 16,
-          ),
-          child: const _MedicalEditor(),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom, // shifts up when keyboard appears
         ),
+        child: MedicalEditor(),
       ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -210,15 +190,11 @@ class _EditChildViewState extends State<EditChildView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => SafeArea(
-        top: false, bottom: true,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom + 16,
-            left: 16, right: 16, top: 16,
-          ),
-          child: _MedicalEditor(initial: _medicalItems[index]),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom, // shifts up when keyboard appears
         ),
+        child: MedicalEditor(initial: _medicalItems[index],),
       ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -231,31 +207,19 @@ class _EditChildViewState extends State<EditChildView> {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Edit Child',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _saving ? null : _delete,
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-          ),
-        ],
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(
+        title: 'Edit Child',
+        actionButton: Icon(Icons.delete_outline, color: AppColors.errorColor),
+        actionOnTap: _saving ? null : _delete,
       ),
+      
       body: SafeArea(
         bottom: true,
         child: _loading
             ? const Center(child: CircularProgressIndicator(color: Colors.white))
             : SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
+                padding: AppPadding.screen,
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -273,59 +237,91 @@ class _EditChildViewState extends State<EditChildView> {
                           child: Text(_error!, style: const TextStyle(color: Colors.white70)),
                         ),
                       ],
-                      _field(
+                      InputField(
+                        label: 'First Name', 
+                        hintText: 'e.g. Jane', 
                         controller: _firstName,
-                        label: 'First Name',
-                        icon: Icons.person_outline,
+                        prefixIcon: Icon(Icons.person_outline, color: Colors.black54),
                         textCapitalization: TextCapitalization.words,
-                      ),
-                      _field(
+                      ),    
+
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        label: 'Last Name', 
+                        hintText: 'e.g. Doe', 
                         controller: _lastName,
-                        label: 'Last Name',
-                        icon: Icons.person_outline,
+                        prefixIcon: Icon(Icons.person_outline, color: Colors.black54),
                         textCapitalization: TextCapitalization.words,
                       ),
-                      _field(
+
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        label: 'Date of Birth', 
+                        hintText: 'Select date of birth',
                         controller: _dob,
-                        label: 'Date of Birth',
-                        icon: Icons.calendar_today,
-                        readOnly: true,
-                        isDisabled: true,
+                        prefixIcon: Icon(Icons.calendar_today, color: Colors.black54),    
+                        isReadOnly: true,
+                        isDisabled: true,                  
                       ),
-                      _field(
+                      
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        label: 'Emergency Contact Full Name', 
+                        hintText: 'e.g. John doe', 
                         controller: _contactName,
-                        label: 'Emergency Contact Name',
-                        icon: Icons.contact_phone_outlined,
+                        prefixIcon: Icon(Icons.contact_phone_outlined, color: Colors.black54),
                         textCapitalization: TextCapitalization.words,
                       ),
-                      _field(
+                    
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        label: 'Emergency Contact Phone Number', 
+                        hintText: '021-555-1234', 
                         controller: _contactPhone,
-                        label: 'Emergency Contact Phone',
-                        icon: Icons.phone_outlined,
+                        prefixIcon: Icon(Icons.phone_outlined, color: Colors.black54),
                         keyboardType: TextInputType.phone,
                       ),
-                      const SizedBox(height: 12),
+                    
+                      const SizedBox(height: 16),
+
                       SwitchListTile.adaptive(
                         value: _hasMedical,
                         onChanged: (v) => setState(() => _hasMedical = v),
-                        activeColor: Colors.blueAccent,
+                        activeColor: AppColors.primaryColor,
                         title: const Text('Has medical conditions or allergies?',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                        subtitle: const Text('If enabled, add one or more items below.',
-                            style: TextStyle(color: Colors.white70)),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)
+                        ),       
+                        contentPadding: EdgeInsets.zero,            
                       ),
+
+                      const SizedBox(height: 4),              
+
                       if (_hasMedical) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
+
+                        Button(
+                          label: 'Add condition / allergy', 
+                          onPressed: _addMedicalItem,
+                          buttonColor: Colors.transparent,
+                          borderColor: Colors.white24,
+                        ),
+                        
+                        const SizedBox(height: 16), 
+                      
                         _medicalItems.isEmpty
                             ? Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF121212),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.white12),
                                 ),
                                 child: const Text(
-                                  'No items yet. Tap "Add Condition/Allergy" to add one.',
+                                  'No medical conditions or allergies yet. Tap button above to add one.',
                                   style: TextStyle(color: Colors.white70),
                                 ),
                               )
@@ -337,12 +333,7 @@ class _EditChildViewState extends State<EditChildView> {
                                 itemBuilder: (_, i) {
                                   final it = _medicalItems[i];
                                   return Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF121212),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.white12),
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),                                  
                                     child: Row(
                                       children: [
                                         Expanded(
@@ -353,19 +344,19 @@ class _EditChildViewState extends State<EditChildView> {
                                                 children: [
                                                   if (it.isAllergy)
                                                     const Padding(
-                                                      padding: EdgeInsets.only(right: 6),
+                                                      padding: EdgeInsets.only(right: 4),
                                                       child: Icon(Icons.warning_amber_rounded,
                                                           size: 16, color: Colors.amber),
                                                     ),
                                                   Flexible(
                                                     child: Text(it.name,
                                                         style: const TextStyle(
-                                                            color: Colors.white, fontWeight: FontWeight.w600)),
+                                                            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
                                                   ),
                                                 ],
                                               ),
                                               if (it.notes.trim().isNotEmpty) ...[
-                                                const SizedBox(height: 2),
+                                                const SizedBox(height: 4),
                                                 Text(it.notes, style: const TextStyle(color: Colors.white70)),
                                               ],
                                             ],
@@ -373,49 +364,26 @@ class _EditChildViewState extends State<EditChildView> {
                                         ),
                                         IconButton(
                                           onPressed: () => _editMedicalItem(i),
-                                          icon: const Icon(Icons.edit, color: Colors.white70),
+                                          icon: const Icon(Icons.edit, color: Colors.white),
                                         ),
                                         IconButton(
                                           onPressed: () => setState(() => _medicalItems.removeAt(i)),
-                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                          icon: const Icon(Icons.delete_outline, color: AppColors.errorColor),
                                         ),
                                       ],
-                                    ),
-                                  );
+                                    )
+                                  );                                
                                 },
                               ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 44,
-                          child: OutlinedButton.icon(
-                            onPressed: _addMedicalItem,
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            label: const Text('ADD CONDITION/ALLERGY',
-                                style: TextStyle(color: Colors.white)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white24),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _saving ? null : _update,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          disabledBackgroundColor: Colors.blue.withOpacity(0.3),
-                        ),
-                        child: _saving
-                            ? const SizedBox(
-                                width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
-                              )
-                            : const Text('UPDATE'),
-                      ),
+
+                        const SizedBox(height: 16),
+
+                        Button(
+                          label: 'Update', 
+                          onPressed: _update,
+                          loading: _saving,
+                        ),                          
+                      ],                     
                     ],
                   ),
                 ),
@@ -423,194 +391,5 @@ class _EditChildViewState extends State<EditChildView> {
       ),
     );
   }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    bool readOnly = false,
-    bool isDisabled = false,
-    VoidCallback? onTap,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16, top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          ),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            readOnly: readOnly,
-            onTap: onTap,
-            enabled: !isDisabled,
-            textCapitalization: textCapitalization,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: isDisabled ? Colors.black38 : Colors.black54),
-              filled: true,
-              fillColor: isDisabled ? Colors.grey.shade200 : Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-            validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _MedicalEditor extends StatefulWidget {
-  const _MedicalEditor({this.initial});
-  final MedicalItem? initial;
-
-  @override
-  State<_MedicalEditor> createState() => _MedicalEditorState();
-}
-
-class _MedicalEditorState extends State<_MedicalEditor> {
-  late final TextEditingController _name;
-  late final TextEditingController _notes;
-  bool _isAllergy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController(text: widget.initial?.name ?? '');
-    _notes = TextEditingController(text: widget.initial?.notes ?? '');
-    _isAllergy = widget.initial?.isAllergy ?? false;
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _notes.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF121212),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 40, height: 4,
-          margin: const EdgeInsets.only(top: 8, bottom: 16),
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-        ),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Medical Condition / Allergy',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            controller: _name,
-            style: const TextStyle(color: Colors.white),
-            decoration: _dec('Name (required)'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            controller: _notes,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 3,
-            decoration: _dec('Notes (optional)'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SwitchListTile.adaptive(
-          value: _isAllergy,
-          onChanged: (v) => setState(() => _isAllergy = v),
-          activeColor: Colors.amber,
-          title: const Text('This is an allergy', style: TextStyle(color: Colors.white)),
-          subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
-              style: TextStyle(color: Colors.white70)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_name.text.trim().isEmpty) return;
-                    Navigator.pop(
-                      context,
-                      MedicalItem(
-                        name: _name.text.trim(),
-                        notes: _notes.text.trim(),
-                        isAllergy: _isAllergy,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('SAVE', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: MediaQuery.of(context).padding.bottom),
-      ]),
-    );
-  }
-
-  InputDecoration _dec(String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
-        filled: true,
-        fillColor: const Color(0xFF1E1E1E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.blueAccent),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      );
-}

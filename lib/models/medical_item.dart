@@ -4,6 +4,12 @@ class MedicalItem {
   String notes;
   bool isAllergy;
 
+  factory MedicalItem.fromJson(Map<String, dynamic> j) => MedicalItem(
+      name: (j['name'] ?? '').toString(),
+      notes: (j['notes'] ?? '').toString(),
+      isAllergy: (j['isAllergy'] as bool?) ?? false,
+    );
+
   Map<String, dynamic> toJson() => {
         'name': name.trim(),
         'notes': notes.trim(),

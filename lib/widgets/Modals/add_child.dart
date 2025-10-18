@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:corpsapp/models/medical_item.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
+import 'package:corpsapp/widgets/medical_editor.dart';
 import 'package:flutter/material.dart';
 import '/services/auth_http_client.dart';
 
@@ -26,7 +28,7 @@ class _AddChildModalState extends State<AddChildModal> {
   String? errorMessage;
   DateTime? dob;
   bool hasMedical = false;
-  final List<MedicalItem> medicalItems = [];
+final List<MedicalItem> medicalItems = [];
   bool isSubmitting = false;
   String _cap(String s) =>
     s.split(RegExp(r'\s+'))
@@ -45,7 +47,7 @@ class _AddChildModalState extends State<AddChildModal> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom, // shifts up when keyboard appears
         ),
-        child: _MedicalEditor(),
+        child: MedicalEditor(),
       ),
     );
     if (item != null) setState(() => medicalItems.add(item));
@@ -63,7 +65,7 @@ class _AddChildModalState extends State<AddChildModal> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom, // shifts up when keyboard appears
         ),
-        child: _MedicalEditor(initial: medicalItems[i]),
+        child: MedicalEditor(initial: medicalItems[i]),
       ),
     );
     if (updated != null) setState(() => medicalItems[i] = updated);
@@ -233,10 +235,10 @@ class _AddChildModalState extends State<AddChildModal> {
               if (hasMedical) ...[
                 const SizedBox(height: 4),
                 Button(
-                  label: 'Add Medical Condition or Allergy', 
+                  label: 'Add condition / allergy', 
                   onPressed: _addMedical,
-                  borderColor: AppColors.primaryColor,
                   buttonColor: Colors.transparent,
+                  borderColor: Colors.white24,
                 ),
                 
                 const SizedBox(height: 16),
@@ -262,7 +264,7 @@ class _AddChildModalState extends State<AddChildModal> {
                       itemBuilder: (_, i) {
                         final it = medicalItems[i];
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),                         
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),                         
                           child: Row(
                             children: [
                               Expanded(
@@ -317,7 +319,6 @@ class _AddChildModalState extends State<AddChildModal> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),              
               ],
 
               // error message
@@ -341,133 +342,6 @@ class _AddChildModalState extends State<AddChildModal> {
             ],
           ),
         ),
-      );
-  }
-}
-
-class MedicalItem {
-  MedicalItem({required this.name, this.notes = '', this.isAllergy = false});
-  String name;
-  String notes;
-  bool isAllergy;
-
-  Map<String, dynamic> toJson() => {
-        'name': name.trim(),
-        'notes': notes.trim(),
-        'isAllergy': isAllergy,
-      };
-}
-
-class _MedicalEditor extends StatefulWidget {
-  const _MedicalEditor({this.initial});
-  final MedicalItem? initial;
-
-  @override
-  State<_MedicalEditor> createState() => _MedicalEditorState();
-}
-
-class _MedicalEditorState extends State<_MedicalEditor> {
-  late final TextEditingController _name;
-  late final TextEditingController _notes;
-  bool _isAllergy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController(text: widget.initial?.name ?? '');
-    _notes = TextEditingController(text: widget.initial?.notes ?? '');
-    _isAllergy = widget.initial?.isAllergy ?? false;
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _notes.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: AppPadding.screen,
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      
-      child: Column(
-        mainAxisSize: MainAxisSize.min, 
-        children: [ 
-          const SizedBox(height: 8),
-
-          Text(
-            'Medical Condition or Allergy',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'WinnerSans',
-            )
-          ),  
-
-          const SizedBox(height: 20),
-
-          InputField(hintText: 'Name', controller: _name),
-
-          const SizedBox(height: 8),
-
-          InputField(
-            hintText: 'Notes or Description (Optional)', 
-            controller: _notes,
-            maxLines: 3,
-          ),
-
-          const SizedBox(height: 16),
-
-          SwitchListTile.adaptive(
-            value: _isAllergy,
-            onChanged: (v) => setState(() => _isAllergy = v),
-            activeColor: AppColors.primaryColor,
-            title: const Text('Is this an allergy?', style: TextStyle(fontWeight: FontWeight.w500)),
-            subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
-                style: TextStyle(color: Colors.white70)),
-            contentPadding: EdgeInsets.zero,
-          ),
-
-          const SizedBox(height: 16),
-          
-          Row(
-              children: [
-                Expanded(
-                  child: Button(
-                    label: 'Cancel', 
-                    onPressed: () => Navigator.pop(context),
-                    borderColor: Colors.white,
-                    buttonColor: AppColors.background,)
-                ),
-
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child: Button(
-                    label: 'Save', 
-                    onPressed: () {
-                      if (_name.text.trim().isEmpty) return;
-                      Navigator.pop(
-                        context,
-                        MedicalItem(
-                          name: _name.text.trim(),
-                          notes: _notes.text.trim(),
-                          isAllergy: _isAllergy,
-                        ),
-                      );
-                    },                   
-                  )                 
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ]
-        ),     
       );
   }
 }

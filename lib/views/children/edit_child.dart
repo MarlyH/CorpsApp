@@ -104,8 +104,8 @@ class _EditChildViewState extends State<EditChildView> {
       'hasMedicalConditions': _hasMedical,
       if (_hasMedical)
         'medicalConditions': _medicalItems
-            .where((m) => m!.name.trim().isNotEmpty)
-            .map((m) => m!.toJson())
+            .where((m) => m.name.trim().isNotEmpty)
+            .map((m) => m.toJson())
             .toList(),
     };
 
@@ -205,7 +205,6 @@ class _EditChildViewState extends State<EditChildView> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPad = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: ProfileAppBar(

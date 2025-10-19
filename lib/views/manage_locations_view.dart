@@ -24,7 +24,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
 
   File? _pickedImage;
   bool _isLoading = false;
-  String? _currentImageUrl;
   Map<String, dynamic>? _editingLocation;
   List<Map<String, dynamic>> _locations = [];
 
@@ -44,7 +43,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     setState(() {
       _isLoading = true;
       _editingLocation = null;
-      _currentImageUrl = null;
     });
     try {
       final resp = await AuthHttpClient.getLocations();
@@ -57,23 +55,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     }
   }
 
-  Future<void> _loadLocationById(int id) async {
-    setState(() => _isLoading = true);
-    try {
-      final resp = await AuthHttpClient.getLocation(id);
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      setState(() {
-        _editingLocation = data;
-        _locations = [];
-        _nameController.text = data['name'] as String? ?? '';
-        _currentImageUrl = data['mascotImgSrc'] as String?;
-      });
-    } catch (e) {
-      _showSnack('Error loading location: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
     Future<void> _createLocation(String name, [File? image]) async {
       setState(() => _isLoading = true);
@@ -144,77 +125,12 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _pickedImage = File(picked.path));
-    }
-  }
-
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: AppColors.normalText)),
         backgroundColor: isError ? AppColors.errorColor : Colors.white,
         behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  Widget _buildForm() {
-    final isEditing = _editingLocation != null;
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [      
-          // ─── Image Picker ──────────────────────────
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   children: [
-          //     ElevatedButton.icon(             
-          //       onPressed: _pickImage,
-          //       icon: const Icon(Icons.image, color: AppColors.normalText),
-          //       label: Text(
-          //         _pickedImage != null ? 'Change Image' : 'Pick Image',
-          //         style: const TextStyle(color: AppColors.normalText),
-          //       ),
-          //       style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-          //     ),
-
-          //     if (_pickedImage != null)
-          //       const Icon(Icons.check, color: Colors.white70),
-          //   ],
-          // ),
-
-          // const SizedBox(height: 8),
-
-          // // ─── Name Field ────────────────────────────]
-          // InputField(label: 'Location Name', hintText: 'Enter a new location name', controller: _nameController),
-         
-        
-          const SizedBox(height: 24),
-
-          // ─── CREATE / UPDATE / DELETE / CLEAR ─────
-          
-            //Button(label: 'Create', onPressed: _createLocation, loading: _isLoading),          
-              
-            Button(label: 'Update', onPressed: _updateLocation, loading: _isLoading),
-            
-            const SizedBox(height: 16),
-
-            Button(
-              label: 'Delete', 
-              onPressed: () async {
-                final confirmed =
-                    await showDialog<bool>(context: context, builder: (_) => const _DeleteLocationConfirmDialog()) ??
-                    false;
-                if (confirmed) _deleteLocation();
-              },
-              isCancelOrBack: true,
-            ),         
-          ],
-        
       ),
     );
   }

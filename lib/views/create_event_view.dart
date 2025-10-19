@@ -59,13 +59,6 @@ class _CreateEventViewState extends State<CreateEventView> {
     }
   }
 
-  // Future<void> _pickSeatMap() async {
-  //   final res = await FilePicker.platform.pickFiles(type: FileType.image);
-  //   if (res?.files.single.path != null) {
-  //     setState(() => _seatMapFile = File(res!.files.single.path!));
-  //   }
-  // }
-
   Future<void> _pickDate({ required bool eventDate }) async {
     final now = DateTime.now();
     final d = await DatePickerUtil.pickDate(
@@ -223,14 +216,6 @@ class _CreateEventViewState extends State<CreateEventView> {
         ..['totalSeats']      = _seatsCtl.text.trim()
         ..['address']         = _addressCtl.text.trim()
         ..['description']     = _descCtl.text.trim();
-
-      // if (_seatMapFile != null) {
-      //   req.files.add(await http.MultipartFile.fromPath(
-      //     'seatingMapImage',
-      //     _seatMapFile!.path,
-      //     filename: p.basename(_seatMapFile!.path),
-      //   ));
-      // }
 
       final streamed = await req.send();
       final resp     = await http.Response.fromStream(streamed);

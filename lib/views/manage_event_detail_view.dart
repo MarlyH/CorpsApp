@@ -1,4 +1,11 @@
 import 'dart:convert';
+import 'package:corpsapp/models/medical_condition.dart';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/medical_tile.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../models/event_summary.dart';
 import '../services/auth_http_client.dart';
@@ -14,7 +21,7 @@ class ManageEventDetailView extends StatefulWidget {
   @override
   _ManageEventDetailViewState createState() => _ManageEventDetailViewState();
 }
-enum _ActionKind { email, phone }
+enum _ActionKind { none, email, phone }
 
 class _ManageEventDetailViewState extends State<ManageEventDetailView> {
   bool _loading = true;
@@ -107,13 +114,12 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
       final detail = _AdminBookingDetail.fromJson(js);
 
       if (!mounted) return;
+
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.grey[900],
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
+        useSafeArea: true,
+        backgroundColor: AppColors.background,
         builder: (_) => _AttendeeDetailSheet(detail: detail),
       );
     } catch (e) {
@@ -125,8 +131,8 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.black)),
-        backgroundColor: error ? Colors.redAccent : Colors.white,
+        content: Text(msg, style: const TextStyle(color: AppColors.normalText)),
+        backgroundColor: error ? AppColors.errorColor : Colors.white,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -136,127 +142,68 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
   Widget build(BuildContext context) {
     final e = widget.event;
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'My Events',
-          style: TextStyle(
-            letterSpacing: 1.2,
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: const BackButton(color: Colors.white),
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'My Event'),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : RefreshIndicator(
               color: Colors.white,
               onRefresh: _loadAttendees,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: AppPadding.screen,
                 children: [
                   // header
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Text(e.locationName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                            const Spacer(),
-                            Text(friendlySession(e.sessionType), style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          niceDayDate(e.startDate),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Starts ${e.startTime} • Ends ${e.endTime}', style: const TextStyle(color: Colors.black54)),
-                      ],
-                    ),
-                  ),
+                  EventSummaryCard(summary: e),
+                  
                   const SizedBox(height: 24),
-                  const Text('Attendees', style: TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 8),
+
+                  const Text('Attendees', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+                  const SizedBox(height: 4),
+
                   if (_attendees.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: Text('No attendees yet', style: TextStyle(color: Colors.white54))),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: Text('No attendees yet', style: TextStyle(color: Colors.white54)))
                     )
                   else
-                    ..._attendees.asMap().entries.map((entry) {
-                      final idx = entry.key;
-                      final at = entry.value;
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () => _openAttendeeDetail(at), // ← open sheet
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white12),
+                    CupertinoListSection.insetGrouped(                     
+                      hasLeading: false,
+                      margin: EdgeInsets.all(0),
+                      backgroundColor: Colors.transparent,
+                      children: _attendees.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final at = entry.value;
+                        return ListTile(
+                          minVerticalPadding: 20,
+                          onTap: () => _openAttendeeDetail(at),
+                          title: Text(
+                            '${idx + 1}. ${at.name}', 
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                           ),
-                          child: Row(
-                            children: [
-                              // name + seat
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${idx + 1}. ${at.name}', style: const TextStyle(color: Colors.white)),
-                                    if (at.seatNumber != null)
-                                      Text('Seat ${at.seatNumber}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                                  ],
+                          trailing: DropdownButton<BookingStatusX>(
+                            value: at.status,
+                            underline: const SizedBox.shrink(),
+                            dropdownColor: Colors.grey[900],
+                            iconEnabledColor: Colors.white70,
+                            items: BookingStatusX.values.map((s) {
+                              return DropdownMenuItem(
+                                value: s,
+                                child: Text(
+                                  _labelFor(s), 
+                                  style: const TextStyle(color: Colors.white, fontSize: 14 )
                                 ),
-                              ),
-                              // status dropdown
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white12,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: DropdownButton<BookingStatusX>(
-                                  value: at.status,
-                                  underline: const SizedBox.shrink(),
-                                  dropdownColor: Colors.grey[900],
-                                  iconEnabledColor: Colors.white70,
-                                  items: BookingStatusX.values.map((s) {
-                                    return DropdownMenuItem(
-                                      value: s,
-                                      child: Text(_labelFor(s), style: const TextStyle(color: Colors.white)),
-                                    );
-                                  }).toList(),
-                                  onChanged: (s) {
-                                    if (s != null && s != at.status) {
-                                      _updateStatus(at, s);
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
+                              );
+                            }).toList(),
+                            onChanged: (s) {
+                              if (s != null && s != at.status) {
+                                _updateStatus(at, s);
+                              }
+                            },
                           ),
-                        ),
-                      );
-                    }),
+                        );
+                      }).toList(),
+                    )                                           
                 ],
               ),
             ),
@@ -365,7 +312,7 @@ class _AdminUserMini {
 
   // NEW:
   final bool hasMedicalConditions;
-  final List<_MedicalCondition> medicalConditions;
+  final List<MedicalCondition> medicalConditions;
 
   _AdminUserMini({
     required this.id,
@@ -382,7 +329,7 @@ class _AdminUserMini {
 
   factory _AdminUserMini.fromJson(Map<String, dynamic> j) {
     final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
-    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(MedicalCondition.fromJson).toList();
 
     return _AdminUserMini(
       id: (j['id'] ?? '').toString(),
@@ -401,7 +348,6 @@ class _AdminUserMini {
   String get fullName => '${firstName.trim()} ${lastName.trim()}'.trim();
 }
 
-
 class _ChildDto {
   final int childId;
   final String firstName;
@@ -413,7 +359,7 @@ class _ChildDto {
 
   // NEW:
   final bool hasMedicalConditions;
-  final List<_MedicalCondition> medicalConditions;
+  final List<MedicalCondition> medicalConditions;
 
   _ChildDto({
     required this.childId,
@@ -443,7 +389,7 @@ class _ChildDto {
     }
 
     final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
-    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(MedicalCondition.fromJson).toList();
 
     return _ChildDto(
       childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
@@ -529,26 +475,7 @@ class _Attendee {
     required this.isForChild,
   });
 }
-class _MedicalCondition {
-  final int id;
-  final String name;
-  final String? notes;
-  final bool isAllergy;
 
-  _MedicalCondition({
-    required this.id,
-    required this.name,
-    required this.notes,
-    required this.isAllergy,
-  });
-
-  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
-        id: (j['id'] ?? j['Id'] ?? 0) as int,
-        name: (j['name'] ?? j['Name'] ?? '').toString(),
-        notes: (j['notes'] ?? j['Notes'])?.toString(),
-        isAllergy: j['isAllergy'] == true,
-      );
-}
 
 
 // ==============================
@@ -573,72 +500,35 @@ String niceDayDate(DateTime d) {
   return '${week[local.weekday - 1]} • ${local.day.toString().padLeft(2, '0')} ${mon[local.month - 1]} ${local.year}';
   
 }
+
 Widget _medicalBlock({
   required String title,
   required bool hasAny,
-  required List<_MedicalCondition> items,
+  required List<MedicalCondition> items,
 }) {
   final hasItems = items.isNotEmpty;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-      const SizedBox(height: 6),
+      Text(
+        title, 
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+      ),
+
+      const SizedBox(height: 8),
+
       if (!hasAny || !hasItems)
         const Text('None reported',
-            style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic))
+            style: TextStyle(fontStyle: FontStyle.italic, fontSize: 16))
       else
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: items.map((m) => _medicalTile(m)).toList(),
+          children: items.map((m) => MedicalTile(m)).toList(),
         ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 16),
     ],
   );
 }
-
-Widget _medicalTile(_MedicalCondition m) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 6),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white12,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white24),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (m.isAllergy)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            margin: const EdgeInsets.only(right: 8, top: 2),
-            decoration: BoxDecoration(
-              color: const Color(0x33FF5252),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFFF5252)),
-            ),
-            child: const Text('ALLERGY',
-                style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.w700)),
-          ),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(m.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              if ((m.notes ?? '').trim().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(m.notes!, style: const TextStyle(color: Colors.white70)),
-                ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 
 // ==============================
 // Detail bottom sheet
@@ -648,238 +538,197 @@ class _AttendeeDetailSheet extends StatelessWidget {
   final _AdminBookingDetail detail;
   const _AttendeeDetailSheet({required this.detail});
   
-
-
   @override
   Widget build(BuildContext context) {
     final user = detail.user;
     final child = detail.child;
     final isChildBooking = detail.isForChild;
     
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  detail.displayName, // uses reserved name when present
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return SafeArea(
+      child: Padding(
+        padding: AppPadding.screen,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [   
+              const SizedBox(height: 16),           
+              // Header
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      detail.displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _labelFor(detail.status),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white70),
-                onPressed: () => Navigator.pop(context),
-              ),
+
+              const SizedBox(height: 16),
+
+              // Reservation block
+              if (detail.isReserved) ...[
+                const Text('Reservation', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                infoRow(context, label: 'Name', value: detail.displayName),
+                () {
+                  final hasGuardianName = (detail.reservedGuardianName?.trim().isNotEmpty ?? false);
+                  final requireGuardian = hasGuardianName || !detail.canBeLeftAlone;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      infoRow(context, label: 'MUST the attendee be picked up by a guardian?', value: requireGuardian ? 'Yes' : 'No'),
+                      if (hasGuardianName)
+                        infoRow(context, label: 'Guardian Name', value: detail.reservedGuardianName!.trim())
+                    ],
+                  );
+                }(),
+                infoRow(
+                  context, 
+                  label: 'Guardian Phone', 
+                  value: (detail.reservedPhone?.trim().isNotEmpty == true) ? detail.reservedPhone!.trim() : '',
+                  kind: _ActionKind.phone
+                ), 
+                const SizedBox(height: 16),
+              ],
+
+              // Child block
+              if (child != null) ...[
+                const Text('Child', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                infoRow(context, label: 'Name', value: child.firstName),
+                infoRow(context, label: 'Date of Birth', value: _fmtDob(child.dateOfBirth)),
+                infoRow(context, label: 'Age', value: '${child.age}'),
+                infoRow(context, label: 'Emergency Contact', value: child.emergencyContactName),
+                infoRow(context, label: 'Emergency Phone', value: child.emergencyContactPhone, kind: _ActionKind.phone),
+                infoRow(context, label: 'MUST the attendee be picked up by a guardian?', value: detail.canBeLeftAlone ? 'Yes' : 'No'),
+                const SizedBox(height: 16),
+                _medicalBlock(
+                  title: 'Medical / Allergy Info',
+                  hasAny: child.hasMedicalConditions,
+                  items: child.medicalConditions,
+                ),
+              ],
+
+              // User/Parent block
+              if (user != null) ...[
+                Text(isChildBooking ? 'Parent/Guardian' : 'User',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                infoRow(context, label: 'Name', value: user.fullName),
+                infoRow(context, label: isChildBooking ? 'Parent Email' : 'Email', value: user.email ?? '', kind: _ActionKind.email),
+                infoRow(context, label: isChildBooking ? 'Parent Phone' : 'Phone', value: user.phoneNumber ?? '', kind: _ActionKind.phone),
+                const SizedBox(height: 16),
+                if (!detail.isForChild && !detail.isReserved)
+                  _medicalBlock(
+                    title: 'Medical / Allergy Info (User)',
+                    hasAny: user.hasMedicalConditions,
+                    items: user.medicalConditions,
+                  ),
+              ],
             ],
           ),
-          Text(
-            'Status: ${_labelFor(detail.status)}'
-            '${detail.seatNumber != null ? ' • Seat ${detail.seatNumber}' : ''}'
-            '${detail.isReserved ? ' • Reservation' : ''}',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-
-          // Reservation block
-          if (detail.isReserved) ...[
-            const Text('Reservation', style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 6),
-            _kv('Name', detail.displayName),
-            _kvAction(context,
-              label: 'Phone',
-              value: (detail.reservedPhone?.trim().isNotEmpty == true) ? detail.reservedPhone!.trim() : '—',
-              kind: _ActionKind.phone,
-            ),
-
-            // derive requirement correctly
-            () {
-              final hasGuardianName = (detail.reservedGuardianName?.trim().isNotEmpty ?? false);
-              // If guardian name is present on a reservation OR canBeLeftAlone is false,
-              // then a guardian is required at event conclusion.
-              final requireGuardian = hasGuardianName || !detail.canBeLeftAlone;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _kv(
-                    'Does the attendee require a Parent/Guardian to be present on event conclusion?',
-                    requireGuardian ? 'Yes' : 'No',
-                  ),
-                  if (hasGuardianName)
-                    _kv('Parent/Guardian', detail.reservedGuardianName!.trim()),
-                ],
-              );
-            }(),
-
-            const SizedBox(height: 12),
-          ],
-
-          // Child block when present
-          if (child != null) ...[
-            const Text('Child', style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 6),
-            _kv('Name', child.fullName),
-            _kv('DOB', _fmtDob(child.dateOfBirth)),
-            _kv('Age', '${child.age}'),
-            _kv('Emergency Contact', child.emergencyContactName),
-            () {
-              final phone = (child.emergencyContactPhone).trim();
-              return _kvAction(
-                context,
-                label: 'Emergency Phone',
-                value: phone.isNotEmpty ? phone : '—',
-                kind: _ActionKind.phone,
-              );
-            }(),
-            const SizedBox(height: 8),
-
-            // NEW: medical for child
-            _medicalBlock(
-              title: 'Medical / Allergy Info',
-              hasAny: child.hasMedicalConditions,
-              items: child.medicalConditions,
-            ),
-          ],
-
-          // Related user block
-          if (user != null) ...[
-            Text(isChildBooking ? 'Parent/Guardian' : 'User',
-                style: const TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 6),
-            _kv('Name', user.fullName),
-            () {
-              final email = (user.email ?? '').trim();
-              return _kvAction(
-                context,
-                label: isChildBooking ? 'Parent Email' : 'Email',
-                value: email.isNotEmpty ? email : '—',
-                kind: _ActionKind.email,
-              );
-            }(),
-            () {
-              final phone = (user.phoneNumber ?? '').trim();
-              return _kvAction(
-                context,
-                label: isChildBooking ? 'Parent Phone' : 'Phone',
-                value: phone.isNotEmpty ? phone : '—',
-                kind: _ActionKind.phone,
-              );
-            }(),
-            _kv('Strikes', '${user.strikes}${user.isSuspended ? " (SUSPENDED)" : ""}'),
-            const SizedBox(height: 8),
-
-            // NEW: medical for user
-            _medicalBlock(
-              title: 'Medical / Allergy Info (User)',
-              hasAny: user.hasMedicalConditions,
-              items: user.medicalConditions,
-            ),
-          ],
-
-
-          // Booking block (for child bookings we also show canBeLeftAlone already)
-          const Text('Booking', style: TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 6),
-          _kv('Event', detail.eventName ?? '—'),
-          _kv('Event Date', _fmtDob(detail.eventDate)),
-          if (isChildBooking)
-            _kv('Does the attendee require a Parent/Guardian to be present on event conclusion?', detail.canBeLeftAlone ? 'Yes' : 'No'),
-
-          const Spacer(),
-        ],
-      ),
-    );
-  }
-
-    Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 140,
-              child: Text(k, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-            ),
-            Expanded(
-              child: Text(v, style: const TextStyle(color: Colors.white, fontSize: 13)),
-            ),
-          ],
         ),
-      );
-
-  // New: actionable row — tap to open, long-press to copy
-  Widget _kvAction(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required _ActionKind kind, // email or phone
-  }) {
-    final isDisabled = value.trim().isEmpty || value == '—';
-    final style = TextStyle(
-      color: isDisabled ? Colors.white38 : const Color(0xFF4A90E2),
-      fontSize: 13,
-      decoration: isDisabled ? TextDecoration.none : TextDecoration.underline,
-      decorationColor: const Color(0xFF4A90E2),
-    );
-
-    Future<void> _launch() async {
-      if (isDisabled) return;
-      final uri = switch (kind) {
-        _ActionKind.email => Uri(scheme: 'mailto', path: value.trim()),
-        _ActionKind.phone => Uri(scheme: 'tel', path: value.trim()),
-      };
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        _copy(context, value);
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: _launch,
-              onLongPress: () => _copy(context, value),
-              child: Text(value.isEmpty ? '—' : value, style: style),
-            ),
-          ),
-        ],
       ),
     );
-  }
-
-  void _copy(BuildContext context, String text) {
-    if (text.trim().isEmpty || text == '—') return;
-    Clipboard.setData(ClipboardData(text: text.trim()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-  
-  String _fmtDob(DateTime? d) {
-    if (d == null) return '—';
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
   }
 }
+
+
+Widget infoRow(
+  BuildContext context, {
+    required String label,
+    required String value,
+    _ActionKind kind = _ActionKind.none,
+    double labelWidth = 150,
+  }
+) {
+  final isDisabled = value.trim().isEmpty || value == '';
+  final isAction = kind != _ActionKind.none;
+
+  final textStyle = TextStyle(
+    fontSize: 14,
+    color: 
+    Colors.white,
+    fontWeight: FontWeight.w500,
+    decoration: isAction && !isDisabled ? TextDecoration.underline : TextDecoration.none,
+    decorationColor: Colors.white,
+  );
+
+  Future<void> handleTap() async {
+    if (!isAction || isDisabled) return;
+    final uri = switch (kind) {
+      _ActionKind.email => Uri(scheme: 'mailto', path: value.trim()),
+      _ActionKind.phone => Uri(scheme: 'tel', path: value.trim()),
+      _ => null,
+    };
+    if (uri == null) return;
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _copy(context, value);
+    }
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white60,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: GestureDetector(
+            onTap: handleTap,
+            onLongPress: () => _copy(context, value),
+            behavior: HitTestBehavior.opaque,
+            child: Text(
+              value.isEmpty ? '' : value,
+              style: textStyle,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _copy(BuildContext context, String text) {
+  if (text.trim().isEmpty || text == '') return;
+  Clipboard.setData(ClipboardData(text: text.trim()));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Copied to clipboard'),
+      behavior: SnackBarBehavior.floating,
+      duration: Duration(seconds: 2),
+    ),
+  );
+}
+  
+String _fmtDob(DateTime? d) {
+  if (d == null) return '—';
+  final y = d.year.toString().padLeft(4, '0');
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '$y-$m-$day';
+}
+

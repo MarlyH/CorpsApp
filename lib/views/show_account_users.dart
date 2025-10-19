@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:corpsapp/models/medical_condition.dart';
 import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/medical_tile.dart';
 import 'package:corpsapp/widgets/search_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -218,7 +220,7 @@ class _ManageUsersViewState extends State<ManageUsersView> {
 Future<void> _openUserDetail(_User u) async {
   List<_Child> kids = [];
   bool userHasMedical = false;
-  List<_MedicalCondition> userMedical = [];
+  List<MedicalCondition> userMedical = [];
 
   final auth = context.read<AuthProvider>();
   final isAdmin = auth.isAdmin;
@@ -254,7 +256,7 @@ Future<void> _openUserDetail(_User u) async {
       final list = (js['medicalConditions'] as List?) ?? const [];
       userMedical = list
           .whereType<Map<String, dynamic>>()
-          .map(_MedicalCondition.fromJson)
+          .map(MedicalCondition.fromJson)
           .toList();
     }
   } catch (_) {/* ignore */}
@@ -958,27 +960,6 @@ class _User {
   );
 }
 
-class _MedicalCondition {
-  final int id;
-  final String name;
-  final String? notes;
-  final bool isAllergy;
-
-  _MedicalCondition({
-    required this.id,
-    required this.name,
-    required this.notes,
-    required this.isAllergy,
-  });
-
-  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
-        id: (j['id'] ?? j['Id'] ?? 0) as int,
-        name: (j['name'] ?? j['Name'] ?? '').toString(),
-        notes: (j['notes'] ?? j['Notes'])?.toString(),
-        isAllergy: j['isAllergy'] == true || j['IsAllergy'] == true,
-      );
-}
-
 class _Child {
   final int childId;
   final String firstName;
@@ -990,7 +971,7 @@ class _Child {
 
   // Medical
   final bool hasMedicalConditions;
-  final List<_MedicalCondition> medicalConditions;
+  final List<MedicalCondition> medicalConditions;
 
   _Child({
     required this.childId,
@@ -1030,7 +1011,7 @@ class _Child {
     }
 
     final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
-    final meds = medsRaw.whereType<Map<String, dynamic>>().map(_MedicalCondition.fromJson).toList();
+    final meds = medsRaw.whereType<Map<String, dynamic>>().map(MedicalCondition.fromJson).toList();
 
     return _Child(
       childId: (j['childId'] ?? j['ChildId'] ?? 0) as int,
@@ -1053,7 +1034,7 @@ class _Child {
 Widget _medicalBlock({
   required String title,
   required bool hasAny,
-  required List<_MedicalCondition> items,
+  required List<MedicalCondition> items,
 }) {
   final showNone = !hasAny || items.isEmpty;
   return Column(
@@ -1067,75 +1048,10 @@ Widget _medicalBlock({
       else
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: items.map(_medicalTile).toList(),
+          children: items.map((m) => MedicalTile(m)).toList(),
         ),
     ],
   );
 }
 
-Widget _medicalTile(_MedicalCondition m) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.white38),
-      color: Color(0xFF242424),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Stack(
-      children: [
-        Padding(
-          padding: EdgeInsets.only(
-            top: m.isAllergy ? 8 : 0,   
-            right: m.isAllergy ? 8 : 0, 
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                m.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16
-                ),
-              ),
-              if ((m.notes ?? '').trim().isNotEmpty)...[
-                const SizedBox(height: 4),
-                Text(
-                  m.notes!,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ]
-            ],
-          ),
-        ),
-
-        if (m.isAllergy)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0x33FF5252),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.errorColor),
-              ),
-              child: const Text(
-                'ALLERGY',
-                style: TextStyle(
-                  color: AppColors.errorColor,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-}
 

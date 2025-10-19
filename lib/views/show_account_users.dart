@@ -550,6 +550,7 @@ Future<void> _openUserDetail(_User u) async {
             children: [
               // Search
               CustomSearchBar(
+                hintText: 'Search by name or email',
                 controller: _searchCtrl,
                 onSearch: () {
                   _query = _searchCtrl.text;

@@ -5,12 +5,14 @@ class CustomSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSearch;
   final VoidCallback onClear;
+  final String hintText;
 
   const CustomSearchBar({
     super.key,
     required this.controller,
     required this.onSearch,
     required this.onClear,
+    required this.hintText
   });
 
   @override
@@ -32,8 +34,8 @@ class CustomSearchBar extends StatelessWidget {
               controller: controller,
               style: const TextStyle(color: AppColors.normalText),
               cursorColor: Colors.black,
-              decoration: const InputDecoration(
-                hintText: 'Search by name or email',
+              decoration: InputDecoration(
+                hintText: hintText,
                 hintStyle: TextStyle(color: Colors.black54),
                 border: InputBorder.none,
               ),

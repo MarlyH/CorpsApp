@@ -153,7 +153,7 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
                 padding: AppPadding.screen,
                 children: [
                   // header
-                  EventSummaryCard(summary: e),
+                  EventSummaryCard(summary: e, isExpanded: false),
                   
                   const SizedBox(height: 24),
 

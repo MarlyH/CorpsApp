@@ -1,4 +1,9 @@
 import 'dart:convert';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/search_bar.dart';
 import 'package:flutter/material.dart';
 import '../models/event_summary.dart';
 import '../services/auth_http_client.dart';
@@ -112,131 +117,61 @@ class _ManageEventsViewState extends State<ManageEventsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'My Events',
-          style: TextStyle(
-            letterSpacing: 1.2,
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: const BackButton(color: Colors.white),
-        elevation: 0,
-      ),
-      body: Column(
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Events'),
+      body: Padding(
+        padding: AppPadding.screen,
+        child: Column(
         children: [
           // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search (e.g. “Riverton Mon 2025 Jan 12 15 Ages 12 to 15”)',
-                hintStyle: const TextStyle(color: Colors.white38),
-                prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                suffixIcon: (_searchCtrl.text.isEmpty)
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          _filter();
-                        },
-                      ),
-                filled: true,
-                fillColor: Colors.white12,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+          CustomSearchBar(
+            hintText: 'Search',
+            controller: _searchCtrl, 
+            onSearch: () { _filter(); }, 
+            onClear: () { _searchCtrl.clear(); _filter(); }
           ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            'You can search by location, time, date, or session.',
+            style: TextStyle(fontSize: 12, color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 16),
 
           // List
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : RefreshIndicator(
-                    color: Colors.white,
-                    onRefresh: _loadEvents,
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: _filtered.length,
-                      itemBuilder: (_, i) {
-                        final e = _filtered[i];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ManageEventDetailView(event: e),
-                              ),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          e.locationName,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                        friendlySession(e.sessionType),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Day + date line
-                                  Text(
-                                    niceDayDate(e.startDate),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Starts ${e.startTime} • Ends ${e.endTime}',
-                                    style: const TextStyle(color: Colors.black54),
-                                  ),
-                                ],
-                              ),
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : RefreshIndicator(
+                  color: Colors.white,
+                  onRefresh: _loadEvents,
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: _filtered.length,
+                    itemBuilder: (_, i) {
+                      final e = _filtered[i];
+                      return Padding(
+                        padding: EdgeInsetsGeometry.symmetric(vertical: 8),                       
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ManageEventDetailView(event: e),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          child: EventSummaryCard(summary: e, isExpanded: false),
+                        )                                                
+                      );
+                    },
                   ),
-          ),
+                ),
+          ),         
         ],
       ),
+      ),     
     );
   }
 }

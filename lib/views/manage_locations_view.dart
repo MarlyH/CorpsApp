@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/input_field.dart';
@@ -253,7 +254,27 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
             ),
           ),       
           trailing: const Icon(Icons.navigate_next, color: Colors.white70),
-          onTap: () => _loadLocationById(loc['locationId'] as int),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: AppColors.background,
+              builder: (_) => EditLocationModal(
+                location: loc,
+                onUpdate: (id, name, image) async {
+                  await AuthHttpClient.updateLocation(id: id, name: name, imageFile: image);
+                  await _loadAllLocations();
+                  _showSnack('Location updated');
+                },
+                onDelete: (id) async {
+                  await AuthHttpClient.deleteLocation(id);
+                  await _loadAllLocations();
+                  _showSnack('Location deleted');
+                },
+              ),
+            );
+          },
         );
     }).toList(),
   ); 
@@ -277,7 +298,7 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Button(
-                label: 'Create Location', 
+                label: 'New Location', 
                 onPressed: () => showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -286,30 +307,10 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
                   builder: (_) => CreateLocationModal(onCreate: _createLocation),
                 )
               ),
-              //if (_currentImageUrl != null) ...[
-              //   ClipRRect(
-              //     borderRadius: BorderRadius.circular(8),
-              //     child: Image.network(
-              //       _currentImageUrl!,
-              //       height: 200,
-              //       fit: BoxFit.contain,
-              //     ),
-              //   ),
-
-              //   const SizedBox(height: 16),
-              // ],
-
-              _buildForm(),
 
               const SizedBox(height: 16),
               
-              if (_isLoading)
-                const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              if (_editingLocation == null) _buildList(),
+              _buildList(),
             ],
           ),
         ),
@@ -438,6 +439,169 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
   }
 }
 
+class EditLocationModal extends StatefulWidget {
+  final Map<String, dynamic> location;
+  final Future<void> Function(int id, String name, File? image) onUpdate;
+  final Future<void> Function(int id) onDelete;
+
+  const EditLocationModal({
+    super.key,
+    required this.location,
+    required this.onUpdate,
+    required this.onDelete,
+  });
+
+  @override
+  State<EditLocationModal> createState() => _EditLocationModalState();
+}
+
+class _EditLocationModalState extends State<EditLocationModal> {
+  late TextEditingController nameController;
+  File? _pickedImage;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.location['name'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _pickedImage = File(picked.path));
+    }
+  }
+
+  Future<void> _handleUpdate() async {
+    final name = nameController.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _isLoading = true);
+    await widget.onUpdate(widget.location['locationId'], name, _pickedImage);
+    if (mounted) Navigator.pop(context);
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _DeleteLocationConfirmDialog(),
+    ) ?? false;
+    if (!confirmed) return;
+
+    setState(() => _isLoading = true);
+    await widget.onDelete(widget.location['locationId']);
+    if (mounted) Navigator.pop(context);
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = widget.location['mascotImgSrc'] as String?;
+    return SafeArea(
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: AppPadding.screen.copyWith(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+              const Text(
+                'Edit Location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'WinnerSans',
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 16),
+
+              // ─── Current Image ────────────────────────────────
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _pickedImage != null
+                      ? Image.file(_pickedImage!, width: 188, height: 188, fit: BoxFit.cover)
+                      : (imageUrl != null
+                          ? Image.network(imageUrl, width: 188, height: 188, fit: BoxFit.cover)
+                          : Container(
+                              width: 188,
+                              height: 188,
+                              color: Colors.white12,
+                              child: const Icon(Icons.image_not_supported, color: Colors.white54),
+                            )),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.image, color: AppColors.normalText),
+                    label: Text(
+                      _pickedImage != null ? 'Change Image' : 'Pick Image',
+                      style: const TextStyle(color: AppColors.normalText),
+                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              InputField(
+                hintText: 'Enter the location name',
+                label: 'Location Name',
+                controller: nameController,
+              ),
+
+              const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Button(
+                      label: 'Delete',
+                      onPressed: _isLoading ? null : _handleDelete,
+                      isCancelOrBack: true,
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: Button(
+                      label: 'Update',
+                      onPressed: _isLoading ? null : _handleUpdate,
+                      loading: _isLoading,
+                    ),
+                  ),                             
+                ],
+              ),            
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteLocationConfirmDialog extends StatefulWidget {
@@ -461,8 +625,15 @@ class _DeleteLocationConfirmDialogState
   @override
   Widget build(BuildContext context) {
     final isValid = _ctrl.text.trim().toUpperCase() == 'DELETE';
-    return AlertDialog(
-      backgroundColor: Colors.black,
+    return CustomAlertDialog(
+      title: 'Delete Location', 
+      info: 'Are you sure you want to delete this location?',
+      cancel: true,
+      buttonLabel: 'Confirm',
+      buttonAction: () => Navigator.pop(context, true),
+    );
+    AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text(
         "Delete Location",

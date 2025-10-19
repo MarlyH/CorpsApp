@@ -5,7 +5,7 @@ import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/button.dart';
-import 'package:corpsapp/widgets/date_picker.dart';
+import 'package:corpsapp/utils/date_picker.dart';
 import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

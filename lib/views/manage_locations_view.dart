@@ -19,10 +19,8 @@ class ManageLocationsView extends StatefulWidget {
 }
 
 class _ManageLocationsViewState extends State<ManageLocationsView> {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
 
-  File? _pickedImage;
   bool _isLoading = false;
   Map<String, dynamic>? _editingLocation;
   List<Map<String, dynamic>> _locations = [];
@@ -74,55 +72,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       } finally {
         setState(() => _isLoading = false);
       }
-  }
-
-
-  Future<void> _updateLocation() async {
-    if (!_formKey.currentState!.validate() || _editingLocation == null) {
-      _showSnack('Location name is required', isError: true);
-      return;
-    }
-    final locationId = _editingLocation!['locationId'] as int;
-    setState(() => _isLoading = true);
-    try {
-      final resp = await AuthHttpClient.updateLocation(
-        id: locationId,
-        name: _nameController.text.trim(),
-        imageFile: _pickedImage,
-      );
-      if (resp.statusCode == 200) {
-        _showSnack('Location updated successfully');
-        await _loadAllLocations();
-      } else {
-        _showSnack('Failed to update (${resp.statusCode})', isError: true);
-      }
-    } catch (e) {
-      _showSnack('Error: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _deleteLocation() async {
-    if (_editingLocation == null) {
-      _showSnack('No location selected', isError: true);
-      return;
-    }
-    final locationId = _editingLocation!['locationId'] as int;
-    setState(() => _isLoading = true);
-    try {
-      final resp = await AuthHttpClient.deleteLocation(locationId);
-      if (resp.statusCode == 200 || resp.statusCode == 204) {
-        _showSnack('Location deleted successfully');
-        await _loadAllLocations();
-      } else {
-        _showSnack('Failed to delete (${resp.statusCode})', isError: true);
-      }
-    } catch (e) {
-      _showSnack('Error: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -540,68 +489,12 @@ class _DeleteLocationConfirmDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isValid = _ctrl.text.trim().toUpperCase() == 'DELETE';
     return CustomAlertDialog(
       title: 'Delete Location', 
       info: 'Are you sure you want to delete this location?',
       cancel: true,
       buttonLabel: 'Confirm',
       buttonAction: () => Navigator.pop(context, true),
-    );
-    AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        "Delete Location",
-        style: TextStyle(color: Colors.white),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Type “delete” to confirm permanent deletion of this location.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _ctrl,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              hintText: 'delete',
-              hintStyle: const TextStyle(color: Colors.black38),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text("CANCEL", style: TextStyle(color: Colors.white70)),
-        ),
-        TextButton(
-          onPressed: isValid ? () => Navigator.pop(context, true) : null,
-          child: Text(
-            "DELETE",
-            style: TextStyle(
-              color:
-                  isValid
-                      ? Colors.redAccent
-                      : Colors.redAccent.withOpacity(0.4),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

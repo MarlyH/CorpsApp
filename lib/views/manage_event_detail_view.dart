@@ -143,7 +143,7 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
     final e = widget.event;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProfileAppBar(title: 'My Event'),
+      appBar: ProfileAppBar(title: 'Event Detail'),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : RefreshIndicator(

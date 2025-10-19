@@ -5,12 +5,14 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final Icon? actionButton;
   final void Function()? actionOnTap;
+  final void Function()? specialBackAction;
 
   const ProfileAppBar({
     super.key,
     required this.title,
     this.actionButton,
     this.actionOnTap,
+    this.specialBackAction
   });
 
   @override
@@ -28,7 +30,7 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: specialBackAction ?? () => Navigator.of(context).pop(),
         icon: const Icon(Icons.arrow_back),
         iconSize: 24,
       ),

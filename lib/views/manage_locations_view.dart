@@ -1,5 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_http_client.dart';
@@ -68,27 +74,26 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     }
   }
 
-  Future<void> _createLocation() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    try {
-      final resp = await AuthHttpClient.createLocation(
-        name: _nameController.text.trim(),
-        imageFile: _pickedImage,
-      );
-      if (resp.statusCode == 200 || resp.statusCode == 201) {
-        _showSnack('Location created');
-        _clearForm();
-        await _loadAllLocations();
-      } else {
-        _showSnack('Failed to create (${resp.statusCode})', isError: true);
+    Future<void> _createLocation(String name, [File? image]) async {
+      setState(() => _isLoading = true);
+      try {
+        final resp = await AuthHttpClient.createLocation(
+          name: name.trim(),
+          imageFile: image,
+        );
+        if (resp.statusCode == 200 || resp.statusCode == 201) {
+          _showSnack('Location created');
+          await _loadAllLocations();
+        } else {
+          _showSnack('Failed to create (${resp.statusCode})', isError: true);
+        }
+      } catch (e) {
+        _showSnack('Error: $e', isError: true);
+      } finally {
+        setState(() => _isLoading = false);
       }
-    } catch (e) {
-      _showSnack('Error: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
+
 
   Future<void> _updateLocation() async {
     if (!_formKey.currentState!.validate() || _editingLocation == null) {
@@ -127,7 +132,6 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       final resp = await AuthHttpClient.deleteLocation(locationId);
       if (resp.statusCode == 200 || resp.statusCode == 204) {
         _showSnack('Location deleted successfully');
-        _clearForm();
         await _loadAllLocations();
       } else {
         _showSnack('Failed to delete (${resp.statusCode})', isError: true);
@@ -146,20 +150,11 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     }
   }
 
-  void _clearForm() {
-    _nameController.clear();
-    setState(() {
-      _pickedImage = null;
-      _editingLocation = null;
-      _currentImageUrl = null;
-    });
-  }
-
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.black)),
-        backgroundColor: isError ? Colors.redAccent : Colors.white,
+        content: Text(msg, style: const TextStyle(color: AppColors.normalText)),
+        backgroundColor: isError ? AppColors.errorColor : Colors.white,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -171,354 +166,143 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Show ID only when editing an existing location
-          if (isEditing) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.tag, color: Colors.white70, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Location ID: ${_editingLocation!['locationId']}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // ─── Name Field ────────────────────────────
-          const Text(
-            'Name',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: _nameController,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              hintText: 'Location name',
-              hintStyle: const TextStyle(color: Colors.black38),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            validator:
-                (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-          ),
-          const SizedBox(height: 16),
-
+        children: [      
           // ─── Image Picker ──────────────────────────
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image, color: Colors.black),
-                label: Text(
-                  _pickedImage != null ? 'Change Image' : 'Pick Image',
-                  style: const TextStyle(color: Colors.black),
-                ),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              if (_pickedImage != null)
-                const Icon(Icons.check, color: Colors.white70),
-            ],
-          ),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.center,
+          //   children: [
+          //     ElevatedButton.icon(             
+          //       onPressed: _pickImage,
+          //       icon: const Icon(Icons.image, color: AppColors.normalText),
+          //       label: Text(
+          //         _pickedImage != null ? 'Change Image' : 'Pick Image',
+          //         style: const TextStyle(color: AppColors.normalText),
+          //       ),
+          //       style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+          //     ),
+
+          //     if (_pickedImage != null)
+          //       const Icon(Icons.check, color: Colors.white70),
+          //   ],
+          // ),
+
+          // const SizedBox(height: 8),
+
+          // // ─── Name Field ────────────────────────────]
+          // InputField(label: 'Location Name', hintText: 'Enter a new location name', controller: _nameController),
+         
+        
           const SizedBox(height: 24),
 
           // ─── CREATE / UPDATE / DELETE / CLEAR ─────
-          if (!isEditing) ...[
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _nameController,
-              builder: (context, value, child) {
-                final hasContent = value.text.trim().isNotEmpty;
-                return ElevatedButton(
-                  onPressed: _isLoading || !hasContent ? null : _createLocation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    disabledBackgroundColor: Colors.blue.withOpacity(0.3),
-                  ),
-                  child: const Text('CREATE'),
-                );
+          
+            //Button(label: 'Create', onPressed: _createLocation, loading: _isLoading),          
+              
+            Button(label: 'Update', onPressed: _updateLocation, loading: _isLoading),
+            
+            const SizedBox(height: 16),
+
+            Button(
+              label: 'Delete', 
+              onPressed: () async {
+                final confirmed =
+                    await showDialog<bool>(context: context, builder: (_) => const _DeleteLocationConfirmDialog()) ??
+                    false;
+                if (confirmed) _deleteLocation();
               },
-            ),
-          ] else ...[
-            ElevatedButton(
-              onPressed: _isLoading ? null : _updateLocation,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('UPDATE'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed:
-                  _isLoading
-                      ? null
-                      : () async {
-                        final confirmed =
-                            await showDialog<bool>(
-                              context: context,
-                              builder:
-                                  (_) => const _DeleteLocationConfirmDialog(),
-                            ) ??
-                            false;
-                        if (confirmed) _deleteLocation();
-                      },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('DELETE'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _clearForm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('CLEAR'),
-            ),
+              isCancelOrBack: true,
+            ),         
           ],
-        ],
+        
       ),
     );
   }
 
   Widget _buildList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      itemCount: _locations.length,
-      itemBuilder: (ctx, i) {
-        final loc = _locations[i];
-        final isSelected =
-            _editingLocation != null &&
-            _editingLocation!['locationId'] == loc['locationId'];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: Colors.white10,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
+  return _isLoading
+    ? Center(child: CircularProgressIndicator(color: Colors.white))
+    : CupertinoListSection.insetGrouped(
+      margin: EdgeInsets.all(0),
+      backgroundColor: Colors.transparent,
+      children: _locations.map((loc) {
+        return CupertinoListTile(
+          leadingSize: 46,
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          leading: loc['mascotImgSrc'] != null
+              ? CircleAvatar(
+                  radius: 32,
+                  backgroundImage: NetworkImage(
+                    loc['mascotImgSrc'] as String,
+                  ),
+                  backgroundColor: Colors.transparent,              
+                )
+              : CircleAvatar(
+                  radius: 24,   
+                  backgroundColor: Colors.transparent,            
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.white70,
+                  ),
+                ),
+          title: Text(
+            loc['name'] as String,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            leading:
-                loc['mascotImgSrc'] != null
-                    ? CircleAvatar(
-                      radius: 24,
-                      backgroundImage: NetworkImage(
-                        loc['mascotImgSrc'] as String,
-                      ),
-                    )
-                    : Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white12,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.white70,
-                      ),
-                    ),
-            title: Text(
-              loc['name'] as String,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: Text(
-              'ID: ${loc['locationId']}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: const Icon(Icons.edit, color: Colors.white70),
-            onTap: () => _loadLocationById(loc['locationId'] as int),
-          ),
+          ),       
+          trailing: const Icon(Icons.navigate_next, color: Colors.white70),
+          onTap: () => _loadLocationById(loc['locationId'] as int),
         );
-      },
-    );
-  }
+    }).toList(),
+  ); 
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Location Management',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-        ),
-        leading:
-            _editingLocation != null
-                ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    _clearForm();
-                    _loadAllLocations();
-                  },
-                )
-                : null,
-        actions: [
-          if (_editingLocation == null)
-            IconButton(
-              icon: const Icon(Icons.help_outline),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        backgroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        title: const Text(
-                          'How to Use',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        content: const SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Creating a Location:',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '1. Click the + button to start\n'
-                                '2. Enter the location name\n'
-                                '3. Optionally add an image\n'
-                                '4. Click CREATE',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Editing a Location:',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '1. Click on any location in the list\n'
-                                '2. Modify the name or image\n'
-                                '3. Click UPDATE to save changes',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Deleting a Location:',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '1. Select a location to edit\n'
-                                '2. Click DELETE\n'
-                                '3. Type "delete" to confirm',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              'GOT IT',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                );
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _isLoading ? null : _loadAllLocations,
-          ),
-        ],
-      ),
-      backgroundColor: Colors.black,
+      appBar: ProfileAppBar(
+        title: 'Location Management', 
+        actionButton: Icon(Icons.refresh), 
+        actionOnTap: _isLoading ? null : _loadAllLocations,
+        specialBackAction: _editingLocation != null ? () { _loadAllLocations(); } : null,
+      ),     
+      backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: true,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            16 + MediaQuery.of(context).padding.bottom,
-          ),
+          padding: AppPadding.screen,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_currentImageUrl != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    _currentImageUrl!,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+              Button(
+                label: 'Create Location', 
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: AppColors.background,
+                  builder: (_) => CreateLocationModal(onCreate: _createLocation),
+                )
+              ),
+              //if (_currentImageUrl != null) ...[
+              //   ClipRRect(
+              //     borderRadius: BorderRadius.circular(8),
+              //     child: Image.network(
+              //       _currentImageUrl!,
+              //       height: 200,
+              //       fit: BoxFit.contain,
+              //     ),
+              //   ),
+
+              //   const SizedBox(height: 16),
+              // ],
+
               _buildForm(),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 16),
+              
               if (_isLoading)
                 const Center(
                   child: CircularProgressIndicator(
@@ -533,6 +317,127 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     );
   }
 }
+
+class CreateLocationModal extends StatefulWidget {
+  final Future<void> Function(String name, File? image) onCreate;
+
+  const CreateLocationModal({super.key, required this.onCreate});
+
+  @override
+  State<CreateLocationModal> createState() => _CreateLocationModalState();
+}
+
+class _CreateLocationModalState extends State<CreateLocationModal> {
+  final TextEditingController nameController = TextEditingController();
+  bool _isLoading = false;
+  File? _pickedImage;
+
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleCreate() async {
+    final name = nameController.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _isLoading = true);
+    await widget.onCreate(name, _pickedImage);
+    setState(() => _isLoading = false);
+    if (mounted) Navigator.pop(context);
+  }
+
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _pickedImage = File(picked.path));
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: AppPadding.screen.copyWith(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+
+              const Text(
+                'Create New Location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'WinnerSans',
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 16),
+
+              if (_pickedImage != null) ... [
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      _pickedImage!,
+                      width: 188,
+                      height: 188,
+                      fit: BoxFit.cover,
+                    )                     
+                  ),
+                ),
+              ],
+                
+              const SizedBox(height: 8),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(             
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.image, color: AppColors.normalText),
+                    label: Text(
+                      _pickedImage != null ? 'Change Image' : 'Pick Image',
+                      style: const TextStyle(color: AppColors.normalText),
+                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              InputField(
+                hintText: 'Enter the location name',
+                label: 'Location Name',
+                controller: nameController,
+              ),
+
+              const SizedBox(height: 24),
+
+              Button(
+                label: 'Create',
+                onPressed: _isLoading ? null : _handleCreate,
+                loading: _isLoading,
+              ), 
+
+              const SizedBox(height: 16),         
+            ],
+          ),
+        ),       
+      ),
+    );
+  }
+}
+
 
 /// A delete‐confirmation dialog that only enables DELETE once you type “DELETE”.
 class _DeleteLocationConfirmDialog extends StatefulWidget {

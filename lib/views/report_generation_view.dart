@@ -27,36 +27,70 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
   bool _loading = false;
   String? _error;
 
-  Future<void> _generateReport() async {
+  Future<EventReport> fetchReport() async {
+    final resp = await AuthHttpClient.generateReport(
+      startDate: _startDate!,
+      endDate: _endDate!,
+    );
+    final data = jsonDecode(resp.body);
+    return EventReport.fromJson(data);
+  }
+
+  bool validateDates() {
     if (_startDate == null || _endDate == null) {
       setState(() => _error = 'Please select both start and end dates.');
-      return;
+      return false;
     }
+    if (_endDate!.isBefore(_startDate!)) {
+      setState(() => _error = 'End date must be after start date.');
+      return false;
+    }
+    setState(() => _error = null);
+    return true;
+  }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<void> shareReport() async {
+    if (!validateDates()) return;
+    setState(() => _loading = true);
     try {
-      // fetch report data from API
-      final resp = await AuthHttpClient.generateReport(
-        startDate: _startDate!,
-        endDate: _endDate!,
+      final report = await fetchReport();
+      await ReportService.generateAndSharePdf(
+        report,
+        fileName: 'Your_Corps_Event_Report_${DateTime.now()}.pdf',
       );
-
-      // parse response
-      final data = jsonDecode(resp.body);
-      final report = EventReport.fromJson(data);
-
-      if (!mounted) return;
-
-      // generate and share PDF
-      await ReportService.generateAndSharePdf(report);
-
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> downloadReport() async {
+    if (!validateDates()) return;
+    setState(() => _loading = true);
+    try {
+      final report = await fetchReport();
+      final file = await ReportService.generateAndSavePdf(
+        report,
+        fileName: 'Your_Corps_Event_Report_${DateTime.now()}.pdf',
+      );
+      await ReportService.openPdf(file.path);
+            if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved to: ${file.path}'),
+          action: SnackBarAction(
+            label: 'Open',
+            onPressed: () => ReportService.openPdf(file.path),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -98,15 +132,24 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                 label: 'Start Date',
                 hintText: 'Select start date',
                 controller: _startCtrl,
+                isReadOnly: true, // avoid keyboard
                 onTap: () async {
-                  final dt = await DatePickerUtil.pickDate(context, initialDate: DateTime(2025, 1, 1));
+                  final now = DateTime.now();
+                  final startOfYear = DateTime(now.year, 1, 1);
+
+                  final dt = await DatePickerUtil.pickDate(
+                    context,
+                    initialDate: _startDate ?? startOfYear, // show Jan 1 (or previously chosen)
+                  );
+
                   if (dt != null) {
                     setState(() {
                       _startDate = dt;
-                      _startCtrl.text = dt.toIso8601String().split('T').first;
+                      _startCtrl.text = dt.toIso8601String().split('T').first; // only after selection
                     });
                   }
                 },
+
                 suffixIcon: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: SvgPicture.asset(
@@ -124,12 +167,16 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                 label: 'End Date',
                 hintText: 'Select end date',
                 controller: _endCtrl,
+                isReadOnly: true, // avoid keyboard
                 onTap: () async {
-                  final dt = await DatePickerUtil.pickDate(context, initialDate: DateTime.now());
+                  final dt = await DatePickerUtil.pickDate(
+                    context,
+                    initialDate: _endDate ?? (DateTime.now()),
+                  );
                   if (dt != null) {
                     setState(() {
-                      _endDate = dt;
-                      _endCtrl.text = dt.toIso8601String().split('T').first;
+                      _endDate = DateTime(dt.year, dt.month, dt.day);
+                      _endCtrl.text = _endDate!.toIso8601String().split('T').first;
                     });
                   }
                 },
@@ -153,11 +200,19 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                 const SizedBox(height: 16),
               ],
 
+              // Actions
               Button(
-                label: 'GENERATE',
-                onPressed: _loading ? null : _generateReport,
+                label: 'SHARE PDF',
+                onPressed: _loading ? null : shareReport,
                 loading: _loading,
               ),
+              const SizedBox(height: 12),
+              Button(
+                label: 'DOWNLOAD PDF',
+                onPressed: _loading ? null : downloadReport,
+                loading: false, // share button shows spinner; keep this simple
+              ),
+
               const SizedBox(height: 24),
             ],
           ),

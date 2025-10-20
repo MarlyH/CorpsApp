@@ -1,10 +1,9 @@
-// lib/views/about_corps_view.dart
-
 import 'dart:io';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutCorpsView extends StatelessWidget {
@@ -36,10 +35,34 @@ class AboutCorpsView extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 4),
-                    
-                    const Text(
-                      'Version v1.0.0',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w300 ),
+
+                    // Version from pubspec via package_info_plus
+                    FutureBuilder<PackageInfo>(
+                      future: PackageInfo.fromPlatform(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Text(
+                            'Version …',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w300,
+                            ),
+                          );
+                        }
+                        final info = snapshot.data!;
+                        // e.g. "1.0.0+3" where "1.0.0" is from pubspec version, "+3" is build number
+                        // final versionText = 'Version v${info.version}+${info.buildNumber}';
+                        final versionText = 'Version v${info.version}';
+                        return Text(
+                          versionText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -56,9 +79,7 @@ class AboutCorpsView extends StatelessWidget {
                     'Rate our app',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                  trailing: const Icon(
-                    Icons.keyboard_arrow_right,                
-                  ),
+                  trailing: const Icon(Icons.keyboard_arrow_right),
                   onTap: () async {
                     const String googleStoreUrl =
                         'https://play.google.com/store/apps/details?id=com.example.corpsapp'; 
@@ -101,15 +122,15 @@ class AboutCorpsView extends StatelessWidget {
 
                       const SizedBox(width: 2),
 
-                      Text("Copyright Your Corps® Limited 2025", style: TextStyle(fontSize: 12)),                                     
+                      Text("Copyright Your Corps® Limited 2025", style: TextStyle(fontSize: 12)),
                     ],
-                  ),  
-                  Text('All rights reserved.', style: TextStyle(fontSize: 12))                 
-                ],               
-              ),       
+                  ),
+                  Text('All rights reserved.', style: TextStyle(fontSize: 12)),
+                ],
+              ),
             ],
           ),
-        )
+        ),
       ),
     );
   }

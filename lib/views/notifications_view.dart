@@ -5,7 +5,6 @@ import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
 import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
 import '../services/notification_prefs.dart';

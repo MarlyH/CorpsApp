@@ -110,7 +110,7 @@ class _NotificationsViewState extends State<NotificationsView> {
                 SwitchListTile.adaptive(
                   title: const Text(
                     'Receive push notifications',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16/),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   value: _receivePush,
                   onChanged: _onToggle,

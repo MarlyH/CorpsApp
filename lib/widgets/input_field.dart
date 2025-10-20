@@ -25,6 +25,7 @@ class InputField extends StatefulWidget {
     super.key,
     this.label,
     required this.hintText,
+    this.isPassword = false,
     this.controller,
     this.keyboardType,
     this.obscureText = false,
@@ -37,7 +38,6 @@ class InputField extends StatefulWidget {
     this.autofillHints,
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
-    this.isPassword = false,
     this.customContent,
     this.isReadOnly = false,
     this.isDisabled = false,
@@ -48,16 +48,17 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-  late bool _obscure;
+  late bool obscureText;
 
   @override
   void initState() {
     super.initState();
-    _obscure = widget.isPassword;
+    obscureText = widget.isPassword;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isObscured = obscureText;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -80,13 +81,14 @@ class _InputFieldState extends State<InputField> {
               readOnly: widget.isReadOnly,
               enabled: !widget.isDisabled,
               controller: widget.controller,
+              enableSuggestions: !obscureText, 
               textCapitalization: widget.textCapitalization,
               keyboardType: widget.isPassword
                   ? TextInputType.visiblePassword
                   : widget.keyboardType,
-              obscureText: _obscure,
+              obscureText: isObscured,
+              maxLines: isObscured ? 1 : widget.maxLines,
               onTap: widget.onTap,
-              maxLines: widget.maxLines,
               style: const TextStyle(color: Colors.black),
               autofillHints: widget.autofillHints,
               textInputAction: widget.textInputAction,
@@ -100,11 +102,11 @@ class _InputFieldState extends State<InputField> {
                 suffixIcon: widget.isPassword
                     ? IconButton(
                         icon: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
+                          obscureText ? Icons.visibility_off : Icons.visibility,
                           color: Colors.black,
                         ),
                         onPressed: () {
-                          setState(() => _obscure = !_obscure);
+                          setState(() => obscureText = !obscureText);
                         },
                       )
                     : widget.suffixIcon,

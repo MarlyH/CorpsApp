@@ -29,7 +29,7 @@ class _LoginViewState extends State<LoginView> {
 
   bool _isLoading = false;
   bool _canResend = false;
-  bool _obscure = true;
+  bool obscureText = true;
   String? _error;
 
   @override
@@ -190,17 +190,11 @@ class _LoginViewState extends State<LoginView> {
                                       label: 'PASSWORD',
                                       hintText: 'Enter your password',
                                       controller: _pwCtrl,
-                                      obscureText: _obscure,
-                                      keyboardType: TextInputType.visiblePassword,
+                                      isPassword: true,
+                                      obscureText: obscureText,
                                       suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscure
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                          color: Colors.black,
-                                        ),
-                                        onPressed: () =>
-                                            setState(() => _obscure = !_obscure),
+                                        icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.black),
+                                        onPressed: () => setState(() => obscureText = !obscureText),
                                       ),
                                       autofillHints: const [AutofillHints.password],
                                       textInputAction: TextInputAction.done,

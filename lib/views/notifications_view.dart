@@ -1,4 +1,7 @@
 // lib/views/notifications_view.dart
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -51,9 +54,9 @@ class _NotificationsViewState extends State<NotificationsView> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Notifications are blocked at OS level. Enable them in Settings to receive alerts.',
+                'Notifications are blocked at system level. Enable them in Settings to receive alerts.',
               ),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.errorColor,
             ),
           );
         }
@@ -85,7 +88,7 @@ class _NotificationsViewState extends State<NotificationsView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to update: $e'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.errorColor,
         ),
       );
     } finally {
@@ -96,48 +99,32 @@ class _NotificationsViewState extends State<NotificationsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-        ),
-        leading: const BackButton(color: Colors.white),
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Notifications'),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : ListView(
+          : Padding(
+            padding: AppPadding.screen,
+            child: ListView(
               children: [
-                const SizedBox(height: 24),
                 SwitchListTile.adaptive(
                   title: const Text(
                     'Receive push notifications',
-                    style: TextStyle(color: Colors.white70),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16/),
                   ),
                   value: _receivePush,
                   onChanged: _onToggle,
-                  activeColor: Colors.blueAccent,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  secondary:
-                      const Icon(Icons.notifications, color: Colors.white70),
+                  activeColor: AppColors.primaryColor,
+                  contentPadding: EdgeInsets.all(0),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
+                Text(
                     'Note: If notifications are turned off at the system level, '
                     'you may need to enable them in Settings for this app.',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),              
               ],
             ),
+          )         
     );
   }
 }

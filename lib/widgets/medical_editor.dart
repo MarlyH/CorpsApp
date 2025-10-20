@@ -75,7 +75,9 @@ class _MedicalEditorState extends State<MedicalEditor> {
             value: _isAllergy,
             onChanged: (v) => setState(() => _isAllergy = v),
             activeColor: AppColors.primaryColor,
-            title: const Text('Is this an allergy?', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text('Is this an allergy?', style: TextStyle(fontWeight: FontWeight.w500)),
+            subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
+                style: TextStyle(color: Colors.white70)),
             contentPadding: EdgeInsets.zero,
           ),
 
@@ -98,20 +100,15 @@ class _MedicalEditorState extends State<MedicalEditor> {
                     label: 'Save', 
                     onPressed: () {
                       if (_name.text.trim().isEmpty) return;
-
-                      final item = MedicalItem(
-                        name: _name.text.trim(),
-                        notes: _notes.text.trim(),
-                        isAllergy: _isAllergy,
+                      Navigator.pop(
+                        context,
+                        MedicalItem(
+                          name: _name.text.trim(),
+                          notes: _notes.text.trim(),
+                          isAllergy: _isAllergy,
+                        ),
                       );
-
-                      // Defer pop until after the current frame completes to avoid dispose race
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          Navigator.pop(context, item);
-                        }
-                      });
-                    },          
+                    },                   
                   )                 
                 ),
               ],

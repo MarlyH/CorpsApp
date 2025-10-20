@@ -132,20 +132,20 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                 label: 'Start Date',
                 hintText: 'Select start date',
                 controller: _startCtrl,
-                isReadOnly: true, // avoid keyboard
+                isReadOnly: true,
                 onTap: () async {
                   final now = DateTime.now();
                   final startOfYear = DateTime(now.year, 1, 1);
 
                   final dt = await DatePickerUtil.pickDate(
                     context,
-                    initialDate: _startDate ?? startOfYear, // show Jan 1 (or previously chosen)
+                    initialDate: _startDate ?? startOfYear,
                   );
 
                   if (dt != null) {
                     setState(() {
                       _startDate = dt;
-                      _startCtrl.text = dt.toIso8601String().split('T').first; // only after selection
+                      _startCtrl.text = dt.toIso8601String().split('T').first;
                     });
                   }
                 },
@@ -167,7 +167,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                 label: 'End Date',
                 hintText: 'Select end date',
                 controller: _endCtrl,
-                isReadOnly: true, // avoid keyboard
+                isReadOnly: true,
                 onTap: () async {
                   final dt = await DatePickerUtil.pickDate(
                     context,
@@ -210,7 +210,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
               Button(
                 label: 'DOWNLOAD PDF',
                 onPressed: _loading ? null : downloadReport,
-                loading: false, // share button shows spinner; keep this simple
+                loading: _loading,
               ),
 
               const SizedBox(height: 24),

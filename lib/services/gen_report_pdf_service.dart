@@ -64,17 +64,15 @@ class ReportService {
     return pdf;
   }
 
-  /// Share sheet; lets you control the name shown in the sheet.
   static Future<void> generateAndSharePdf(
     EventReport report, {
-    String? fileName, // e.g. "Corps_Report_Q1_2025.pdf"
+    String? fileName,
   }) async {
     final pdf = _build(report);
     final name = _sanitizeFileName(fileName ?? 'event_report_${_timestamp()}.pdf');
     await Printing.sharePdf(bytes: await pdf.save(), filename: name);
   }
-
-  /// Save to app documents; lets you control the saved filename.
+  
   static Future<File> generateAndSavePdf(
     EventReport report, {
     String? fileName,

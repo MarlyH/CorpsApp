@@ -1,5 +1,12 @@
 import 'dart:convert';
+import 'package:corpsapp/models/medical_condition.dart';
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/medical_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../services/auth_http_client.dart';
 
@@ -19,23 +26,8 @@ class _QrScanViewState extends State<QrScanView> {
   bool _flashOn = false;
 
   // Palette & shared buttons
-  static const _primary = Color(0xFF4C85D0);
   static const _muted = Color(0xFF9E9E9E);
-  static const _outline = Colors.white24;
-
-  ButtonStyle _pillPrimary() => ElevatedButton.styleFrom(
-        backgroundColor: _primary,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(
-          fontFamily: 'WinnerSans',
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ).merge(
-        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
-      );
+  static const _outline = Colors.white;
 
   ButtonStyle _pillMuted() => ElevatedButton.styleFrom(
         backgroundColor: _muted,
@@ -116,7 +108,7 @@ class _QrScanViewState extends State<QrScanView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Flash not available on this device'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.errorColor,
         ),
       );
     }
@@ -139,6 +131,7 @@ class _QrScanViewState extends State<QrScanView> {
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final detail = _BookingScanDetail.fromJson(data);
+        final msg = 'test';
         if (!mounted) return;
         await _showResultSheet(detail);
       } else {
@@ -200,7 +193,7 @@ class _QrScanViewState extends State<QrScanView> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -208,52 +201,35 @@ class _QrScanViewState extends State<QrScanView> {
         return SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: AppPadding.screen,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 32),
-                const SizedBox(height: 8),
-                const Text(
-                  'Scan Error',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(message, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-                const SizedBox(height: 14),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _controller?.resumeCamera();
-                        },
-                        style: _pillOutline(),
-                        icon: const Icon(Icons.qr_code_scanner, size: 18),
-                        label: const Text('Scan Again'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          final c = _controller;
-                          if (c != null) {
-                            c.getFlashStatus().then((on) {
-                              if (on == true) c.toggleFlash();
-                            });
-                          }
-                          Navigator.pop(context);
-                        },
-                        style: _pillMuted(),
-                        icon: const Icon(Icons.close, size: 18, color: Colors.white),
-                        label: const Text('Cancel'),
-                      ),
+                    const Icon(Icons.error_outline, color: AppColors.errorColor, size: 20),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Scan Error',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
+                
+                const SizedBox(height: 8),
+
+                Text(message, style: const TextStyle(color: Colors.white, fontSize: 16), textAlign: TextAlign.center),
+
+                const SizedBox(height: 16),
+
+                Button(
+                  label: 'Scan Again', 
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _controller?.resumeCamera();
+                  },
+                ),                         
               ],
             ),
           ),
@@ -264,11 +240,14 @@ class _QrScanViewState extends State<QrScanView> {
 
   Future<void> _showResultSheet(_BookingScanDetail info) async {
     await showModalBottomSheet(
+      barrierColor: Colors.white54,
       context: context,
+      isDismissible: false,    
       isScrollControlled: true,
-      backgroundColor: Colors.black,
+      useSafeArea: true,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         bool busy = false;
@@ -285,17 +264,6 @@ class _QrScanViewState extends State<QrScanView> {
               return 'Check Out';
             default:
               return 'No Action';
-          }
-        }
-
-        IconData primaryIcon(BookingStatusX s) {
-          switch (s) {
-            case BookingStatusX.booked:
-              return Icons.login;
-            case BookingStatusX.checkedIn:
-              return Icons.logout;
-            default:
-              return Icons.block;
           }
         }
 
@@ -328,14 +296,14 @@ class _QrScanViewState extends State<QrScanView> {
               final msg = _tryGetMessage(resp.body) ?? 'Action failed (HTTP ${resp.statusCode}).';
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+                  SnackBar(content: Text(msg), backgroundColor: AppColors.errorColor),
                 );
               }
             }
           } catch (_) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Network error'), backgroundColor: Colors.redAccent),
+                const SnackBar(content: Text('Network error'), backgroundColor: AppColors.errorColor),
               );
             }
           } finally {
@@ -347,48 +315,49 @@ class _QrScanViewState extends State<QrScanView> {
           builder: (ctx, setSB) {
             final enabled = primaryEnabled(current.status);
             final label = primaryLabel(current.status);
-            final icon = primaryIcon(current.status);
 
-            return SafeArea(
-              top: false,
+            return SizedBox(
+              height: 800,
               child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 12,
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
-                ),
+                padding: AppPadding.screen,
                 child: SingleChildScrollView(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Handle
-                      Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Title
+                    mainAxisSize: MainAxisSize.max,
+                    children: [                  
                       Row(
-                        children: const [
-                          Icon(Icons.qr_code_scanner, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Booking Details',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            onPressed: 
+                              busy ? null
+                                   : () { Navigator.pop(ctx);
+                                          _controller?.resumeCamera(); }, 
+                            icon: Icon(Icons.close_rounded, fontWeight: FontWeight.bold,))  
                         ],
                       ),
-                      const SizedBox(height: 12),
+
+                      // Title
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            current.attendeeName,
+                            style: TextStyle(
+                              fontFamily: 'WinnerSans',
+                              fontSize: 24
+                            ),
+                          ), 
+                          Text(
+                            current.sessionType!,
+                            style: TextStyle(
+                              fontSize: 20, 
+                              fontWeight: FontWeight.bold
+                            ),
+                          ), 
+                        ],
+                      ),                                 
+
+                      const SizedBox(height: 16),
 
                       if (wrongEvent) ...[
                         Container(
@@ -396,199 +365,115 @@ class _QrScanViewState extends State<QrScanView> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFEBEE),
-                            border: Border.all(color: Colors.redAccent),
+                            border: Border.all(color: AppColors.errorColor),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            'This booking is for event #${current.eventId}, not the expected '
-                            '#${widget.expectedEventId}. Actions are disabled.',
+                            'This ticket is not for the current event.',
                             style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'WinnerSans',
+                              color: AppColors.errorColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                       ],
+
+                      Button(
+                        label: busy ? 'Working…' : label, 
+                        onPressed: busy || !enabled ? null : () => doPrimary(setSB)
+                      ),   
+
+                      const SizedBox(height: 16),
 
                       // Core details
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: AppPadding.screen,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _kvRow('Attendee', current.attendeeName),
-                            if ((current.eventName ?? '').isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              _kvRow('Event', current.eventName!),
-                            ],
-                            const SizedBox(height: 8),
-                            _kvRow('Event ID', '#${current.eventId}'),
-                            if ((current.locationName ?? '').isNotEmpty)
-                              _kvRow('Location', current.locationName!),
-                            if ((current.address ?? '').isNotEmpty)
-                              _kvRow('Address', current.address!),
-                            _kvRow('Session', current.sessionType ?? '—'),
-                            _kvRow('Date', current.eventDateText),
-                            _kvRow('Time', '${current.startTime ?? '—'} - ${current.endTime ?? '—'}'),
-                            _kvRow('Ticket', current.seatNumber?.toString() ?? '—'),
-                            if (current.isForChild)
-                              _kvRow(
-                                'Requires Parent/Guardian at collection?',
-                                current.canBeLeftAlone ?  'Yes (Do not let the attendee leave without parent/guardian)' : 'No (may leave alone)' ,
-                              ),
-                            const SizedBox(height: 12),
+                          children: [   
+                          
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const Text('Status:',
                                     style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
                                 const SizedBox(width: 8),
                                 _statusChip(current.status),
                               ],
-                            ),
-                          ],
-                        ),
-                      ),
+                            ),                           
 
-                      // Child block + medical
-                      if (current.child != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Child', style: TextStyle(fontWeight: FontWeight.w800)),
-                              const SizedBox(height: 8),
-                              _kvRow('Child’s Name', current.child!.fullName),
-                              _kvRow('DOB', current.child!.dobText),
-                              _kvRow('Age', '${current.child!.age}'),
+                            const SizedBox(height: 16),
+                            const Divider(height: 2, color: Colors.black12, thickness: 2),
+                            const SizedBox(height: 16),
+                             
+                            if ((current.address ?? '').isNotEmpty)
+                              _kvRow('Address', current.address!),
+
+                            const SizedBox(height: 4),
+
+                            if ((current.locationName ?? '').isNotEmpty)
+                              _kvRow('Location', current.locationName!),
+
+                            const SizedBox(height: 4),
+                            
+                            _kvRow('Date', current.eventDateText),
+
+                            const SizedBox(height: 4),
+
+                            _kvRow('Time', '${current.startTime ?? '—'} - ${current.endTime ?? '—'}'),
+
+                            const SizedBox(height: 4),
+
+                            _kvRow('Ticket', current.seatNumber?.toString() ?? '—'),
+
+                            const SizedBox(height: 4),
+
+                            if (current.isForChild) ... [
                               _kvRow(
-                                'Emergency Contact',
-                                '${current.child!.emergencyContactName} • ${current.child!.emergencyContactPhone}',
+                                'MUST the attendee be picked up?',
+                                current.canBeLeftAlone ?  'Yes' : 'No' ,
                               ),
-                              const SizedBox(height: 12),
-                              _medicalBlock(
-                                title: 'Medical / Allergy Info',
-                                hasAny: current.child!.hasMedicalConditions,
-                                items: current.child!.medicalConditions,
-                              ),
+                               const SizedBox(height: 16),
+                              const Divider(height: 2, color: Colors.black12, thickness: 2),
+                              const SizedBox(height: 16),
+
+                              _kvRow('Emergency Contact', current.child!.emergencyContactName),
+
+                              const SizedBox(height: 4),
+
+                              _kvRow('Emergency Phone', current.child!.emergencyContactPhone),
+
+                              const SizedBox(height: 16),
+                              const Divider(height: 2, color: Colors.black12, thickness: 2),
+                              const SizedBox(height: 16),  
+                          
+                              //guardian information
+                              _kvRow('Guardian', current.user!.fullName),
+                              _kvRow('Phone Number', current.user?.phoneNumber ?? '-'),
+                              _kvRow('Email', current.user!.email ?? '-'),
                             ],
-                          ),
+
+                            const SizedBox(height: 16),
+                            const Divider(height: 2, color: Colors.black12, thickness: 2),
+                            const SizedBox(height: 16),  
+
+                            //medical information
+                            _medicalBlock(
+                              title: 'Medical / Allergy Info',
+                              hasAny: current.isForChild ? current.child!.hasMedicalConditions : current.user!.hasMedicalConditions,
+                              items: current.isForChild ? current.child!.medicalConditions : current.user!.medicalConditions,
+                            ),                           
+                          ],                                                   
                         ),
-                      ],
-
-                      // User mini block + medical
-                      if (current.user != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Parent / Guardian', style: TextStyle(fontWeight: FontWeight.w800)),
-                              const SizedBox(height: 8),
-                              _kvRow('Name', current.user!.fullName),
-                              _kvRow('Email', current.user!.email ?? '—'),
-                              _kvRow('Phone', current.user!.phoneNumber ?? '—'),
-                              _kvRow(
-                                'Strikes',
-                                '${current.user!.attendanceStrikeCount}'
-                                '${current.user!.isSuspended ? ' (SUSPENDED)' : ''}',
-                              ),
-                              if (current.user!.dateOfLastStrike != null)
-                                _kvRow('Last Strike Received On', current.user!.dateOfLastStrike!),
-                              const SizedBox(height: 12),
-                              _medicalBlock(
-                                title: 'Medical / Allergy Info (User)',
-                                hasAny: current.user!.hasMedicalConditions,
-                                items: current.user!.medicalConditions,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 16),
-
-                      // Actions
-                      Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: busy || !enabled ? null : () => doPrimary(setSB),
-                              style: _pillPrimary(),
-                              icon: busy
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : Icon(icon, size: 16, color: Colors.white),
-                              label: Text(busy ? 'Working…' : label),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: busy
-                                      ? null
-                                      : () {
-                                          Navigator.pop(ctx);
-                                          final c = _controller;
-                                          if (c != null) {
-                                            c.getFlashStatus().then((on) {
-                                              if (on == true) c.toggleFlash();
-                                            });
-                                          }
-                                          Navigator.pop(context);
-                                        },
-                                  style: _pillMuted(),
-                                  icon: const Icon(Icons.close, size: 16, color: Colors.white),
-                                  label: const Text('Cancel',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: busy
-                                      ? null
-                                      : () {
-                                          Navigator.pop(ctx);
-                                          _controller?.resumeCamera();
-                                        },
-                                  style: _pillOutline(),
-                                  icon: const Icon(Icons.qr_code_scanner, size: 16, color: Colors.white),
-                                  label: const Text('Scan Again',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w800, fontFamily: 'WinnerSans', fontSize: 12)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                      ),                                        
                     ],
                   ),
                 ),
@@ -604,16 +489,18 @@ class _QrScanViewState extends State<QrScanView> {
 
   static Widget _kvRow(String k, String v) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [ 
         Expanded(
-          child: Text(k,
-              style: const TextStyle(color: Colors.black54, fontFamily: 'WinnerSans', fontSize: 12)),
+          child: Text(
+            k,
+            style: const TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.bold)
+          ),
         ),
         Expanded(
           child: Text(
             v,
-            style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
             textAlign: TextAlign.right,
           ),
         ),
@@ -631,12 +518,12 @@ class _QrScanViewState extends State<QrScanView> {
         fg = const Color(0xFF1976D2);
         break;
       case BookingStatusX.checkedIn:
-        label = 'CheckedIn';
+        label = 'Checked In';
         bg = const Color(0xFFE8F5E9);
         fg = const Color(0xFF2E7D32);
         break;
       case BookingStatusX.checkedOut:
-        label = 'CheckedOut';
+        label = 'Checked Out';
         bg = const Color(0xFFFFF3E0);
         fg = const Color(0xFFEF6C00);
         break;
@@ -663,77 +550,24 @@ class _QrScanViewState extends State<QrScanView> {
   static Widget _medicalBlock({
     required String title,
     required bool hasAny,
-    required List<_MedicalCondition> items,
+    required List<MedicalCondition> items,
   }) {
     final hasItems = items.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.black87)),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, fontSize: 16)),
         const SizedBox(height: 8),
         if (!hasAny || !hasItems)
           const Text('None reported',
-              style: TextStyle(color: Colors.black54, fontStyle: FontStyle.italic))
+              style: TextStyle(color: Colors.black45, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500, fontSize: 14))
         else
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: items.map((m) => _medicalTile(m)).toList(),
+            children: items.map((m) => MedicalTile(m, useWhiteBackground: true)).toList(),
           ),
       ],
-    );
-  }
-
-  static Widget _medicalTile(_MedicalCondition m) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F7),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (m.isAllergy)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              margin: const EdgeInsets.only(right: 8, top: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEBEE),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFFC62828)),
-              ),
-              child: const Text(
-                'ALLERGY',
-                style: TextStyle(
-                  color: Color(0xFFC62828),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(m.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, color: Colors.black87)),
-                if ((m.notes ?? '').trim().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      m.notes!,
-                      style: const TextStyle(color: Colors.black87),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -743,54 +577,60 @@ class _QrScanViewState extends State<QrScanView> {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Scan QR Code',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans'),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Scan QR Code'),
+      body: Padding(
+        padding: AppPadding.screen,
+        child: Column(
+          children: [
+            Expanded(
+              flex: 4,
+              child: QRView(
+                key: qrKey,
+                onQRViewCreated: _onQRViewCreated,
+                overlay: QrScannerOverlayShape(
+                  overlayColor: AppColors.background,
+                  borderColor: Colors.white,
+                  borderRadius: 12,
+                  borderLength: 30,
+                  borderWidth: 10,
+                  cutOutSize: cutOut,
+                ),
+              ),
+            ),
+
+            Expanded(
+              flex: 1,
+              child: Center(
+                child: Text(
+                  _lockedOnResult
+                      ? 'Hold on…'
+                      : (widget.expectedEventId == null
+                          ? 'Align the QR code inside the box'
+                          : 'Scanning for event #${widget.expectedEventId}…'),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontFamily: 'WinnerSans',
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 4,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
-              overlay: QrScannerOverlayShape(
-                borderColor: Colors.white,
-                borderRadius: 12,
-                borderLength: 30,
-                borderWidth: 8,
-                cutOutSize: cutOut,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            flex: 1,
-            child: Center(
-              child: Text(
-                _lockedOnResult
-                    ? 'Hold on…'
-                    : (widget.expectedEventId == null
-                        ? 'Align the QR code inside the box.'
-                        : 'Scanning for event #${widget.expectedEventId}…'),
-                style: const TextStyle(color: Colors.white70, fontSize: 16, fontFamily: 'WinnerSans'),
-              ),
-            ),
-          ),
-        ],
-      ),
+
+      // Keep FAB within padding bounds
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset + 32),
+        padding: EdgeInsets.only(
+          right: AppPadding.screen.right,
+          bottom: AppPadding.screen.bottom + bottomInset + 32,
+        ),
         child: FloatingActionButton(
           heroTag: 'qr_flash_fab',
           onPressed: _toggleFlash,
-          backgroundColor: _primary,
+          backgroundColor: AppColors.primaryColor,
           foregroundColor: Colors.white,
           tooltip: _flashOn ? 'Turn Flash Off' : 'Turn Flash On',
           child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
@@ -798,33 +638,13 @@ class _QrScanViewState extends State<QrScanView> {
       ),
     );
   }
-}
+  }
+
 
 /* ============================
  * Models for /api/booking/scan-info
  * (extended with Medical data)
  * ============================ */
-
-class _MedicalCondition {
-  final int id;
-  final String name;
-  final String? notes;
-  final bool isAllergy;
-
-  _MedicalCondition({
-    required this.id,
-    required this.name,
-    required this.notes,
-    required this.isAllergy,
-  });
-
-  factory _MedicalCondition.fromJson(Map<String, dynamic> j) => _MedicalCondition(
-        id: (j['id'] ?? j['Id'] ?? 0) as int,
-        name: (j['name'] ?? j['Name'] ?? '').toString(),
-        notes: (j['notes'] ?? j['Notes'])?.toString(),
-        isAllergy: j['isAllergy'] == true,
-      );
-}
 
 enum BookingStatusX { booked, checkedIn, checkedOut, cancelled, striked }
 
@@ -879,7 +699,7 @@ class _ScanChildDto {
 
   // NEW: medical
   final bool hasMedicalConditions;
-  final List<_MedicalCondition> medicalConditions;
+  final List<MedicalCondition> medicalConditions;
 
   _ScanChildDto({
     required this.childId,
@@ -911,7 +731,7 @@ class _ScanChildDto {
     final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
     final meds = medsRaw
         .whereType<Map<String, dynamic>>()
-        .map(_MedicalCondition.fromJson)
+        .map(MedicalCondition.fromJson)
         .toList();
 
     return _ScanChildDto(
@@ -943,7 +763,7 @@ class _ScanUserMini {
 
   // NEW: medical
   final bool hasMedicalConditions;
-  final List<_MedicalCondition> medicalConditions;
+  final List<MedicalCondition> medicalConditions;
 
   _ScanUserMini({
     required this.id,
@@ -962,7 +782,7 @@ class _ScanUserMini {
     final medsRaw = (j['medicalConditions'] ?? j['MedicalConditions']) as List<dynamic>? ?? const [];
     final meds = medsRaw
         .whereType<Map<String, dynamic>>()
-        .map(_MedicalCondition.fromJson)
+        .map(MedicalCondition.fromJson)
         .toList();
 
     return _ScanUserMini(
@@ -1026,7 +846,7 @@ class _BookingScanDetail {
     required this.user,
   });
 
-  String get eventDateText => _yyyyMmDd(eventDate);
+  String get eventDateText => DateFormat('d MMM, yyyy').format(eventDate!);
 
   _BookingScanDetail copyWith({BookingStatusX? status}) => _BookingScanDetail(
         bookingId: bookingId,

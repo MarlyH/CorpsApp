@@ -4,8 +4,9 @@ import 'package:corpsapp/theme/colors.dart';
 
 class MedicalTile extends StatelessWidget {
   final MedicalCondition medicalCondition;
+  final bool useWhiteBackground;
 
-  const MedicalTile(this.medicalCondition, {super.key});
+  const MedicalTile(this.medicalCondition, {super.key, this.useWhiteBackground = false});
 
   @override
   Widget build(BuildContext context) {
@@ -14,8 +15,8 @@ class MedicalTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white12),
-        color: const Color(0xFF242424),
+        border: Border.all(color: useWhiteBackground ? Colors.black12 : Colors.white54),
+        color: useWhiteBackground ? Color(0xFFF7F7F7) : Color(0xFF242424),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Stack(
@@ -30,8 +31,8 @@ class MedicalTile extends StatelessWidget {
               children: [
                 Text(
                   medicalCondition.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: useWhiteBackground ? AppColors.normalText : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -40,7 +41,7 @@ class MedicalTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     medicalCondition.notes!,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: useWhiteBackground ? AppColors.normalText : Colors.white),
                   ),
                 ],
               ],

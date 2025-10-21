@@ -25,38 +25,6 @@ class _QrScanViewState extends State<QrScanView> {
   bool _lockedOnResult = false;
   bool _flashOn = false;
 
-  // Palette & shared buttons
-  static const _muted = Color(0xFF9E9E9E);
-  static const _outline = Colors.white;
-
-  ButtonStyle _pillMuted() => ElevatedButton.styleFrom(
-        backgroundColor: _muted,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(
-          fontFamily: 'WinnerSans',
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ).merge(
-        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
-      );
-
-  ButtonStyle _pillOutline() => OutlinedButton.styleFrom(
-        side: const BorderSide(color: _outline),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(
-          fontFamily: 'WinnerSans',
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ).merge(
-        ButtonStyle(minimumSize: MaterialStateProperty.all(const Size.fromHeight(44))),
-      );
-
   @override
   void reassemble() {
     super.reassemble();
@@ -131,7 +99,6 @@ class _QrScanViewState extends State<QrScanView> {
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final detail = _BookingScanDetail.fromJson(data);
-        final msg = 'test';
         if (!mounted) return;
         await _showResultSheet(detail);
       } else {

@@ -53,7 +53,6 @@ class _RegisterViewState extends State<RegisterView> {
   final confirmCtrl = TextEditingController();
 
   // UI state
-  bool _obscure = true;
   bool _loading = false; // for network calls
   String? _error;
 

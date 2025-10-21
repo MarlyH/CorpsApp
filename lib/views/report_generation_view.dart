@@ -1,9 +1,9 @@
 import 'dart:convert';
+import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
-import 'package:corpsapp/widgets/back_button.dart';
 import 'package:corpsapp/widgets/button.dart';
 import '../utils/date_picker.dart';
 import '../widgets/input_field.dart';
@@ -24,7 +24,8 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
 
   DateTime? _startDate;
   DateTime? _endDate;
-  bool _loading = false;
+  bool _sharing = false;
+  bool _downloading = false;
   String? _error;
 
   Future<EventReport> fetchReport() async {
@@ -51,7 +52,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
 
   Future<void> shareReport() async {
     if (!validateDates()) return;
-    setState(() => _loading = true);
+    setState(() => _sharing = true);
     try {
       final report = await fetchReport();
       await ReportService.generateAndSharePdf(
@@ -63,13 +64,13 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
         setState(() => _error = e.toString());
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
   Future<void> downloadReport() async {
     if (!validateDates()) return;
-    setState(() => _loading = true);
+    setState(() => _downloading = true);
     try {
       final report = await fetchReport();
       final file = await ReportService.generateAndSavePdf(
@@ -92,7 +93,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
         setState(() => _error = e.toString());
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -100,32 +101,20 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Generate Report'),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppPadding.screen,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const CustomBackButton(),
-              const SizedBox(height: 24),
-              const Text(
-                'GENERATE REPORT',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'WinnerSans',
-                ),
-              ),
-              const SizedBox(height: 8),
+            children: [              
               const Text(
                 'Select the date range you want to generate a report for.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.left,
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // Start Date
               InputField(
@@ -160,6 +149,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                   ),
                 ),
               ),
+              
               const SizedBox(height: 16),
 
               // End Date
@@ -190,6 +180,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 24),
 
               if (_error != null) ...[
@@ -202,15 +193,17 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
 
               // Actions
               Button(
-                label: 'SHARE PDF',
-                onPressed: _loading ? null : shareReport,
-                loading: _loading,
+                label: 'Share Report',
+                onPressed: _sharing ? null : shareReport,
+                loading: _sharing,
               ),
-              const SizedBox(height: 12),
+
+              const SizedBox(height: 16),
+
               Button(
-                label: 'DOWNLOAD PDF',
-                onPressed: _loading ? null : downloadReport,
-                loading: _loading,
+                label: 'Download Report',
+                onPressed: _downloading ? null : downloadReport,
+                loading: _downloading,
               ),
 
               const SizedBox(height: 24),

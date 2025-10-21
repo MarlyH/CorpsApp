@@ -75,9 +75,7 @@ class _MedicalEditorState extends State<MedicalEditor> {
             value: _isAllergy,
             onChanged: (v) => setState(() => _isAllergy = v),
             activeColor: AppColors.primaryColor,
-            title: const Text('Is this an allergy?', style: TextStyle(fontWeight: FontWeight.w500)),
-            subtitle: const Text('Enable if this item is an allergy (e.g., peanuts, bee stings).',
-                style: TextStyle(color: Colors.white70)),
+            title: const Text('Is this an allergy?', style: TextStyle(fontWeight: FontWeight.bold)),
             contentPadding: EdgeInsets.zero,
           ),
 

@@ -12,7 +12,7 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.actionButton,
     this.actionOnTap,
-    this.specialBackAction
+    this.specialBackAction,
   });
 
   @override

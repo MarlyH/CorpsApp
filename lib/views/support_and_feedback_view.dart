@@ -1,3 +1,8 @@
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,7 +18,6 @@ class SupportAndFeedbackView extends StatefulWidget {
 }
 
 class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
-  // TODO: change this to the actual support address
   static const String supportEmail = 'yourcorps@yourcorps.co.nz';
 
   final _formKey = GlobalKey<FormState>();
@@ -57,25 +61,25 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
 
       if (Platform.isAndroid) {
         final info = await di.androidInfo;
-        final manu = (info.manufacturer ?? '').trim();
-        final model = (info.model ?? '').trim();
+        final manu = (info.manufacturer ).trim();
+        final model = (info.model).trim();
         deviceModel = [manu, model].where((s) => s.isNotEmpty).join(' ');
         osVersion = 'Android ${info.version.release} (SDK ${info.version.sdkInt})';
       } else if (Platform.isIOS) {
         final info = await di.iosInfo;
-        deviceModel = info.utsname.machine ?? info.model ?? 'iOS Device';
+        deviceModel = info.utsname.machine;
         osVersion = 'iOS ${info.systemVersion}';
       } else if (Platform.isMacOS) {
         final info = await di.macOsInfo;
-        deviceModel = info.model ?? 'Mac';
-        osVersion = '${info.osRelease}';
+        deviceModel = info.model;
+        osVersion = info.osRelease;
       } else if (Platform.isWindows) {
         final info = await di.windowsInfo;
         deviceModel = 'Windows PC';
-        osVersion = '${info.productName} ${info.displayVersion ?? info.buildLabEx ?? ''}'.trim();
+        osVersion = '${info.productName} ${info.displayVersion}'.trim();
       } else if (Platform.isLinux) {
         final info = await di.linuxInfo;
-        deviceModel = info.prettyName ?? 'Linux';
+        deviceModel = info.prettyName;
         osVersion = '${info.id} ${info.versionId ?? ''}'.trim();
       } else {
         // Fallback (Web or others)
@@ -86,40 +90,23 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
       setState(() {
         _deviceModel = deviceModel;
         _osVersion = osVersion;
-        _messageCtrl.text = _defaultTemplate(); // populate template after we know meta
+        _messageCtrl.text = ''; // populate template after we know meta
       });
     } catch (_) {
       // If anything goes wrong, still show a sensible template
       setState(() {
-        _messageCtrl.text = _defaultTemplate();
+        _messageCtrl.text = '';
       });
     }
   }
 
-  String _defaultTemplate() {
-    // Build “App / Device” footer inline to help your support triage quickly
+  String _diagnosticInfo() {
     final appLine = '$_appName v$_appVersion'
         '${_buildNumber.isNotEmpty ? ' (build $_buildNumber)' : ''}';
     final deviceLine = '$_deviceModel • $_osVersion';
-
-    return [
-      'Hi team,',
-      '',
-      "I'd like to report an issue / share feedback:",
-      '',
-      '— What I expected:',
-      '— What happened instead:',
-      '— Steps to reproduce:',
-      '— Frequency (always/sometimes/once):',
-      '',
-      'Thanks!',
-      '',
-      '— — —',
-      'Diagnostic',
-      'App: $appLine',
-      'Device: $deviceLine',
-    ].join('\n');
+    return '— — —\nDiagnostic Info\nApp: $appLine\nDevice: $deviceLine';
   }
+
 
   Future<void> _sendEmail() async {
     if (!_formKey.currentState!.validate()) return;
@@ -128,7 +115,11 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
     try {
       final to = supportEmail;
       final subject = _subjectCtrl.text;
-      final body = _messageCtrl.text;
+      final body = [
+        _messageCtrl.text.trim(),
+        '',
+        _diagnosticInfo(),
+      ].join('\n');
 
       // try native mail app via mailto:
       final mailUri = Uri(
@@ -204,39 +195,30 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Support & Feedback',
-          style: TextStyle(
-            fontFamily: 'WinnerSans',
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Support & Feedback'),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: AppPadding.screen,
           child: Form(
             key: _formKey,
             child: ListView(
               children: [
                 Text(
-                  'Need help or have feedback?',
+                  'Do you need help or would like to share a feedback?',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
+
                 const Text(
                   "Send us a message and we’ll get back to you. "
-                  "Edit the subject and message below — the template includes your app/device info.",
-                  style: TextStyle(color: Colors.white70),
+                  "If you are reporting an issue, please describe the steps that caused the issue, and if applicable, how often it happens.",
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
                 ),
+
                 const SizedBox(height: 24),
 
                 // Clickable email link
@@ -245,13 +227,14 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.email, color: Color(0xFF4C85D0)),
-                      SizedBox(width: 8),
+                      Icon(Icons.email, color: AppColors.primaryColor, size: 24),
+                      SizedBox(width: 4),
                       Text(
                         supportEmail,
                         style: TextStyle(
-                          color: Color(0xFF4C85D0),
-                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -261,55 +244,17 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
                 const SizedBox(height: 24),
 
                 // Subject input
-                TextFormField(
-                  controller: _subjectCtrl,
-                  style: const TextStyle(color: Colors.black),
-                  decoration: _decoration('Subject'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
+                InputField(hintText: '', label: 'Subject', controller: _subjectCtrl),
+                
                 const SizedBox(height: 16),
 
-                // Message input (pre-populated with template including version/device)
-                TextFormField(
-                  controller: _messageCtrl,
-                  style: const TextStyle(color: Colors.black),
-                  minLines: 6,
-                  maxLines: 12,
-                  decoration: _decoration('Message'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-
+                // Message input 
+                InputField(hintText: "Enter the issue you're facing or a feedback you'd like to share here.", label: 'Message', controller: _messageCtrl, maxLines: 12),
+                
                 const SizedBox(height: 24),
 
                 // Send Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _sending ? null : _sendEmail,
-                    icon: _sending
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send),
-                    label: Text(_sending ? 'Opening…' : 'Send Email'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4C85D0),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-                      textStyle: const TextStyle(
-                        fontFamily: 'WinnerSans',
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                Button(label: 'Send Email', onPressed: _sendEmail, loading: _sending),
               ],
             ),
           ),
@@ -317,45 +262,7 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
       ),
     );
   }
-
-  InputDecoration _decoration(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(
-          color: Color.fromARGB(255, 0, 0, 0),
-          backgroundColor: Color.fromARGB(255, 255, 255, 255),
-        ),
-        hintStyle: const TextStyle(color: Colors.white54),
-        filled: true,
-        fillColor: const Color.fromARGB(255, 255, 255, 255),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white24),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFF40C4FF)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-      );
 }
-
-
-  InputDecoration _decoration(String label) => InputDecoration(
-    labelText: label,
-    labelStyle:  TextStyle(color: Color.fromARGB(255, 0, 0, 0), 
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
-    ),
-    hintStyle: const TextStyle(color: Colors.white54),
-    filled: true,
-    fillColor: const Color.fromARGB(255, 255, 255, 255),
-    enabledBorder: OutlineInputBorder(
-      borderSide: const BorderSide(color: Colors.white24),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderSide: const BorderSide(color: Color(0xFF40C4FF)),
-      borderRadius: BorderRadius.circular(12),
-    ),
-  );
 
 // this is a old but posible avenue to go down if you decide to have server side api backend calls and routing of emails to applicable people
 

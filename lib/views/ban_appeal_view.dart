@@ -136,7 +136,7 @@ class _BanAppealViewState extends State<BanAppealView> {
                     const Text(
                       'Your account has been temporarily suspended after receiving three strikes under the attendance policy. '
                       'Please use the form below to open your email app and submit a ban appeal request.',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
                     ),
 
                     const SizedBox(height: 24),

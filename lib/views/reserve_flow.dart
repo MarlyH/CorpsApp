@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/input_field.dart';
 import 'package:corpsapp/widgets/seat_picker.dart';
-
 import '../models/event_summary.dart' show EventSummary;
 import '../models/event_detail.dart' show EventDetail;
 import 'package:corpsapp/theme/colors.dart';
@@ -12,7 +10,6 @@ import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/event_header.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/auth_http_client.dart';
 
 class ReserveFlow extends StatefulWidget {
@@ -42,9 +39,6 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
   // UX toggle (inverse of API's canBeLeftAlone)
   bool _cannotBeLeftAlone = false;
-
-  // brand color used for selected state
-  static const _brandBlue = Color(0xFF4C85D0);
 
   @override
   void initState() {
@@ -209,8 +203,8 @@ class _ReserveFlowState extends State<ReserveFlow> {
       );
 
       // Handle non-2xx without relying on thrown exceptions
-      final status = resp.statusCode ?? 0;
-      final text = resp.body?.toString() ?? '';
+      final status = resp.statusCode;
+      final text = resp.body.toString();
 
       if (status >= 200 && status < 300) {
         final data = (text.isNotEmpty)
@@ -279,43 +273,6 @@ class _ReserveFlowState extends State<ReserveFlow> {
   // ────────────────────────────────────────────────────────────────────────────
   // UI helpers
 
-  Widget _boxedField({
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters, // optional
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          style: const TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          validator: validator,
-        ),
-      ],
-    );
-  }
 
   // ────────────────────────────────────────────────────────────────────────────
 

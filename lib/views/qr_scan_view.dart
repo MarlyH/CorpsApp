@@ -11,7 +11,7 @@ import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../services/auth_http_client.dart';
 
 class QrScanView extends StatefulWidget {
-  final int? expectedEventId; // optional filter (disables actions if mismatch)
+  final int? expectedEventId;
 
   const QrScanView({super.key, this.expectedEventId});
 

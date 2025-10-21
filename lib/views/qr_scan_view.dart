@@ -83,36 +83,51 @@ class _QrScanViewState extends State<QrScanView> {
   }
 
   Future<void> _handleScan(String rawPayload) async {
-    final code = _extractQrCode(rawPayload);
-    if (code == null) {
-      await _showErrorSheet('Couldn’t read this QR code.');
-      _controller?.resumeCamera();
-      return;
-    }
+  final code = _extractQrCode(rawPayload);
+  if (code == null) {
+    await _showErrorSheet('Couldn’t read this QR code.');
+    _controller?.resumeCamera();
+    return;
+  }
 
-    try {
-      final resp = await AuthHttpClient.post(
-        '/api/booking/scan-info',
-        body: {'qrCodeData': code},
-      );
+  try {
+    final resp = await AuthHttpClient.post(
+      '/api/booking/scan-info',
+      body: {'qrCodeData': code},
+    );
 
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final detail = _BookingScanDetail.fromJson(data);
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final detail = _BookingScanDetail.fromJson(data);
+
+      if (!mounted) return;
+
+      // 🔹 Check if scanned event matches the expected one
+      if (detail.eventId != widget.expectedEventId) {
+        await _showErrorSheet(
+          'This ticket belongs to a different event.\n\n'
+          'Expected Event ID: ${widget.expectedEventId}\n'
+          'Scanned Event ID: ${detail.eventId}',
+        );
+        _controller?.resumeCamera();
+        return;
+      }
+
+      // ✅ Show result sheet only if event matches
+      await _showResultSheet(detail, widget.expectedEventId);
+        } else {
+          final msg = _tryGetMessage(resp.body) ?? 'Booking not found (404).';
+          if (!mounted) return;
+          await _showErrorSheet(msg);
+          _controller?.resumeCamera();
+        }
+      } catch (e) {
         if (!mounted) return;
-        await _showResultSheet(detail);
-      } else {
-        final msg = _tryGetMessage(resp.body) ?? 'Booking not found (404).';
-        if (!mounted) return;
-        await _showErrorSheet(msg);
+        await _showErrorSheet('Network or parsing error.\n\n$e');
         _controller?.resumeCamera();
       }
-    } catch (e) {
-      if (!mounted) return;
-      await _showErrorSheet('Network or parsing error.\n\n$e');
-      _controller?.resumeCamera();
     }
-  }
+
 
   String? _extractQrCode(String raw) {
     final s = raw.trim();
@@ -205,7 +220,7 @@ class _QrScanViewState extends State<QrScanView> {
     );
   }
 
-  Future<void> _showResultSheet(_BookingScanDetail info) async {
+  Future<void> _showResultSheet(_BookingScanDetail info, int? expectedEventId) async {
     await showModalBottomSheet(
       barrierColor: Colors.white54,
       context: context,
@@ -380,7 +395,7 @@ class _QrScanViewState extends State<QrScanView> {
                             const SizedBox(height: 16),
                             const Divider(height: 2, color: Colors.black12, thickness: 2),
                             const SizedBox(height: 16),
-                             
+                            
                             if ((current.address ?? '').isNotEmpty)
                               _kvRow('Address', current.address!),
 

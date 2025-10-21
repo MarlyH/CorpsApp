@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +12,6 @@ import '../widgets/navbar/admin_navbar.dart';
 import '../widgets/navbar/guest_navbar.dart';
 import '../widgets/navbar/qr_scanner_fab.dart';
 import '../widgets/navbar/user_navbar.dart';
-//import '../widgets/navbar/staff_navbar.dart';
 import '../services/notification_prefs.dart';
 import '../widgets/in_app_push.dart';
 
@@ -61,19 +58,19 @@ class _DashboardViewState extends State<DashboardView> {
     // Request permission (safe on Android, needed on iOS)
     await messaging.requestPermission();
     //iOS suppresses notification alerts when the app is open unless you opt in
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-
     // get the FCM token and register it with API -> Azure Notification Hubs
-    if (Platform.isAndroid && enabled) {
+    if (enabled) {
       final token = await messaging.getToken();
       if (token != null) {
-        try {
+        try {        
           await AuthHttpClient.registerDeviceToken(token);
+          print (token);
         } catch (e) {
           print('Error registering device token: $e');
         }
@@ -97,13 +94,22 @@ class _DashboardViewState extends State<DashboardView> {
     showInAppPush(context, title: title, body: body);
   });
 
+  //background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
       final on = await NotificationPrefs.getEnabled();
       if (!on) return;
       // Handle deep links if needed
       // print('Notification caused app to open: ${message.data}');
     });
-    }
+    
+
+    //terminated
+    FirebaseMessaging.instance.getInitialMessage().then((message) async {
+      // Terminated
+      final on = await NotificationPrefs.getEnabled();
+      if (!on) return;
+    });
+  }
 
   Future<bool> _onWillPop() async {
     final exit = await showDialog<bool>(

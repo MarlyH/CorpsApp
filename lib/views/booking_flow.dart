@@ -195,7 +195,7 @@ class _BookingFlowState extends State<BookingFlow> {
 
                     Expanded(
                       child: Button(
-                        label: 'AGREE & CONTINUE',
+                        label: 'AGREE',
                         onPressed: _next,
                         fontSize: MediaQuery.of(context).size.width < 360 ? 12 : 16,
                       ),

@@ -5,6 +5,7 @@ import 'package:corpsapp/widgets/Modals/add_child.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/booking_terms.dart';
 import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/event_header.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_http_client.dart';
@@ -13,19 +14,6 @@ import '../models/event_summary.dart' show EventSummary, friendlySession;
 import '../models/event_detail.dart' show EventDetail;
 import '../models/child_model.dart';
 import 'package:intl/intl.dart';
-
-class MedicalItem {
-  MedicalItem({required this.name, this.notes = '', this.isAllergy = false});
-  String name;
-  String notes;
-  bool isAllergy;
-
-  Map<String, dynamic> toJson() => {
-        'name': name.trim(),
-        'notes': notes.trim(),
-        'isAllergy': isAllergy,
-      };
-}
 
 class BookingFlow extends StatefulWidget {
   final EventSummary event;
@@ -177,7 +165,7 @@ class _BookingFlowState extends State<BookingFlow> {
           child: Column(
           children: [
             if (_step > 0)
-              _buildHeader(),
+              EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl),
    
             // content
             Expanded(

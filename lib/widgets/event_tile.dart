@@ -414,7 +414,7 @@ class EventTileState extends State<EventTile> {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => ReserveFlow(eventId: widget.summary.eventId),
+                builder: (_) => ReserveFlow(eventId: widget.summary.eventId, event: widget.summary),
               ),
             );
           },

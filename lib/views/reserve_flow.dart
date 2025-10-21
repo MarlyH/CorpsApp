@@ -1,12 +1,19 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import '../models/event_summary.dart' show EventSummary;
+import '../models/event_detail.dart' show EventDetail, friendlySession;
+import 'package:corpsapp/theme/colors.dart';
+import 'package:corpsapp/theme/spacing.dart';
+import 'package:corpsapp/widgets/app_bar.dart';
+import 'package:corpsapp/widgets/event_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_http_client.dart';
 
 class ReserveFlow extends StatefulWidget {
   final int eventId;
-  const ReserveFlow({super.key, required this.eventId});
+  final EventSummary event;
+  const ReserveFlow({super.key, required this.eventId, required this.event});
 
   @override
   _ReserveFlowState createState() => _ReserveFlowState();
@@ -18,6 +25,9 @@ class _ReserveFlowState extends State<ReserveFlow> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _guardianCtrl = TextEditingController();
+
+  late Future<EventDetail> _detailFut;
+  String? _mascotUrl;
 
   bool _loading = false;
   String? _error;
@@ -34,6 +44,7 @@ class _ReserveFlowState extends State<ReserveFlow> {
   @override
   void initState() {
     super.initState();
+    _detailFut = _loadEventDetail();
     _seatCtrl.addListener(_syncTypedSeat);
   }
 
@@ -62,6 +73,30 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
   // ────────────────────────────────────────────────────────────────────────────
   // API helpers
+
+  Future<EventDetail> _loadEventDetail() async {
+    final resp = await AuthHttpClient.get(
+      '/api/events/${widget.event.eventId}',
+    );
+
+    if (resp.statusCode == 200) {
+      final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
+      final detail = EventDetail.fromJson(jsonData);
+
+      // Assign locationMascotImgSrc to _mascotUrl
+      final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
+      if (mascotUrl != null &&
+          mascotUrl.isNotEmpty) {
+        _mascotUrl = mascotUrl;
+      } else {
+        _mascotUrl = null;
+      }
+
+      return detail;
+    } else {
+      throw Exception('Failed to load event detail: ${resp.statusCode}');
+    }
+  }
 
   Future<_SeatData> _fetchSeatData() async {
     final ts = DateTime.now().millisecondsSinceEpoch;
@@ -269,20 +304,19 @@ class _ReserveFlowState extends State<ReserveFlow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Reserve a Ticket'),
-        backgroundColor: Colors.black,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: ProfileAppBar(title: 'Reserve a Ticket'),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: AppPadding.screen,
           child: SingleChildScrollView(
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl,),
+
                   Text('Event ID: ${widget.eventId}',
                       style: const TextStyle(color: Colors.white, fontSize: 16)),
                   const SizedBox(height: 16),

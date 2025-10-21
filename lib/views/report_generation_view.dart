@@ -82,6 +82,7 @@ class _ReportGenerationViewState extends State<ReportGenerationView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Saved to: ${file.path}'),
+          showCloseIcon: true,
           action: SnackBarAction(
             label: 'Open',
             onPressed: () => ReportService.openPdf(file.path),

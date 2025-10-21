@@ -1,7 +1,12 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:corpsapp/views/booking_flow.dart';
+import 'package:corpsapp/widgets/button.dart';
+import 'package:corpsapp/widgets/input_field.dart';
+import 'package:corpsapp/widgets/seat_picker.dart';
+
 import '../models/event_summary.dart' show EventSummary;
-import '../models/event_detail.dart' show EventDetail, friendlySession;
+import '../models/event_detail.dart' show EventDetail;
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
@@ -121,15 +126,28 @@ class _ReserveFlowState extends State<ReserveFlow> {
     try {
       final data = await _fetchSeatData();
 
-      final picked = await showDialog<int>(
+      final picked = await showModalBottomSheet<int>(
+        useSafeArea: true,
         context: context,
-        barrierDismissible: true,
-        builder: (_) => _SeatPickerDialog(
-          totalSeats: data.totalSeats,
-          availableSeats: data.availableSeats,
-          initialSelected: _selectedSeat,
-          brandBlue: _brandBlue,
-        ),
+        builder: (_) => Padding(
+          padding: AppPadding.screen,
+          child: SeatPickerSheet(
+            futureDetail: _detailFut, 
+            initialSelected: _selectedSeat, 
+            eventTotalSeats: data.totalSeats, 
+            isReserveFlow: true,
+            onSeatPicked: (seat) {
+              // Update both controller and local state
+              setState(() {
+                _selectedSeat = seat;
+                _seatCtrl.text = seat.toString();
+              });
+
+              // Close the modal after choosing a seat
+              Navigator.of(context).pop();
+            },
+          )
+        )
       );
 
       if (picked != null) {
@@ -315,131 +333,88 @@ class _ReserveFlowState extends State<ReserveFlow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl,),
+                  EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl),
 
-                  Text('Event ID: ${widget.eventId}',
-                      style: const TextStyle(color: Colors.white, fontSize: 16)),
-                  const SizedBox(height: 16),
+                  const Text(
+                    'Ticket',
+                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+
+                  const Text(
+                    'The ticket number does not represent a physical seat.',
+                    style: TextStyle( fontSize: 14 ),
+                  ),
+
+                  const SizedBox(height: 8),
 
                   // Choose seat button (opens centered overlay)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _openSeatPicker,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _brandBlue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.event_seat, color: Colors.white),
-                      label: Text(
-                        _selectedSeat == null
-                            ? 'Choose Ticket'
-                            : 'Change Ticket (Ticket #$_selectedSeat)',
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
+                  Button(
+                    label: _selectedSeat == null
+                                        ? 'Choose Ticket'
+                                        : 'Ticket #$_selectedSeat', 
+                    subLabel: 'Change Ticket',
+                    onPressed: _openSeatPicker),
+                  
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.white24, height: 1, thickness: 2),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Attendee Details',
+                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+                  
+                  const SizedBox(height: 8),
+
+                  InputField(
+                    hintText: 'Attendee full name',
+                    label: 'Name',
+                    controller: _nameCtrl,
+                  ),
+
                   const SizedBox(height: 12),
 
-                  // Seat number (editable or readOnly; keep editable here)
-                  _boxedField(
-                    label: 'Ticket Number',
-                    hint: 'Tap “Choose Ticket”',
-                    controller: _seatCtrl,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (v) {
-                      final n = int.tryParse((v ?? '').trim());
-                      if (n == null) return 'Please pick a Ticket';
-                      if (n <= 0) return 'Ticket must be >= 1';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  _boxedField(
-                    label: 'Attendee Name',
-                    hint: 'Child full name',
-                    controller: _nameCtrl,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Phone number
-                  _boxedField(
+                  InputField(
+                    hintText: 'Attendee / Guardian phone number',
                     label: 'Phone Number',
-                    hint: '+64 21 123 4567',
                     controller: _phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
-                    ],
-                    validator: (v) {
-                      final cleaned = _cleanPhone(v ?? '');
-                      if (cleaned.isEmpty) return 'Required';
-                      if (cleaned.length < 7) return 'Enter a valid phone number';
-                      return null;
-                    },
                   ),
+
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.white24, height: 1, thickness: 2),
                   const SizedBox(height: 16),
 
+                  const Text(
+                    'Leave Permission',
+                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+              
                   // NEW: Cannot be left alone toggle
                   SwitchListTile.adaptive(
                     value: _cannotBeLeftAlone,
                     onChanged: (v) => setState(() => _cannotBeLeftAlone = v),
                     title: const Text(
-                      'Does the attendee require a Parent/Guardian to be present on event conclusion?',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: const Text(
-                      'If enabled, a Parent/Guardians full name is required they may be asked for ID on event day.',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    activeColor: _brandBlue,
+                      'MUST the attendee be picked up by a guardian?',
+                      style: TextStyle( fontSize: 16),
+                    ),                 
+                    activeColor: AppColors.primaryColor,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  const SizedBox(height: 8),
-
+                  
                   // NEW: Parent/Guardian Name (conditional)
-                  if (_cannotBeLeftAlone)
-                    _boxedField(
-                      label: 'Parent/Guardian Name',
-                      hint: 'Full name',
-                      controller: _guardianCtrl,
-                      validator: (v) {
-                        if (_needsGuardian() && (v == null || v.trim().isEmpty)) {
-                          return 'Required';
-                        }
-                        return null;
-                      },
-                    ),
-                  if (_cannotBeLeftAlone) const SizedBox(height: 16),
-
-                  if (_error != null) ...[
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
-                    const SizedBox(height: 16),
+                  if (_cannotBeLeftAlone) ... [
+                    const SizedBox(height: 8),
+                    InputField(hintText: 'Full Name', label: 'Guardian Name', controller: _guardianCtrl),
                   ],
 
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _reserve,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _brandBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: _loading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('RESERVE',
-                              style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Text(_error!, style: const TextStyle(color: Colors.red)),                   
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  Button(label: 'Reserve', onPressed: _reserve, loading: _loading),
                 ],
               ),
             ),
@@ -450,259 +425,10 @@ class _ReserveFlowState extends State<ReserveFlow> {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Centered overlay seat picker (dialog) + tiny helpers
-
 class _SeatData {
   final int totalSeats;
   final Set<int> availableSeats;
   _SeatData({required this.totalSeats, required this.availableSeats});
 }
 
-class _SeatPickerDialog extends StatefulWidget {
-  final int totalSeats;
-  final Set<int> availableSeats;
-  final int? initialSelected;
-  final Color brandBlue;
 
-  const _SeatPickerDialog({
-    required this.totalSeats,
-    required this.availableSeats,
-    required this.initialSelected,
-    required this.brandBlue,
-  });
-
-  @override
-  State<_SeatPickerDialog> createState() => _SeatPickerDialogState();
-}
-
-class _SeatPickerDialogState extends State<_SeatPickerDialog> {
-  int? _picked;
-
-  @override
-  void initState() {
-    super.initState();
-    _picked = widget.initialSelected;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final total = widget.totalSeats;
-    final available = widget.availableSeats;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF111111),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Colors.black54, blurRadius: 24, spreadRadius: 6),
-          ],
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header: title + cancel
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Select a Ticket',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Divider(color: Colors.white12, height: 1),
-
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${available.length} of $total Tickets available'
-                  '${_picked != null ? ' • selected: #$_picked' : ''}',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Grid
-              Flexible(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.4,
-                  ),
-                  itemCount: total,
-                  itemBuilder: (_, i) {
-                    final seat = i + 1;
-                    final isAvailable = available.contains(seat);
-                    final selected = _picked == seat;
-
-                    return _SeatTile(
-                      seat: seat,
-                      available: isAvailable,
-                      selected: selected,
-                      brandBlue: widget.brandBlue,
-                      onTap: isAvailable ? () => setState(() => _picked = seat) : null,
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Legend
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: const [
-                  _LegendSwatch(color: Colors.white, border: Colors.white24),
-                  SizedBox(width: 6),
-                  Text('Available', style: TextStyle(color: Colors.white70)),
-                  SizedBox(width: 16),
-                  _LegendSwatch(color: Colors.white10, border: Colors.white24),
-                  SizedBox(width: 6),
-                  Text('Taken', style: TextStyle(color: Colors.white70)),
-                  SizedBox(width: 16),
-                  _LegendSwatch(color: Color(0xFF4C85D0), border: Colors.transparent),
-                  SizedBox(width: 6),
-                  Text('Selected', style: TextStyle(color: Colors.white70)),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Actions
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9E9E9E),
-                        side: BorderSide.none,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('CANCEL', style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _picked == null ? null : () => Navigator.pop(context, _picked),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.brandBlue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        _picked == null ? 'USE SELECTED' : 'USE TICKET #$_picked',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SeatTile extends StatelessWidget {
-  final int seat;
-  final bool available;
-  final bool selected;
-  final Color brandBlue;
-  final VoidCallback? onTap;
-
-  const _SeatTile({
-    required this.seat,
-    required this.available,
-    required this.selected,
-    required this.brandBlue,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = !available
-        ? Colors.white10
-        : (selected ? brandBlue : Colors.white);
-    final fg = !available
-        ? Colors.white38
-        : (selected ? Colors.white : Colors.black87);
-    final border = selected ? brandBlue : Colors.white24;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: border, width: selected ? 2 : 1),
-        ),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!available)
-                const Icon(Icons.event_seat, size: 14, color: Colors.white38),
-              if (!available) const SizedBox(width: 6),
-              Text(
-                '$seat',
-                style: TextStyle(color: fg, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LegendSwatch extends StatelessWidget {
-  final Color color;
-  final Color border;
-  const _LegendSwatch({required this.color, required this.border});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: border, width: 1),
-      ),
-    );
-  }
-}

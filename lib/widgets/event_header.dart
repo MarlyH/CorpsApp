@@ -55,7 +55,7 @@ class EventHeader extends StatelessWidget {
             children: [
               Expanded(flex: 1, child: avatar),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 8),
 
               Expanded(
                 flex: 2,
@@ -122,8 +122,8 @@ class EventHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white30, height: 1),
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white24, height: 1, thickness: 2),
           const SizedBox(height: 16),
         ],
       ),
@@ -135,7 +135,7 @@ class EventHeader extends StatelessWidget {
   String _headerDate(DateTime d) {
     const months = [
       'Jan', 'Feb', 'March', 'April', 'May', 'June',
-      'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+      'July', 'Aug', 'Sept', 'October', 'Nov', 'Dec'
     ];
     const weekdays = [
       'Monday', 'Tueday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'

@@ -10,7 +10,6 @@ class ResetSuccessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // space at bottom for phones with gesture bars
-    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(

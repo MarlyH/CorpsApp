@@ -1,3 +1,4 @@
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:corpsapp/theme/colors.dart';
@@ -86,7 +87,7 @@ class EventSummaryCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         Text(
-          event_summary.friendlySession(s.sessionType),
+          SessionTypeHelper.format(s.sessionType),
           style: TextStyle(
             color: AppColors.normalText,
             fontSize: smallScreen ? 14 : 16,

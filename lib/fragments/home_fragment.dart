@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/event_tile.dart';
@@ -21,17 +22,6 @@ class EventDetail {
         address = json['address'] as String? ?? '';
 }
 
-String friendlySession(event_summary.SessionType type) {
-  switch (type) {
-    case event_summary.SessionType.Ages8to11:
-      return 'Ages 8 to 11';
-    case event_summary.SessionType.Ages12to15:
-      return 'Ages 12 to 15';
-    default:
-      return 'Ages 16+';
-  }
-}
-
 class HomeFragment extends StatefulWidget {
   const HomeFragment({super.key});
   @override
@@ -43,7 +33,7 @@ class HomeFragmentState extends State<HomeFragment> {
   int dropdownOpenTime = 0;
 
   String? _filterLocation;
-  event_summary.SessionType? _filterSessionType;
+  SessionType? _filterSessionType;
 
   bool _dateAsc = true;
   bool _dateDesc = false;
@@ -145,7 +135,7 @@ class HomeFragmentState extends State<HomeFragment> {
             final now = DateTime.now();
 
             final events = all.where((e) {
-              if (e.status != event_summary.EventStatus.Available) return false;
+              if (e.status != event_summary.EventStatus.available) return false;
               if (currentLocation != null && e.locationName != currentLocation) {
                 return false;
               }
@@ -198,7 +188,6 @@ class HomeFragmentState extends State<HomeFragment> {
                                   EventsFilter(
                                     onChanged: (v) => setState(() => _filterSessionType = v),
                                     filterSessionType: _filterSessionType,
-                                    friendlySession: friendlySession,
                                   ),
                                   EventsSort(
                                     dateAsc: _dateAsc,

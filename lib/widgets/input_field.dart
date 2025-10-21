@@ -20,6 +20,7 @@ class InputField extends StatefulWidget {
   final Widget? customContent;
   final bool isReadOnly;
   final bool isDisabled;
+  final bool isRequired;
 
   const InputField({
     super.key,
@@ -41,6 +42,7 @@ class InputField extends StatefulWidget {
     this.customContent,
     this.isReadOnly = false,
     this.isDisabled = false,
+    this.isRequired = true
   });
 
   @override
@@ -119,7 +121,10 @@ class _InputFieldState extends State<InputField> {
                 errorStyle: TextStyle(color: AppColors.errorColor),
               ),
               validator: widget.validator ??
-                  (v) => v == null || v.isEmpty ? 'Required' : null,
+                (widget.isRequired
+                    ? (v) => v == null || v.isEmpty ? 'Required' : null
+                    : null
+                ),
             ),        
       ],
     );

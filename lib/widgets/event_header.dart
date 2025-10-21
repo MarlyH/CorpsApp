@@ -1,7 +1,8 @@
 import 'package:corpsapp/models/event_summary.dart';
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
-import 'package:corpsapp/models/event_detail.dart' hide friendlySession;
+import 'package:corpsapp/models/event_detail.dart';
 
 class EventHeader extends StatelessWidget {
   final EventSummary event; // replace `dynamic` with your actual Event model type
@@ -81,7 +82,7 @@ class EventHeader extends StatelessWidget {
                     const SizedBox(height: 4),
 
                     Text(
-                    friendlySession(event.sessionType),
+                    SessionTypeHelper.format(event.sessionType),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: screenWidth < 360 ? 24 : 28,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
@@ -15,11 +16,10 @@ import '../models/location.dart';
 import '../services/auth_http_client.dart';
 import '../services/token_service.dart';
 
-enum SessionType { Ages8to11, Ages12to15, Adults }
 const _sessionTypeValues = {
-  SessionType.Ages8to11: 0,
-  SessionType.Ages12to15: 1,
-  SessionType.Adults: 2
+  SessionType.ages8to11: 0,
+  SessionType.ages12to15: 1,
+  SessionType.adults: 2
 };
 
 class CreateEventView extends StatefulWidget {
@@ -254,27 +254,20 @@ class _CreateEventViewState extends State<CreateEventView> {
               children: [
                 InputField(
                   label: 'Session Type',
-                  hintText: '',
-                  customContent: Row(children: [
-                  Expanded(child: RadioListTile<SessionType>(
-                    contentPadding: EdgeInsets.all(0),
-                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4), 
-                    title: const Text('Ages 8 – 11', style: TextStyle(color: Colors.white)),
-                    value: SessionType.Ages8to11,
-                    groupValue: _sessionType,
-                    activeColor: AppColors.primaryColor,
+                  hintText: 'Select session type',
+                  customContent: DropdownButtonFormField<SessionType>(
+                    hint: Text('Select session type', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    decoration: _inputDecoration(),
+                    icon: Icon(Icons.arrow_drop_down, color: Colors.black87),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: AppColors.normalText),
+                    items: SessionType.values.map((session) => DropdownMenuItem<SessionType>(
+                      value: session,
+                      child: Text(SessionTypeHelper.format(session), style: const TextStyle(color: AppColors.normalText)),
+                    )).toList(),
                     onChanged: (v) => setState(() => _sessionType = v),
-                  )),
-                  Expanded(child: RadioListTile<SessionType>(
-                    contentPadding: EdgeInsets.all(0),
-                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4), 
-                    title: const Text('Ages 12 – 15', style: TextStyle(color: Colors.white)),
-                    value: SessionType.Ages12to15,
-                    groupValue: _sessionType,
-                    activeColor: AppColors.primaryColor,
-                    onChanged: (v) => setState(() => _sessionType = v),
-                  )),
-                ]),
+                    validator: (v) => v == null ? 'Please select a location' : null,
+                  )
                 ),
 
                 const SizedBox(height: 16),
@@ -284,7 +277,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                   label: 'Location',
                   hintText: 'Select city or town',
                   customContent: DropdownButtonFormField<Location>(
-                    hint: Text('Select city or town', style: TextStyle(color: AppColors.disabled, fontWeight: FontWeight.bold)),
+                    hint: Text('Select city or town', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     decoration: _inputDecoration(),
                     icon: Icon(Icons.arrow_drop_down, color: Colors.black87),
                     dropdownColor: Colors.white,
@@ -293,7 +286,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                       value: loc,
                       child: Text(loc.name, style: const TextStyle(color: AppColors.normalText)),
                     )).toList(),
-                    value: _location,
+                    initialValue: _location,
                     onChanged: (v) => setState(() => _location = v),
                     validator: (v) => v == null ? 'Please select a location' : null,
                   ),
@@ -421,6 +414,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                   hintText: 'Enter a description, additional notes, or requirements for the event.',
                   controller: _descCtl,
                   maxLines: 5,
+                  isRequired: false,
                 ),         
 
                 const SizedBox(height: 24),

@@ -1,16 +1,14 @@
-import 'package:corpsapp/models/event_summary.dart' as event_summary;
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 class EventsFilter extends StatelessWidget {
-  final event_summary.SessionType? filterSessionType;
-  final String Function(event_summary.SessionType) friendlySession;
-  final void Function(event_summary.SessionType?) onChanged;
+  final SessionType? filterSessionType;
+  final void Function(SessionType?) onChanged;
 
   const EventsFilter({
     super.key,
     required this.filterSessionType,
-    required this.friendlySession,
     required this.onChanged,
   });
 
@@ -28,7 +26,7 @@ class EventsFilter extends StatelessWidget {
         const SizedBox(width: 4),
 
         Flexible(
-          child: DropdownMenu<event_summary.SessionType?>(
+          child: DropdownMenu<SessionType?>(
             showTrailingIcon: false,
             initialSelection: filterSessionType,
             onSelected: onChanged,
@@ -45,14 +43,14 @@ class EventsFilter extends StatelessWidget {
               contentPadding: EdgeInsets.zero, // remove padding around text
             ),
             dropdownMenuEntries: [
-              const DropdownMenuEntry<event_summary.SessionType?>(
+              DropdownMenuEntry<SessionType?>(
                 value: null,
                 label: 'All Ages',
               ),
-              ...event_summary.SessionType.values.map(
-                (session) => DropdownMenuEntry<event_summary.SessionType?>(
+              ...SessionType.values.map(
+                (session) => DropdownMenuEntry<SessionType>(
                   value: session,
-                  label: friendlySession(session),
+                  label: SessionTypeHelper.format(session),
                 ),
               ),
             ],

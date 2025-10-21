@@ -1,12 +1,12 @@
-import 'package:corpsapp/models/event_summary.dart' as event_summary;
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class EventsSort extends StatefulWidget {
-  final event_summary.SessionType? session;
+  final SessionType? session;
   final bool dateAsc;
   final bool dateDesc;
-  final void Function(event_summary.SessionType?, bool, bool) onChanged;
+  final void Function(SessionType?, bool, bool) onChanged;
 
   const EventsSort({
     super.key,

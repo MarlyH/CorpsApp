@@ -1,7 +1,6 @@
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/foundation.dart';
 
-// Mirrors server‐side enum EventSessionType
-enum SessionType { Kids, Teens, Adults }
 
 SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is int && raw >= 0 && raw < SessionType.values.length) {
@@ -10,21 +9,10 @@ SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is String) {
     return SessionType.values.firstWhere(
       (e) => describeEnum(e).toLowerCase() == raw.toLowerCase(),
-      orElse: () => SessionType.Kids,
+      orElse: () => SessionType.ages8to11,
     );
   }
-  return SessionType.Kids;
-}
-
-String friendlySession(SessionType s) {
-  switch (s) {
-    case SessionType.Kids:
-      return 'Ages 8 to 11';
-    case SessionType.Teens:
-      return 'Ages 12 to 15';
-    case SessionType.Adults:
-      return 'Ages 16+';
-  }
+  return SessionType.ages8to11;
 }
 
 // Full detail for GET /api/events/{id}

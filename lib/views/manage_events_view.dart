@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
@@ -7,7 +8,7 @@ import 'package:corpsapp/widgets/search_bar.dart';
 import 'package:flutter/material.dart';
 import '../models/event_summary.dart';
 import '../services/auth_http_client.dart';
-import 'manage_event_detail_view.dart' hide friendlySession;
+import 'manage_event_detail_view.dart';
 
 class ManageEventsView extends StatefulWidget {
   const ManageEventsView({super.key});
@@ -80,7 +81,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
 
     return [
       e.locationName,
-      friendlySession(e.sessionType),
+      SessionTypeHelper.format(e.sessionType),
       weekdayFull, weekdayAbbr,
       monthFull, monthAbbr, mm,
       dd, yyyy, iso,

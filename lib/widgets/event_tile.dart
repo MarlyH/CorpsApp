@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_details.dart';
 import 'package:corpsapp/widgets/alert_dialog.dart';
@@ -220,7 +221,7 @@ class EventTileState extends State<EventTile> {
                 ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
                 : "You won't receive alerts for this event anymore.",
             extraContentText:
-                '${friendlySession(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
+                '${SessionTypeHelper.format(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
             buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
             buttonAction: working ? null : () => confirm(setSB),
           );

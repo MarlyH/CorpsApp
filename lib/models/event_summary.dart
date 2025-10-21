@@ -1,7 +1,7 @@
+import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/foundation.dart';
 
-enum SessionType { Ages8to11, Ages12to15, Adults }
-enum EventStatus  { Available, Unavailable, Cancelled, Concluded }
+enum EventStatus  { available, unavailable, cancelled, concluded }
 
 SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is int && raw >= 0 && raw < SessionType.values.length) {
@@ -10,27 +10,19 @@ SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is String) {
     return SessionType.values.firstWhere(
       (e) => describeEnum(e).toLowerCase() == raw.toLowerCase(),
-      orElse: () => SessionType.Ages8to11,
+      orElse: () => SessionType.ages8to11,
     );
   }
-  return SessionType.Ages8to11;
+  return SessionType.ages8to11;
 }
 
 EventStatus statusFromRaw(int raw) {
   switch (raw) {
-    case 1: return EventStatus.Unavailable;
-    case 2: return EventStatus.Cancelled;
-    case 3: return EventStatus.Concluded;
+    case 1: return EventStatus.unavailable;
+    case 2: return EventStatus.cancelled;
+    case 3: return EventStatus.concluded;
     case 0:
-    default: return EventStatus.Available;
-  }
-}
-
-String friendlySession(SessionType s) {
-  switch (s) {
-    case SessionType.Ages8to11: return 'Ages 8 to 11';
-    case SessionType.Ages12to15: return 'Ages 12 to 15';
-    case SessionType.Adults:     return 'Ages 16+';
+    default: return EventStatus.available;
   }
 }
 

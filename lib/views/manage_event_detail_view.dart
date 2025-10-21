@@ -482,17 +482,6 @@ class _Attendee {
 // View helpers
 // ==============================
 
-String friendlySession(SessionType type) {
-  switch (type) {
-    case SessionType.Ages8to11:
-      return 'Ages 8 to 11';
-    case SessionType.Ages12to15:
-      return 'Ages 12 to 15';
-    default:
-      return 'Ages 16+';
-  }
-}
-
 String niceDayDate(DateTime d) {
   const week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

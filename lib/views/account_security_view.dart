@@ -278,7 +278,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
 
 /// Bottom-sheet delete confirmation (keyboard-safe, tidy)
 class _DeleteConfirmSheet extends StatefulWidget {
-  const _DeleteConfirmSheet({super.key});
+  const _DeleteConfirmSheet();
 
   @override
   State<_DeleteConfirmSheet> createState() => _DeleteConfirmSheetState();

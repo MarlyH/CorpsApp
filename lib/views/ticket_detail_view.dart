@@ -12,18 +12,12 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
-import 'package:barcode/barcode.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/booking_model.dart';
 import '../services/auth_http_client.dart';
 
-enum SessionType { Kids, Teens, Adults }
+enum SessionType { kids, teens, adults }
 
 SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is int && raw >= 0 && raw < SessionType.values.length) {
@@ -32,19 +26,19 @@ SessionType sessionTypeFromRaw(dynamic raw) {
   if (raw is String) {
     return SessionType.values.firstWhere(
       (e) => e.toString().split('.').last.toLowerCase() == raw.toLowerCase(),
-      orElse: () => SessionType.Kids,
+      orElse: () => SessionType.kids,
     );
   }
-  return SessionType.Kids;
+  return SessionType.kids;
 }
 
 String friendlySession(SessionType s) {
   switch (s) {
-    case SessionType.Kids:
+    case SessionType.kids:
       return 'Ages 8 to 11';
-    case SessionType.Teens:
+    case SessionType.teens:
       return 'Ages 12 to 15';
-    case SessionType.Adults:
+    case SessionType.adults:
       return 'Ages 16+';
   }
 }
@@ -171,168 +165,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
-
-  // ---------- PDF BUILD (shared by Share & Download) ----------
-  Future<Uint8List> _buildPdfBytes(EventDetail detail) async {
-    final pdf = pw.Document();
-
-    final dateLabel = DateFormat('d MMM, yyyy').format(widget.booking.eventDate);
-    final session = friendlySession(detail.sessionType);
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        build: (context) {
-          return pw.Container(
-            decoration: pw.BoxDecoration(
-              borderRadius: pw.BorderRadius.circular(16),
-              color: PdfColors.white,
-              border: pw.Border.all(color: PdfColors.grey300, width: 1),
-            ),
-            padding: const pw.EdgeInsets.all(16),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Text(
-                  widget.booking.attendeeName.toUpperCase(),
-                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  session,
-                  style: pw.TextStyle(fontSize: 20, color: PdfColors.grey700),
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 16),
-
-                _pdfDetailRow('Location', widget.booking.eventName),
-                _pdfDetailRow('Address', detail.address),
-                _pdfDetailRow('Date', dateLabel),
-                _pdfDetailRow('Time', '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),
-                _pdfDetailRow('Ticket', widget.booking.seatNumber.toString().padLeft(2, '0')),
-                // Only show for child bookings:
-                if (widget.booking.isForChild)
-                  _pdfDetailRow('Does the attendee require a Parent/Guardian to be present on event conclusion?', widget.booking.canBeLeftAlone ? 'Yes' : 'No'),
-
-
-                pw.SizedBox(height: 12),
-                pw.Divider(color: PdfColors.grey300),
-                pw.SizedBox(height: 8),
-
-                pw.Text('Description', style: pw.TextStyle(fontSize: 20, color: PdfColors.grey700)),
-                pw.SizedBox(height: 4),
-                pw.Text(detail.description, style: const pw.TextStyle(fontSize: 20)),
-
-                pw.SizedBox(height: 16),
-                pw.Divider(color: PdfColors.grey300),
-                pw.SizedBox(height: 16),
-
-                // TRUE QR CODE IN PDF
-                pw.Align(
-                  alignment: pw.Alignment.center,
-                  child: pw.BarcodeWidget(
-                    barcode: Barcode.qrCode(),
-                    data: widget.booking.qrCodeData,
-                    width: 200,
-                    height: 200,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    return await pdf.save();
-  }
-
-  String _sanitize(String s) => s.replaceAll(RegExp(r'[^\w\d\-]+'), '_');
-
-  pw.Widget _pdfDetailRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4),
-      child: pw.Row(
-        children: [
-          pw.Expanded(
-            flex: 2,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(color: PdfColors.grey600, fontSize: 20),
-            ),
-          ),
-          pw.Expanded(
-            flex: 3,
-            child: pw.Text(
-              value,
-              textAlign: pw.TextAlign.right,
-              style: const pw.TextStyle(fontSize: 20),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  // ---------- /PDF BUILD ----------
-
-  // ---------- SHARE ----------
-  Future<void> _sharePdf(EventDetail detail) async {
-    try {
-      final bytes = await _buildPdfBytes(detail);
-      final fileName =
-          'YourCorps_Ticket_${_sanitize(widget.booking.attendeeName)}_${DateFormat('yyyy-MM-dd').format(widget.booking.eventDate)}.pdf';
-      await Printing.sharePdf(bytes: bytes, filename: fileName);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to share PDF: $e')),
-      );
-    }
-  }
-
-  // ---------- DOWNLOAD (shows native folder/location picker on iOS & Android) ----------
-  Future<void> _downloadPdf(EventDetail detail) async {
-    try {
-      final bytes = await _buildPdfBytes(detail);
-      final fileName =
-          'YourCorps_Ticket_${_sanitize(widget.booking.attendeeName)}_${DateFormat('yyyy-MM-dd').format(widget.booking.eventDate)}.pdf';
-
-      final params = SaveFileDialogParams(
-        data: bytes,
-        fileName: fileName,
-        mimeTypesFilter: const ['application/pdf'],
-      );
-
-      // This opens the native “Save to…” dialog:
-      final savedPath = await FlutterFileDialog.saveFile(params: params);
-
-      if (!mounted) return;
-
-      if (savedPath != null && savedPath.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Saved to: $savedPath'),
-            action: SnackBarAction(
-              label: 'OPEN',
-              onPressed: () => OpenFilex.open(savedPath),
-            ),
-            duration: const Duration(seconds: 6),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Save canceled')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save PDF: $e')),
-      );
-    }
-  }
+  
   // ---------- /DOWNLOAD ----------
 
   Future<Uint8List?> _captureTicketImage() async {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,21 +58,19 @@ class _DashboardViewState extends State<DashboardView> {
     await messaging.setAutoInitEnabled(enabled);
 
     // Request permission (safe on Android, needed on iOS)
-    await messaging.requestPermission();
-    //iOS suppresses notification alerts when the app is open unless you opt in
-    await messaging.requestPermission(
+    NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
-    );
+    );    
 
     // get the FCM token and register it with API -> Azure Notification Hubs
-    if (enabled) {
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       final token = await messaging.getToken();
       if (token != null) {
         try {        
           await AuthHttpClient.registerDeviceToken(token);
-          print (token);
+          print ('token: $token');
         } catch (e) {
           print('Error registering device token: $e');
         }

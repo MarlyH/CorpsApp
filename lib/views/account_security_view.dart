@@ -241,65 +241,111 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     );
   }
 
- Widget _buildTile({
-  required String label,
-  required String value,
-  VoidCallback? onTap,
-  bool showArrow = false,
-  String? errorText,
-}) {
-  return ListTile(
-    title: Text(
-      label,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-    subtitle: errorText != null
-        ? Text(
-            errorText,
-            style: const TextStyle(
-              color: AppColors.errorColor,
-              fontSize: 16,
-            ),
-          )
-        : null,
-    trailing: showArrow
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth:200), // Adjust as needed
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+  Widget _buildTile({
+    required String label,
+    required String value,
+    VoidCallback? onTap,
+    bool showArrow = false,
+    String? errorText,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final narrow = c.maxWidth < 360;  // thershold to tune if needed
+
+            if (errorText != null) {
+              return Text(
+                errorText,
+                style: const TextStyle(color: AppColors.errorColor, fontSize: 16),
+              );
+            }
+
+            if (narrow) {
+              // Stack vertically on narrow devices
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          value,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  if (showArrow)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.chevron_right, color: Colors.white),
+                    ),
+                ],
+              );
+            }
+
+            // Side-by-side on wider devices
+            return Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: Colors.white),
-            ],
-          )
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-    onTap: onTap,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-  );
-}
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                if (showArrow)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(Icons.chevron_right, color: Colors.white),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 
 
   Widget _divider() => const Divider(

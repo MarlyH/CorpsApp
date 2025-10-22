@@ -241,32 +241,66 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     );
   }
 
-  Widget _buildTile({
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-    bool showArrow = false,
-    String? errorText,
-  }) {
-    return ListTile(
-      title: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
-      subtitle: errorText != null
-        ? Text(errorText, style: const TextStyle(color: AppColors.errorColor, fontSize: 16))
+ Widget _buildTile({
+  required String label,
+  required String value,
+  VoidCallback? onTap,
+  bool showArrow = false,
+  String? errorText,
+}) {
+  return ListTile(
+    title: Text(
+      label,
+      style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    subtitle: errorText != null
+        ? Text(
+            errorText,
+            style: const TextStyle(
+              color: AppColors.errorColor,
+              fontSize: 16,
+            ),
+          )
         : null,
-      trailing: showArrow
+    trailing: showArrow
         ? Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth:200), // Adjust as needed
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_right, color: Colors.white),
             ],
           )
-        : Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-    );
-  }
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+    onTap: onTap,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+  );
+}
+
 
   Widget _divider() => const Divider(
     color: Colors.white24,

@@ -174,7 +174,7 @@ class HomeFragmentState extends State<HomeFragment> {
                       });
                     },
                     bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(56), // filters + spacer
+                      preferredSize: const Size.fromHeight(32), // filters + spacer
                       child: ScrollGuard(
                         child: Container(
                           color: AppColors.background,
@@ -182,6 +182,7 @@ class HomeFragmentState extends State<HomeFragment> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              const SizedBox(height: 16),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -202,7 +203,6 @@ class HomeFragmentState extends State<HomeFragment> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8), // breathing room under filters
                             ],
                           ),
                         ),
@@ -213,7 +213,7 @@ class HomeFragmentState extends State<HomeFragment> {
                   // CONTENT
                   SliverToBoxAdapter(
                     child: Container(
-                      padding: AppPadding.screen.copyWith(top: 12),
+                      padding: AppPadding.screen.copyWith(top: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

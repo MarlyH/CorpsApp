@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -64,7 +66,10 @@ class _DashboardViewState extends State<DashboardView> {
 
     // get the FCM token and register it with API -> Azure Notification Hubs
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      final token = await messaging.getToken();
+      final token = Platform.isAndroid
+          ? await messaging.getToken()
+          : await messaging.getAPNSToken();
+
       if (token != null) {
         try {        
           await AuthHttpClient.registerDeviceToken(token);

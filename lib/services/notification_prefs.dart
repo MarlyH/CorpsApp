@@ -19,7 +19,7 @@ class NotificationPrefs {
     final fm = FirebaseMessaging.instance;
     await fm.setAutoInitEnabled(false);
     try {
-      final token = await fm.getToken();
+      //final token = await fm.getToken();
       // OPTIONAL: if you add an API to unregister tokens, call it here.
       // if (token != null) await AuthHttpClient.unregisterDeviceToken(token);
     } catch (_) {}

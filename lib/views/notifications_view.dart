@@ -3,9 +3,6 @@ import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import '../providers/auth_provider.dart';
 import '../services/auth_http_client.dart';
 import '../services/notification_prefs.dart';
 
@@ -61,8 +58,8 @@ class _NotificationsViewState extends State<NotificationsView> {
         }
       } else {
         // Turn OFF locally and delete token so device stops receiving
-        final fm = FirebaseMessaging.instance;
-        final token = await fm.getToken();
+        //final fm = FirebaseMessaging.instance;
+        //final token = await fm.getToken();
         await NotificationPrefs.disablePush();
         await NotificationPrefs.setEnabled(false);
 

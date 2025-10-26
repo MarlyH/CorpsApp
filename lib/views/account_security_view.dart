@@ -38,27 +38,25 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
     required String initial,
     required String hint,
     required Future<void> Function(String) onSubmit,
+    String? successMessage,
   }) async {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
-        padding: EdgeInsetsGeometry.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: SingleFieldDialog(
-          title: title,
-          initial: initial,
-          hint: hint,
-        ),
-      )     
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SingleFieldDialog(title: title, initial: initial, hint: hint),
+      ),
     );
+
     if (result == null || result.trim() == initial.trim()) return;
 
     setState(() => _isLoading = true);
     try {
       await onSubmit(result.trim());
       await context.read<AuthProvider>().loadUser();
-      _showSnack('$title updated', bg: Colors.green);
+      _showSnack(successMessage ?? '$title updated', bg: Colors.green); // <-- here
     } catch (e) {
       _showSnack('Failed to update: $e');
     } finally {
@@ -132,7 +130,21 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
 
                               _buildTile(
                                 label: 'Username',
-                                value: user['userName'] as String? ?? '',                        
+                                value: user['userName'] as String? ?? '',
+                                showArrow: true,
+                                onTap: () => _editField(
+                                  title: 'Username',
+                                  initial: user['userName'] as String? ?? '',
+                                  hint: 'letters/numbers/underscore (3–30)',
+                                  onSubmit: (value) async {
+                                    final username = value.trim();
+                                    if (!RegExp(r'^[a-zA-Z0-9_]{3,30}$').hasMatch(username)) 
+                                    {
+                                      throw 'Username must be 3–30 chars, letters/numbers/underscore only.';
+                                    }
+                                    await AuthHttpClient.updateProfile(newUserName: username);
+                                  },
+                                ),
                               ),
 
                               _divider(),
@@ -145,6 +157,7 @@ class _AccountSecurityViewState extends State<AccountSecurityView> {
                                   title: 'Email',
                                   initial: user['email'] as String? ?? '',
                                   hint: 'you@example.com',
+                                  successMessage: 'Verification sent — check your NEW email to confirm the change.',
                                   onSubmit: (value) async {
                                     if (!EmailValidator.validate(value)) {
                                       throw 'Enter a valid email';

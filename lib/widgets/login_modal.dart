@@ -14,7 +14,7 @@ class RequireLoginModal extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             const Text(
-              'Login Required',
+              'LOGIN REQUIRED',
               style: TextStyle(
                 fontFamily: 'WinnerSans',
                 fontSize: 12,
@@ -27,7 +27,7 @@ class RequireLoginModal extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               child: const Text(
-                'Sign In',
+                'SIGN IN',
                 style: TextStyle(
                   fontFamily: 'WinnerSans',
                   fontSize: 12,

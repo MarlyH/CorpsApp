@@ -694,7 +694,7 @@ class _RegisterViewState extends State<RegisterView> {
           ),
           const SizedBox(height: 36),
           const Text(
-            'Verification Email Sent',
+            'VERIFICATION EMAIL SENT',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,

@@ -65,7 +65,7 @@ class ProfileFragment extends StatelessWidget {
               children: [
                 Center(
                   child: Text(
-                    "Profile",
+                    "PROFILE",
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: 'WinnerSans',
@@ -346,7 +346,7 @@ class _ConfirmLogoutDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Log Out?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'WinnerSans')),
+      title: const Text("LOG OUT?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'WinnerSans')),
       content: const Text(
         "Are you sure you want to log out?",
         style: TextStyle(color: Colors.white),

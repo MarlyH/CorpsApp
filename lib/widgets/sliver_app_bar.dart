@@ -35,7 +35,7 @@ class EventBrowserAppBar extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            text,
+            text.toUpperCase(),
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'WinnerSans',
@@ -90,7 +90,7 @@ class EventBrowserAppBar extends StatelessWidget {
                   value: null,
                   child: Center(
                     child: Text(
-                      'All Locations',
+                      'ALL LOCATIONS',
                       style: TextStyle(
                         fontFamily: 'WinnerSans',
                         color: Colors.white,

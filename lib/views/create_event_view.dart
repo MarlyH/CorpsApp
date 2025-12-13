@@ -385,7 +385,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                   const Expanded(
                     flex: 2,
                     child: Text(
-                      'Total number of seats',
+                      'TOTAL NUMBER OF SEATS',
                       style: TextStyle(
                         fontFamily: 'WinnerSans',
                         color: Colors.white,

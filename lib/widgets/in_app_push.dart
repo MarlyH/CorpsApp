@@ -47,7 +47,7 @@ Future<void> showInAppPush(
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        title?.trim().isNotEmpty == true ? title! : 'Notification',
+                        title?.trim().isNotEmpty == true ? title!.toUpperCase() : 'NOTIFICATION',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,

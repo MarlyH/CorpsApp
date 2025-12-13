@@ -44,7 +44,7 @@ class NoInternetOverlay extends StatelessWidget {
                 children: [
                   // Title
                   Text(
-                    'No internet connection',
+                    'NO INTERNET CONNECTION',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'WinnerSans',

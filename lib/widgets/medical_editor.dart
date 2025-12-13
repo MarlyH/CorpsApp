@@ -48,7 +48,7 @@ class _MedicalEditorState extends State<MedicalEditor> {
           const SizedBox(height: 8),
 
           Text(
-            'Medical Condition or Allergy',
+            'MEDICAL CONDITION OR ALLERGY',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

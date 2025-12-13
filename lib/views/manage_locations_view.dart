@@ -236,11 +236,10 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
               const SizedBox(height: 16),
 
               const Text(
-                'Create New Location',
+                'CREATE NEW LOCATION',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
                   fontFamily: 'WinnerSans',
                 ),
                 textAlign: TextAlign.center,
@@ -381,11 +380,10 @@ class _EditLocationModalState extends State<EditLocationModal> {
             children: [
               const SizedBox(height: 16),
               const Text(
-                'Edit Location',
+                'EDIT LOCATION',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
-                  fontWeight: FontWeight.bold,
                   fontFamily: 'WinnerSans',
                 ),
                 textAlign: TextAlign.center,

@@ -323,7 +323,7 @@ class _QrScanViewState extends State<QrScanView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            current.attendeeName,
+                            current.attendeeName.toUpperCase(),
                             style: TextStyle(
                               fontFamily: 'WinnerSans',
                               fontSize: 24
@@ -523,7 +523,7 @@ class _QrScanViewState extends State<QrScanView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(label,
+      child: Text(label.toUpperCase(),
           style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans')),
     );
   }
@@ -586,10 +586,10 @@ class _QrScanViewState extends State<QrScanView> {
               child: Center(
                 child: Text(
                   _lockedOnResult
-                      ? 'Hold on…'
+                      ? 'HOLD ON…'
                       : (widget.expectedEventId == null
-                          ? 'Align the QR code inside the box'
-                          : 'Scanning for event #${widget.expectedEventId}…'),
+                          ? 'ALIGN THE QR CODE WITHIN THE FRAME'
+                          : 'SCANNING FOR EVENT #${widget.expectedEventId}…'),
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 16,

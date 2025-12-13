@@ -165,7 +165,6 @@ class _LoginViewState extends State<LoginView> {
                                 fontFamily: 'WinnerSans',
                                 color: Colors.white,
                                 fontSize: 36,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
 

@@ -58,7 +58,7 @@ class Button extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    label,
+                    label.toUpperCase(),
                     style: TextStyle(
                       fontFamily: 'WinnerSans',
                       color: textColor,

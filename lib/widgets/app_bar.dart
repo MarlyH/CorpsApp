@@ -23,7 +23,7 @@ class ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: AppColors.background,
       title: Text(
-        title,
+        title.toUpperCase(),
         style: const TextStyle(
           fontFamily: 'WinnerSans',
           fontSize: 20,

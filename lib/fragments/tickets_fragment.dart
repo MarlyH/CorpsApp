@@ -157,7 +157,7 @@ class _TicketsFragmentState extends State<TicketsFragment>
         child: Column(
           children: [
             const Text(
-              'MY Bookings',
+              'MY BOOKINGS',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'WinnerSans',

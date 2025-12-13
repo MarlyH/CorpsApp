@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class NavBarButton extends StatelessWidget {
@@ -29,7 +28,7 @@ class NavBarButton extends StatelessWidget {
             Icon(icon, size: 24, color: color),
             const SizedBox(height: 4),
             Text(
-              label,
+              label.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
                 color: color,

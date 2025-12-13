@@ -66,7 +66,7 @@ class _InputFieldState extends State<InputField> {
       children: [
         if (widget.label != null) ...[
           Text(
-            widget.label!,
+            widget.label!.toUpperCase(),
             style: const TextStyle(
               fontFamily: 'WinnerSans',
               color: Colors.white,

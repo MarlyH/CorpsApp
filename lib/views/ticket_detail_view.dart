@@ -312,7 +312,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
 
                             Center(
                               child: Text(
-                                widget.booking.attendeeName,
+                                widget.booking.attendeeName.toUpperCase(),
                                 style: const TextStyle(
                                   fontFamily: 'WinnerSans',
                                   fontSize: 32,

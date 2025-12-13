@@ -38,7 +38,7 @@ class PoliciesView extends StatelessWidget {
           children: [
             // General section
             CupertinoListSection.insetGrouped(
-              header: Text( 'General', style: TextStyle( fontFamily: 'WinnerSans', fontSize: 16 )),
+              header: Text( 'GENERAL', style: TextStyle( fontFamily: 'WinnerSans', fontSize: 16 )),
               margin: EdgeInsets.all(0),
               backgroundColor: AppColors.background,
               hasLeading: false,
@@ -56,7 +56,7 @@ class PoliciesView extends StatelessWidget {
 
             // Child Protection section
             CupertinoListSection.insetGrouped(
-              header: Text( 'Child Protection', style: TextStyle( fontFamily: 'WinnerSans', fontSize: 16 )),
+              header: Text( 'CHILD PROTECTION', style: TextStyle( fontFamily: 'WinnerSans', fontSize: 16 )),
               margin: EdgeInsets.all(0),
               backgroundColor: AppColors.background,
               hasLeading: false,

@@ -153,7 +153,7 @@ final List<MedicalItem> medicalItems = [];
               const SizedBox(height: 12),
 
               Text(
-                'Add New Child',
+                'ADD NEW CHILD',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

@@ -19,7 +19,7 @@
             android:value="default_channel"/>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_stat_yourcorps_logo_vertical" />
+            android:resource="@drawable/ic_stat_cyclone" />
         <meta-data
           android:name="com.google.firebase.messaging.default_notification_color"
           android:resource="@android:color/black" />

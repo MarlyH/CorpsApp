@@ -1,37 +1,20 @@
 #!/bin/sh
 
-# Fail on error
+# Fail if any command fails
 set -e
 
-# 1. Navigate to the root of the repo
-cd "$(dirname "$0")/../.."
+# 1. Navigate to the root of your project
+cd $CI_WORKSPACE
 
-# 2. Define Flutter version and path
-FLUTTER_VERSION="3.38.0" # Use your specific version here
-FLUTTER_SDK_DIR="$HOME/developer/flutter"
+# 2. Install Flutter (Xcode Cloud doesn't have it by default)
+git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter
+export PATH="$PATH:$HOME/flutter/bin"
 
-# 3. Download Flutter if not already present (caching)
-if [ ! -d "$FLUTTER_SDK_DIR" ]; then
-    echo "Downloading Flutter SDK..."
-    mkdir -p $HOME/developer
-    curl -o flutter.zip https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_$FLUTTER_VERSION-stable.zip
-    unzip -q flutter.zip -d $HOME/developer
-    rm flutter.zip
-fi
-
-# 4. Add Flutter to PATH for this session
-export PATH="$FLUTTER_SDK_DIR/bin:$PATH"
-
-# 5. Disable analytics to speed up the process
-flutter config --no-analytics
-
-# 6. Precache iOS artifacts and get dependencies
-echo "Fetching Flutter dependencies..."
-flutter precache --ios
+# 3. Generate the config files (This creates the "Generated.xcconfig" for the Cloud)
 flutter pub get
 
-# 7. Install CocoaPods
-echo "Installing Pods..."
+# 4. Install CocoaPods
 cd ios
-# Xcode Cloud has CocoaPods installed, but we need to link it
 pod install
+
+exit 0

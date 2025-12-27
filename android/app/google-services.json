@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1062951344148:android:0dd5204037ee4d2463af01",
+        "mobilesdk_app_id": "1:1062951344148:android:1811b26f826024dc63af01",
         "android_client_info": {
-          "package_name": "com.example.corpsapp"
+          "package_name": "com.digicool.corpsapp"
         }
       },
       "oauth_client": [],

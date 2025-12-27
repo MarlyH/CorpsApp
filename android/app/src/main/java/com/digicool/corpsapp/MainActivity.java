@@ -1,4 +1,4 @@
-package com.example.corpsapp;
+package com.digicool.corpsapp;
 
 import io.flutter.embedding.android.FlutterActivity;
 

@@ -25,7 +25,7 @@ class EventsFilter extends StatelessWidget {
         const SizedBox(width: 4),
         Flexible(
           child: DropdownMenu<SessionType>(
-            trailingIcon: null,
+            showTrailingIcon: false,
             initialSelection: filterSessionType,
             onSelected: onChanged,
             textStyle: const TextStyle(

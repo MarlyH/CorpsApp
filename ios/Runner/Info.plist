@@ -2,6 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>CORPS® does not use bluetooth. </string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CORPS® does not use your location. </string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>CORPS® does not track your location. </string>
+	<key>NSSiriUsageDescription</key>
+	<string>CORPS® does not integrate Siri.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>CORPS® does not use speech recognition.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>CORPS® does not track motion usage. </string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>CORPS® does not access Apple Music. </string>
+	<key>NSContactsUsageDescription</key>
+	<string>CORPS® does not access your contacts. </string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>CORPS® accesses your calendar to display the corresponding events for the date. </string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -37,8 +55,6 @@
 	<string>CORPS® needs camera access to scan QR codes. </string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>CORPS® needs photo library access to save event tickets to your photo gallery.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>CORPS access to view your photos.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

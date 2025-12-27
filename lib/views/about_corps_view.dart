@@ -83,7 +83,7 @@ class AboutCorpsView extends StatelessWidget {
                   onTap: () async {
                     const String googleStoreUrl =
                         'https://play.google.com/store/apps/details?id=com.example.corpsapp'; 
-                    const String appleStoreUrl = ''; // TODO: fill url once app is live
+                    const String appleStoreUrl = 'https://apps.apple.com/app/id6756507205?action=write-review'; //
 
                     final Uri? url = Platform.isAndroid
                         ? Uri.parse(googleStoreUrl)
@@ -103,7 +103,7 @@ class AboutCorpsView extends StatelessWidget {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Could not open the store page.'),
+                          content: Text('Could not open the store page. Please try searching for the app manually in the app store.'),
                         ),
                       );
                     }
@@ -122,10 +122,13 @@ class AboutCorpsView extends StatelessWidget {
 
                       const SizedBox(width: 2),
 
-                      Text("Copyright Your Corps® Limited 2025", style: TextStyle(fontSize: 12)),
+                      Text(
+                        "Your Corps Limited.", 
+                        style: TextStyle(fontSize: 12)
+                      ),
                     ],
                   ),
-                  Text('All rights reserved.', style: TextStyle(fontSize: 12)),
+                  Text('CORPS® and the Cyclone Logo are registered trademarks. All rights reserved.', style: TextStyle(fontSize: 12)),
                 ],
               ),
             ],

@@ -7,7 +7,7 @@ set -e
 cd "$(dirname "$0")/../.."
 
 # 2. Define Flutter version and path
-FLUTTER_VERSION="3.24.5" # Use your specific version here
+FLUTTER_VERSION="3.29.2" # Use your specific version here
 FLUTTER_SDK_DIR="$HOME/developer/flutter"
 
 # 3. Download Flutter if not already present (caching)

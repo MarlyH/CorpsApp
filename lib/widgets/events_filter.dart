@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 class EventsFilter extends StatelessWidget {
-  final SessionType? filterSessionType;
+  final SessionType filterSessionType; 
   final void Function(SessionType?) onChanged;
 
   const EventsFilter({
@@ -22,11 +22,9 @@ class EventsFilter extends StatelessWidget {
           width: 24,
           height: 24,
         ),
-
         const SizedBox(width: 4),
-
         Flexible(
-          child: DropdownMenu<SessionType?>(
+          child: DropdownMenu<SessionType>(
             showTrailingIcon: false,
             initialSelection: filterSessionType,
             onSelected: onChanged,
@@ -40,19 +38,21 @@ class EventsFilter extends StatelessWidget {
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.zero, // remove padding around text
+              contentPadding: EdgeInsets.zero,
             ),
             dropdownMenuEntries: [
-              DropdownMenuEntry<SessionType?>(
-                value: null,
+              const DropdownMenuEntry<SessionType>(
+                value: SessionType.all,
                 label: 'All Ages',
               ),
-              ...SessionType.values.map(
-                (session) => DropdownMenuEntry<SessionType>(
-                  value: session,
-                  label: SessionTypeHelper.format(session),
+              ...SessionType.values
+                .where((session) => session != SessionType.all)
+                .map(
+                  (session) => DropdownMenuEntry<SessionType>(
+                    value: session,
+                    label: SessionTypeHelper.format(session),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

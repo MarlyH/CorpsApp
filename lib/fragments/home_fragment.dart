@@ -13,7 +13,6 @@ import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../models/event_summary.dart' as event_summary;
 
-/// Local model for /api/events/{id}
 class EventDetail {
   final String description;
   final String address;
@@ -33,7 +32,7 @@ class HomeFragmentState extends State<HomeFragment> {
   int dropdownOpenTime = 0;
 
   String? _filterLocation;
-  SessionType? _filterSessionType;
+  SessionType _filterSessionType = SessionType.all;
 
   bool _dateAsc = true;
   bool _dateDesc = false;
@@ -60,7 +59,6 @@ class HomeFragmentState extends State<HomeFragment> {
     await _futureSummaries;
   }
 
-  // this is  tolerant of "09:30", "9:30", "9:30 AM", and null endTime
   DateTime eventEndDateTime(event_summary.EventSummary e) {
     final t = (e.endTime).trim();
     final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
@@ -105,7 +103,7 @@ class HomeFragmentState extends State<HomeFragment> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: canManage ? CreateEventFAB() : null,
+      floatingActionButton: canManage ? const CreateEventFAB() : null,
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<event_summary.EventSummary>>(
@@ -115,23 +113,21 @@ class HomeFragmentState extends State<HomeFragment> {
             final hasError = snap.hasError;
             final all = snap.data ?? [];
 
-            // Build locations list
             final allLocations =
                 all.map((e) => e.locationName).toSet().toList()
                   ..sort();
 
-            // Sanitize selection so dropdown never goes blank
             final String? currentLocation =
                 (_filterLocation != null && allLocations.contains(_filterLocation))
                     ? _filterLocation
                     : null;
+            
             if (_filterLocation != currentLocation) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) setState(() => _filterLocation = currentLocation);
               });
             }
 
-            // APPLY FILTERS (rely solely on status from backend)
             final now = DateTime.now();
 
             final events = all.where((e) {
@@ -139,7 +135,8 @@ class HomeFragmentState extends State<HomeFragment> {
               if (currentLocation != null && e.locationName != currentLocation) {
                 return false;
               }
-              if (_filterSessionType != null &&
+              // Filter logic updated for SessionType.all
+              if (_filterSessionType != SessionType.all &&
                   e.sessionType != _filterSessionType) {
                 return false;
               }
@@ -174,43 +171,40 @@ class HomeFragmentState extends State<HomeFragment> {
                       });
                     },
                     bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(32), // filters + spacer
-                      child: ScrollGuard(
-                        child: Container(
-                          color: AppColors.background,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  EventsFilter(
-                                    onChanged: (v) => setState(() => _filterSessionType = v),
-                                    filterSessionType: _filterSessionType,
-                                  ),
-                                  EventsSort(
-                                    dateAsc: _dateAsc,
-                                    dateDesc: _dateDesc,
-                                    onChanged: (session, dateAsc, dateDesc) {
-                                      setState(() {
-                                        _filterSessionType = session;
-                                        _dateAsc = dateAsc;
-                                        _dateDesc = dateDesc;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                      preferredSize: const Size.fromHeight(32),
+                      child: Container(
+                        color: AppColors.background,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                EventsFilter(
+                                  onChanged: (v) => setState(() => _filterSessionType = v ?? SessionType.all),
+                                  filterSessionType: _filterSessionType,
+                                ),
+                                EventsSort(
+                                  dateAsc: _dateAsc,
+                                  dateDesc: _dateDesc,
+                                  onChanged: (session, dateAsc, dateDesc) {
+                                    setState(() {
+                                      _filterSessionType = session ?? SessionType.all;
+                                      _dateAsc = dateAsc;
+                                      _dateDesc = dateDesc;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
 
-                  // CONTENT
                   SliverToBoxAdapter(
                     child: Container(
                       padding: AppPadding.screen.copyWith(top: 4),

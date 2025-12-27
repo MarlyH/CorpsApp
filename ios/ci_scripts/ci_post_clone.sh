@@ -1,34 +1,36 @@
 #!/bin/sh
+set -e
 
-set -e # Exit on error
+echo "--- SETTING UP FLUTTER ---"
 
-cd ../..
+if [ ! -d "$HOME/flutter" ]; then
+  git clone https://github.com/flutter/flutter.git --depth 1 -b stable "$HOME/flutter"
+fi
 
-# Install Flutter
-git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter
 export PATH="$PATH:$HOME/flutter/bin"
 
-# Precache
+flutter --version
 flutter precache --ios
 
-# Move to the project root
 cd "$CI_WORKSPACE"
 
 echo "--- RECREATING .ENV FILE ---"
+: "${API_BASE_URL:?API_BASE_URL is not set}"
+
 cat <<EOF > .env
 API_BASE_URL=$API_BASE_URL
 EOF
 
 echo ".env file created successfully."
 
-# Get dependencies
+echo "--- GETTING FLUTTER DEPENDENCIES ---"
 flutter pub get
 
-# Install CocoaPods
-HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+echo "--- INSTALLING COCOAPODS ---"
+brew list cocoapods >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
 
-# Install Pods
+echo "--- INSTALLING PODS ---"
 cd ios
 pod install
 
-exit 0
+echo "--- DONE ---"

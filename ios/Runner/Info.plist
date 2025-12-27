@@ -34,11 +34,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to scan QR codes.</string>
+	<string>CORPS® needs camera access to scan QR codes. </string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app needs access to save images to your photo gallery.</string>
+	<string>CORPS® needs photo library access to save event tickets to your photo gallery.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs access to view your photos.</string>
+	<string>CORPS access to view your photos.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

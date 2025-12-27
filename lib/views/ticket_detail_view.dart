@@ -190,7 +190,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     final file = File(filePath);
     await file.writeAsBytes(pngBytes);
 
-    await Share.shareXFiles([XFile(filePath)], text: 'My Event Ticket');
+    await Share.shareXFiles([XFile(filePath)], text: '${widget.booking.attendeeName} Event Ticket');
   }
 
   Future<void> _saveTicketImage() async {
@@ -198,11 +198,10 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     if (pngBytes == null) return;
 
     try {
-      // Request permission (important on Android & iOS)
       final status = await Permission.photos.request();
       if (!status.isGranted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission to access photos is required.')),
+          const SnackBar(content: Text('Permission to access photo library is required to save the ticket.')),
         );
         return;
       }
@@ -210,7 +209,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
       // Save to gallery
       final result = await ImageGallerySaverPlus.saveImage(
         pngBytes,
-        name: "YourCorps_Ticket_${widget.booking.bookingId}",
+        name: "${widget.booking.attendeeName} Ticket",
         quality: 100,
       );
 

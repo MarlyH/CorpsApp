@@ -124,11 +124,15 @@ class AboutCorpsView extends StatelessWidget {
 
                       Text(
                         "Your Corps Limited.", 
-                        style: TextStyle(fontSize: 12)
+                        style: TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                  Text('CORPS® and the Cyclone Logo are registered trademarks. All rights reserved.', style: TextStyle(fontSize: 12)),
+                  Text('CORPS® and the Cyclone Logo are registered trademarks. All rights reserved.', 
+                    style: TextStyle(fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ],

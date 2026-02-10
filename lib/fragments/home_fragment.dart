@@ -109,7 +109,6 @@ class HomeFragmentState extends State<HomeFragment> {
         child: FutureBuilder<List<event_summary.EventSummary>>(
           future: _futureSummaries,
           builder: (ctx, snap) {
-            final loading = snap.connectionState == ConnectionState.waiting;
             final hasError = snap.hasError;
             final all = snap.data ?? [];
 

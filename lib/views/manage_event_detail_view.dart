@@ -172,13 +172,12 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
                       margin: EdgeInsets.all(0),
                       backgroundColor: Colors.transparent,
                       children: _attendees.asMap().entries.map((entry) {
-                        final idx = entry.key;
                         final at = entry.value;
                         return ListTile(
                           minVerticalPadding: 20,
                           onTap: () => _openAttendeeDetail(at),
                           title: Text(
-                            '${idx + 1}. ${at.name}', 
+                            '#${at.seatNumber} ${at.name}', 
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                           ),
                           trailing: DropdownButton<BookingStatusX>(

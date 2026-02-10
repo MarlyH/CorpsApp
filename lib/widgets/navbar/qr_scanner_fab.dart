@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:corpsapp/services/auth_http_client.dart';
-import 'package:corpsapp/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../views/qr_scan_view.dart';
@@ -49,7 +48,7 @@ class QrScanFab extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.background, width: borderWidth),
+        border: Border.all(color: Color.fromARGB(255, 18, 18, 18), width: borderWidth),
       ),
       child: Container(
         decoration: BoxDecoration(

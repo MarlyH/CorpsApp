@@ -174,11 +174,6 @@ class _DashboardViewState extends State<DashboardView> {
     final isGuest = context.watch<AuthProvider>().isGuest;
 
     final usesCenterDocked = isManagerOrAdminOrStaff; // only admins/managers get the notch layout
-    final inset = MediaQuery.of(context).padding.bottom + 52.0;
-    final barH = 0;
-
-    // Extra body bottom clearance only when the FAB is center-docked
-    final extraFabClearance = usesCenterDocked ? (_fabDiameter / 2) : 0.0;
 
     // Staff always gets Tickets. Regular users get Tickets. Guests don’t.
     final showTickets = (!isGuest && !isManagerOrAdminOrStaff);

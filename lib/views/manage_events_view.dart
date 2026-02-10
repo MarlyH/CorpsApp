@@ -153,7 +153,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                     padding: EdgeInsets.zero,
                     itemCount: _filtered.length,
                     itemBuilder: (_, i) {
-                      final e = _filtered[i];
+                      final e = _filtered[_filtered.length - 1 - i];
                       return Padding(
                         padding: EdgeInsetsGeometry.symmetric(vertical: 8),                       
                         child: GestureDetector(

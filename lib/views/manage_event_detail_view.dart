@@ -601,8 +601,6 @@ class _AttendeeDetailSheet extends StatelessWidget {
               if (child != null) ...[
                 const Text('Child', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                infoRow(context, label: 'Name', value: child.firstName),
-                infoRow(context, label: 'Date of Birth', value: _fmtDob(child.dateOfBirth)),
                 infoRow(context, label: 'Age', value: '${child.age}'),
                 infoRow(context, label: 'Emergency Contact', value: child.emergencyContactName),
                 infoRow(context, label: 'Emergency Phone', value: child.emergencyContactPhone, kind: _ActionKind.phone),

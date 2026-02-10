@@ -552,7 +552,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      detail.displayName,
+                      '#${detail.seatNumber} ${detail.displayName}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,

@@ -66,15 +66,16 @@ class _DraggableFABState extends State<CreateEventFAB> {
               child: FloatingActionButton(
                 shape: const CircleBorder(
                   side: BorderSide(
-                    color: AppColors.primaryColor,
-                    width: 4,
+                    color: AppColors.background,
+                    width: 6,
                   ),
                 ),
                 backgroundColor: Colors.white,
                 child: const Icon(
+                  weight: 900, 
                   Icons.add,
-                  color: AppColors.primaryColor,
-                  size: 32,
+                  color: AppColors.background,
+                  size: 50,
                 ),
                 onPressed: () {
                   Navigator.of(context).push(

@@ -595,7 +595,7 @@ Future<void> _openUserDetail(_User u) async {
                                     backgroundColor: AppColors.background,
                                     header: Text(
                                       // Capitalize the role for display
-                                      '${titleCase(role)}s',
+                                      role == 'staff' ? titleCase(role) : '${titleCase(role)}s',
                                       style: const TextStyle(
                                         color: Colors.white,
                                       ),

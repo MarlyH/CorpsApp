@@ -178,7 +178,6 @@ class HomeFragmentState extends State<HomeFragment> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -207,21 +206,17 @@ class HomeFragmentState extends State<HomeFragment> {
 
                   SliverToBoxAdapter(
                     child: Container(
-                      padding: AppPadding.screen.copyWith(top: 4),
+                      padding: AppPadding.screen.copyWith(top: 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (loading)
-                            const Center(
-                              child: CircularProgressIndicator(color: Colors.white),
-                            )
-                          else if (hasError)
+                          if (hasError)
                             const Center(
                               child: Text(
                                 'Error loading events',
                                 style: TextStyle(color: Colors.white),
                               ),
-                            )
+                          )
                           else if (events.isEmpty)
                             const Center(
                               child: Text(

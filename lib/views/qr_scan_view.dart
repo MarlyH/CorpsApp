@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:corpsapp/models/medical_condition.dart';
+import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/theme/spacing.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
@@ -7,6 +8,7 @@ import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/medical_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../services/auth_http_client.dart';
 
@@ -102,7 +104,7 @@ class _QrScanViewState extends State<QrScanView> {
 
       if (!mounted) return;
 
-      // 🔹 Check if scanned event matches the expected one
+      // Check if scanned event matches the expected one
       if (detail.eventId != widget.expectedEventId) {
         await _showErrorSheet(
           'This ticket belongs to a different event.\n\n'
@@ -113,7 +115,7 @@ class _QrScanViewState extends State<QrScanView> {
         return;
       }
 
-      // ✅ Show result sheet only if event matches
+      // Show result sheet only if event matches
       await _showResultSheet(detail, widget.expectedEventId);
         } else {
           final msg = _tryGetMessage(resp.body) ?? 'Booking not found (404).';
@@ -297,6 +299,7 @@ class _QrScanViewState extends State<QrScanView> {
           builder: (ctx, setSB) {
             final enabled = primaryEnabled(current.status);
             final label = primaryLabel(current.status);
+            final auth = context.watch<AuthProvider>();
 
             return SizedBox(
               height: 800,
@@ -423,29 +426,32 @@ class _QrScanViewState extends State<QrScanView> {
                                 'MUST the attendee be picked up?',
                                 current.canBeLeftAlone ?  'Yes' : 'No' ,
                               ),
-                               const SizedBox(height: 16),
-                              const Divider(height: 2, color: Colors.black12, thickness: 2),
-                              const SizedBox(height: 16),
-
-                              _kvRow('Emergency Contact', current.child!.emergencyContactName),
-
-                              const SizedBox(height: 4),
-
-                              _kvRow('Emergency Phone', current.child!.emergencyContactPhone),
 
                               const SizedBox(height: 16),
                               const Divider(height: 2, color: Colors.black12, thickness: 2),
-                              const SizedBox(height: 16),  
-                          
-                              //guardian information
-                              _kvRow('Guardian', current.user!.fullName),
-                              _kvRow('Phone Number', current.user?.phoneNumber ?? '-'),
-                              _kvRow('Email', current.user!.email ?? '-'),
-                            ],
+                              const SizedBox(height: 16),
 
-                            const SizedBox(height: 16),
-                            const Divider(height: 2, color: Colors.black12, thickness: 2),
-                            const SizedBox(height: 16),  
+                              if (!auth.isStaff) ... [
+                                _kvRow('Emergency Contact', current.child!.emergencyContactName),
+
+                                const SizedBox(height: 4),
+
+                                _kvRow('Emergency Phone', current.child!.emergencyContactPhone),
+
+                                const SizedBox(height: 16),
+                                const Divider(height: 2, color: Colors.black12, thickness: 2),
+                                const SizedBox(height: 16),  
+                            
+                                //guardian information
+                                _kvRow('Guardian', current.user!.fullName),
+                                _kvRow('Phone Number', current.user?.phoneNumber ?? '-'),
+                                _kvRow('Email', current.user!.email ?? '-'),
+
+                                const SizedBox(height: 16),
+                                const Divider(height: 2, color: Colors.black12, thickness: 2),
+                                const SizedBox(height: 16),  
+                              ],
+                            ],                             
 
                             //medical information
                             _medicalBlock(

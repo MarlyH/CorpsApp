@@ -261,10 +261,12 @@ class _CreateEventViewState extends State<CreateEventView> {
                     icon: Icon(Icons.arrow_drop_down, color: Colors.black87),
                     dropdownColor: Colors.white,
                     style: const TextStyle(color: AppColors.normalText),
-                    items: SessionType.values.map((session) => DropdownMenuItem<SessionType>(
-                      value: session,
-                      child: Text(SessionTypeHelper.format(session), style: const TextStyle(color: AppColors.normalText)),
-                    )).toList(),
+                    items: SessionType.values
+                      .where((session) => session != SessionType.all)
+                      .map((session) => DropdownMenuItem<SessionType>(
+                        value: session,
+                        child: Text(SessionTypeHelper.format(session), style: const TextStyle(color: AppColors.normalText)),
+                      )).toList(),
                     onChanged: (v) => setState(() => _sessionType = v),
                     validator: (v) => v == null ? 'Please select a location' : null,
                   )

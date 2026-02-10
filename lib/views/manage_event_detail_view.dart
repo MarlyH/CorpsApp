@@ -69,6 +69,13 @@ class _ManageEventDetailViewState extends State<ManageEventDetailView> {
           isForChild: isForChild,
         );
       }).toList();
+
+      _attendees.sort((a, b) {
+        final aSeat = a.seatNumber ?? 999999; // push nulls to bottom
+        final bSeat = b.seatNumber ?? 999999;
+        return aSeat.compareTo(bSeat);
+      });
+
     } catch (e) {
       _snack('Error loading attendees: $e', error: true);
     } finally {

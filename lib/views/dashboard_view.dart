@@ -29,9 +29,8 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Sizes
   static const double _fabDiameter = 84.0;
-  static const double _fabBorder = 8.0; // black border around FAB
-  //static const double _bottomPad = 8.0; // extra bottom padding
-  static const double _sideGap = 16.0; // extra horizontal gap around FAB
+  static const double _fabBorder = 12.0; // black border around FAB
+  static const double _sideGap = 0.0; // extra horizontal gap around FAB
 
   @override
   void initState() {
@@ -198,29 +197,21 @@ class _DashboardViewState extends State<DashboardView> {
       _pageController.jumpToPage(0);
     }
 
-    return WillPopScope(
+    return 
+    WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         backgroundColor: AppColors.background,
         extendBody: true,
 
         body: Padding(
-          padding: EdgeInsets.only(bottom: barH + inset + extraFabClearance),
+          padding: EdgeInsets.only(bottom: 0 + 0 + 0),
           child: PageView(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
             children: pages,
           ),
         ),
-
-        // floatingActionButton: (isManagerOrAdmin || isStaff)
-        //   ? (isStaff
-        //       ? Transform.translate( 
-        //           offset: const Offset(-5, 10),
-        //           child: fab,
-        //         )
-        //       : fab)
-        //   : null,
 
         floatingActionButton: isManagerOrAdminOrStaff
           ? Transform.translate(
@@ -235,7 +226,7 @@ class _DashboardViewState extends State<DashboardView> {
 
 
         bottomNavigationBar: BottomAppBar(
-          color: Colors.black,
+          color: Color.fromARGB(255, 18, 18, 18),
           //shape: usesCenterDocked ? 0 : null,
           notchMargin: usesCenterDocked ? 0 : 0,
           child: SizedBox(
@@ -270,15 +261,7 @@ class _DashboardViewState extends State<DashboardView> {
         onTap: _goTo,
       );
     }
-    // if (isStaff) {
-    //   return StaffNavBar(
-    //     selectedIndex: _selectedIndex,
-    //     onTap: _goTo,
-    //     fabDiameter: _fabDiameter,
-    //     fabBorder: _fabBorder,
-    //     sideGap: _sideGap,
-    //   );
-    // }
+    
     return UserNavBar(
       selectedIndex: _selectedIndex,
       onTap: _goTo,

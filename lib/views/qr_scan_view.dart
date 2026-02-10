@@ -326,7 +326,7 @@ class _QrScanViewState extends State<QrScanView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            current.attendeeName.toUpperCase(),
+                            '#${current.seatNumber} ${current.attendeeName.toUpperCase()}',
                             style: TextStyle(
                               fontFamily: 'WinnerSans',
                               fontSize: 24
@@ -417,7 +417,7 @@ class _QrScanViewState extends State<QrScanView> {
 
                             const SizedBox(height: 4),
 
-                            _kvRow('Ticket', current.seatNumber?.toString() ?? '—'),
+                            _kvRow('Ticket #', current.seatNumber?.toString() ?? '—'),
 
                             const SizedBox(height: 4),
 

@@ -27,3 +27,4 @@ doc/api/
 .flutter-plugins-dependencies
 
 android/key.properties
+.idea/caches/deviceStreaming.xml

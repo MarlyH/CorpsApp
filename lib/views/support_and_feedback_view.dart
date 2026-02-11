@@ -205,43 +205,22 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
             child: ListView(
               children: [
                 Text(
-                  'Do you need help or would like to share a feedback?',
+                  'Need a hand or want to share your thoughts?',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
 
                 const Text(
-                  "Send us a message and we’ll get back to you. "
-                  "If you are reporting an issue, please describe the steps that caused the issue, and if applicable, how often it happens.",
-                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                  "Send us a message and we’ll get back to you. ",
+                  style: TextStyle(fontSize: 14, color: Colors.white),
+                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 24),
-
-                // Clickable email link
-                InkWell(
-                  onTap: _sending ? null : _sendEmail,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.email, color: AppColors.primaryColor, size: 24),
-                      SizedBox(width: 4),
-                      Text(
-                        supportEmail,
-                        style: TextStyle(
-                          color: AppColors.primaryColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // Subject input
                 InputField(hintText: '', label: 'Subject', controller: _subjectCtrl),
@@ -249,7 +228,12 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
                 const SizedBox(height: 16),
 
                 // Message input 
-                InputField(hintText: "Enter the issue you're facing or a feedback you'd like to share here.", label: 'Message', controller: _messageCtrl, maxLines: 12),
+                InputField(
+                  hintText: "If you’re reporting an issue, please describe the steps that led to it and, if applicable, how often it occurs.", 
+                  label: 'Message', 
+                  controller: _messageCtrl, 
+                  maxLines: 12
+                ),
                 
                 const SizedBox(height: 24),
 

@@ -24,17 +24,12 @@ class AboutCorpsView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/logo/logo_transparent_1024px.png',
-                      height: 180,
+                      'assets/logo/launch_logo.png',
+                      height: 256,
                       fit: BoxFit.contain,
                     ),
 
-                    const Text(
-                      'Corps App',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
 
                     // Version from pubspec via package_info_plus
                     FutureBuilder<PackageInfo>(
@@ -53,13 +48,13 @@ class AboutCorpsView extends StatelessWidget {
                         final info = snapshot.data!;
                         // e.g. "1.0.0+3" where "1.0.0" is from pubspec version, "+3" is build number
                         // final versionText = 'Version v${info.version}+${info.buildNumber}';
-                        final versionText = 'Version v${info.version}';
+                        final versionText = 'v${info.version}';
                         return Text(
                           versionText,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
-                            fontWeight: FontWeight.w300,
+                            fontWeight: FontWeight.w500,
                           ),
                         );
                       },

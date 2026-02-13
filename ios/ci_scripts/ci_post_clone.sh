@@ -59,7 +59,12 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
 
 echo "===== INSTALLING IOS PODS ====="
 cd ios
+
+rm -rf Pods
+rm -f Podfile.lock
+
 pod install --repo-update
+
 pod update Firebase/Messaging
 
 echo "===== SUCCESS ====="

@@ -90,7 +90,7 @@ class _LandingViewState extends State<LandingView> with WidgetsBindingObserver {
               Expanded(
                 child: Center(
                   child: Image.asset(
-                    'assets/logo/logo_transparent_1024px.png',
+                    'assets/logo/launch_logo.png',
                     height: 280,
                   ),
                 ),

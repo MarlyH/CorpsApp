@@ -174,31 +174,25 @@ class HomeFragmentState extends State<HomeFragment> {
                       child: Container(
                         color: AppColors.background,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                EventsFilter(
-                                  onChanged: (v) => setState(() => _filterSessionType = v ?? SessionType.all),
-                                  filterSessionType: _filterSessionType,
-                                ),
-                                EventsSort(
-                                  dateAsc: _dateAsc,
-                                  dateDesc: _dateDesc,
-                                  onChanged: (session, dateAsc, dateDesc) {
-                                    setState(() {
-                                      _filterSessionType = session ?? SessionType.all;
-                                      _dateAsc = dateAsc;
-                                      _dateDesc = dateDesc;
-                                    });
-                                  },
-                                ),
-                              ],
+                            EventsFilter(
+                              onChanged: (v) => setState(() => _filterSessionType = v ?? SessionType.all),
+                              filterSessionType: _filterSessionType,
+                            ),
+                            EventsSort(
+                              dateAsc: _dateAsc,
+                              dateDesc: _dateDesc,
+                              onChanged: (session, dateAsc, dateDesc) {
+                                setState(() {
+                                  _dateAsc = dateAsc;
+                                  _dateDesc = dateDesc;
+                                });
+                              },
                             ),
                           ],
-                        ),
+                        ),               
                       ),
                     ),
                   ),
@@ -219,7 +213,7 @@ class HomeFragmentState extends State<HomeFragment> {
                           else if (events.isEmpty)
                             const Center(
                               child: Text(
-                                'No sessions found',
+                                'No sessions found. Pull down to refresh.',
                                 style: TextStyle(color: Colors.white70),
                               ),
                             )

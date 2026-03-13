@@ -105,7 +105,7 @@ class HomeFragmentState extends State<HomeFragment> {
       backgroundColor: AppColors.background,
       floatingActionButton: canManage ? const CreateEventFAB() : null,
       body: SafeArea(
-        bottom: false,
+        bottom: true,
         child: FutureBuilder<List<event_summary.EventSummary>>(
           future: _futureSummaries,
           builder: (ctx, snap) {

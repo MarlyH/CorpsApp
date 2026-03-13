@@ -105,7 +105,7 @@ class _NotificationsViewState extends State<NotificationsView> {
               children: [
                 SwitchListTile.adaptive(
                   title: const Text(
-                    'Receive push notifications',
+                    'Receive push notifications?',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   value: _receivePush,
@@ -113,6 +113,11 @@ class _NotificationsViewState extends State<NotificationsView> {
                   activeColor: AppColors.primaryColor,
                   contentPadding: EdgeInsets.all(0),
                 ),
+                Text(
+                    'Turn this on to get reminders when an event is about to start, or when a seat has become available.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),   
+                SizedBox(height: 16),
                 Text(
                     'Note: If notifications are turned off at the system level, '
                     'you may need to enable them in Settings for this app.',

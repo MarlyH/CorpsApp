@@ -417,6 +417,7 @@ class _CreateEventViewState extends State<CreateEventView> {
                   controller: _descCtl,
                   maxLines: 5,
                   isRequired: false,
+                  textInputAction: TextInputAction.newline,
                 ),         
 
                 const SizedBox(height: 24),

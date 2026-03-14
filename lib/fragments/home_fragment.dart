@@ -222,6 +222,7 @@ class HomeFragmentState extends State<HomeFragment> {
                               children: events
                                   .map(
                                     (e) => EventTile(
+                                      key: ValueKey(e.eventId),
                                       summary: e,
                                       isStaff: isStaff,
                                       isUser: isUser,

@@ -78,6 +78,17 @@ class EventTileState extends State<EventTile> {
     _loadWaitlistFlag();
   }
 
+  @override
+  void didUpdateWidget(EventTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // If the event ID changed, reload the details
+    if (oldWidget.summary.eventId != widget.summary.eventId) {
+      _detailFut = widget.loadDetail(widget.summary.eventId);
+      _autoClearedBecauseNowAvailable = false; // reset auto-clear guard for new event
+    }
+  }
+
   void _maybeAutoDisableWaitlist() {
     if (_autoClearedBecauseNowAvailable) return;
     if (!_isWaitlisted) return;

@@ -215,7 +215,7 @@ class _SupportAndFeedbackViewState extends State<SupportAndFeedbackView> {
                 const SizedBox(height: 8),
 
                 const Text(
-                  "Send us a message and we’ll get back to you. ",
+                  "Whether you found a bug in the app, have suggestions for improvement, or want to share your feedback about your experience at a recent event, send us a message and we’ll get back to you. ",
                   style: TextStyle(fontSize: 14, color: Colors.white),
                   textAlign: TextAlign.center,
                 ),

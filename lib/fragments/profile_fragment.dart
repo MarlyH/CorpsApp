@@ -111,9 +111,8 @@ class ProfileFragment extends StatelessWidget {
                         ),
                       ],
 
-                      const SizedBox(height: 8),
-
                       if (isManager || isAdmin || isStaff) ... [
+                        const SizedBox(height: 4),
                         Text(
                           roleLabel,
                           style: const TextStyle(
@@ -125,14 +124,13 @@ class ProfileFragment extends StatelessWidget {
 
                       // Attendance Strikes only for signed-in 'users'
                       if (isUser) ...[
-                        const SizedBox(height: 4),
-                        if (strikeCount > 0) ... [
+                        const SizedBox(height: 4),                       
                           _StrikesBanner(
                             strikeCount: strikeCount.clamp(0, 3),
                             isSuspended: isSuspended,
                             onInfoTap: () => _showStrikesInfo(context),
                           ),
-                        ]                      
+                                           
                       ],
                     ],
                   ),
@@ -288,6 +286,13 @@ class _StrikesBanner extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text('Ban Strikes ($strikeCount): ', 
+              style: TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
             ...flags,
 
             const SizedBox(width: 4),

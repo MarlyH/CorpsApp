@@ -29,10 +29,12 @@ class QrScanFab extends StatelessWidget {
         final start = DateTime.parse('${event['startDate']}T${event['startTime']}');
         final end   = DateTime.parse('${event['startDate']}T${event['endTime']}');
 
+        final scanStart = start.subtract(const Duration(minutes: 30));
+
         // Adjust for overnight events
         final adjustedEnd = end.isBefore(start) ? end.add(const Duration(days: 1)) : end;
 
-        if (now.isAfter(start) && now.isBefore(adjustedEnd)) {
+        if (now.isAfter(scanStart) && now.isBefore(adjustedEnd)) {
           currentEventIds.add(event['eventId']);
         }
       } catch (e) {
@@ -80,13 +82,10 @@ class QrScanFab extends StatelessWidget {
                 return;
               }
 
-              // Pick the first active event automatically
-              final currentEventId = currentEventIds.first;
-
               if (context.mounted) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => QrScanView(expectedEventId: currentEventId),
+                    builder: (_) => QrScanView(),
                   ),
                 );
               }

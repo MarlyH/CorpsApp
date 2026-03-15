@@ -13,9 +13,7 @@ import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../services/auth_http_client.dart';
 
 class QrScanView extends StatefulWidget {
-  final int? expectedEventId;
-
-  const QrScanView({super.key, this.expectedEventId});
+  const QrScanView({super.key});
 
   @override
   State<QrScanView> createState() => _QrScanViewState();
@@ -49,10 +47,15 @@ class _QrScanViewState extends State<QrScanView> {
   void _onQRViewCreated(QRViewController ctrl) {
     _controller = ctrl;
 
-    _controller!
-        .getFlashStatus()
-        .then((on) => mounted ? setState(() => _flashOn = on ?? false) : null)
-        .catchError((_) {});
+    // Wait a bit for iOS scanner to fully initialize
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && _controller != null) {
+        _controller!
+            .getFlashStatus()
+            .then((on) => mounted ? setState(() => _flashOn = on ?? false) : null)
+            .catchError((_) {});
+      }
+    });
 
     _controller!.scannedDataStream.listen((scanData) async {
       if (_lockedOnResult) return;
@@ -104,19 +107,8 @@ class _QrScanViewState extends State<QrScanView> {
 
       if (!mounted) return;
 
-      // Check if scanned event matches the expected one
-      if (detail.eventId != widget.expectedEventId) {
-        await _showErrorSheet(
-          'This ticket belongs to a different event.\n\n'
-          'Expected Event ID: ${widget.expectedEventId}\n'
-          'Scanned Event ID: ${detail.eventId}',
-        );
-        _controller?.resumeCamera();
-        return;
-      }
-
       // Show result sheet only if event matches
-      await _showResultSheet(detail, widget.expectedEventId);
+      await _showResultSheet(detail);
         } else {
           final msg = _tryGetMessage(resp.body) ?? 'Booking not found (404).';
           if (!mounted) return;
@@ -222,7 +214,7 @@ class _QrScanViewState extends State<QrScanView> {
     );
   }
 
-  Future<void> _showResultSheet(_BookingScanDetail info, int? expectedEventId) async {
+  Future<void> _showResultSheet(_BookingScanDetail info) async {
     await showModalBottomSheet(
       barrierColor: Colors.white54,
       context: context,
@@ -233,12 +225,10 @@ class _QrScanViewState extends State<QrScanView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      
       builder: (ctx) {
         bool busy = false;
         _BookingScanDetail current = info;
-
-        final bool wrongEvent =
-            widget.expectedEventId != null && widget.expectedEventId != current.eventId;
 
         String primaryLabel(BookingStatusX s) {
           switch (s) {
@@ -252,7 +242,6 @@ class _QrScanViewState extends State<QrScanView> {
         }
 
         bool primaryEnabled(BookingStatusX s) {
-          if (wrongEvent) return false;
           return s == BookingStatusX.booked || s == BookingStatusX.checkedIn;
         }
 
@@ -342,29 +331,7 @@ class _QrScanViewState extends State<QrScanView> {
                         ],
                       ),                                 
 
-                      const SizedBox(height: 16),
-
-                      if (wrongEvent) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFEBEE),
-                            border: Border.all(color: AppColors.errorColor),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'This ticket is not for the current event.',
-                            style: const TextStyle(
-                              color: AppColors.errorColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                      const SizedBox(height: 16),                
 
                       Button(
                         label: busy ? 'Working…' : label, 
@@ -496,9 +463,10 @@ class _QrScanViewState extends State<QrScanView> {
     );
   }
 
-  static Widget _statusChip(BookingStatusX status) {
-    late Color bg, fg;
-    late String label;
+static Widget _statusChip(BookingStatusX status) {
+  late Color bg, fg;
+  late String label;
+  
     switch (status) {
       case BookingStatusX.booked:
         label = 'Booked';
@@ -526,13 +494,14 @@ class _QrScanViewState extends State<QrScanView> {
         fg = const Color(0xFFC62828);
         break;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(label.toUpperCase(),
-          style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans')),
-    );
-  }
+  
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+    child: Text(label.toUpperCase(),
+        style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontFamily: 'WinnerSans')),
+  );
+}
 
   // Medical block UI
   static Widget _medicalBlock({
@@ -593,9 +562,7 @@ class _QrScanViewState extends State<QrScanView> {
                 child: Text(
                   _lockedOnResult
                       ? 'HOLD ON…'
-                      : (widget.expectedEventId == null
-                          ? 'ALIGN THE QR CODE WITHIN THE FRAME'
-                          : 'SCANNING FOR EVENT #${widget.expectedEventId}…'),
+                      : 'ALIGN THE QR CODE WITHIN THE FRAME',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 16,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/services/auth_http_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -115,12 +116,18 @@ class _QrScanFabState extends State<QrScanFab>
             endRaw.isBefore(start)
                 ? endRaw.add(const Duration(days: 1))
                 : endRaw;
-        final bool isAvailable =
-            event['status'] == null || _toInt(event['status']) == 0;
-        final bool notEndedYet = adjustedEnd.isAfter(now);
+        final event_summary.EventStatus status = event_summary.statusFromRaw(
+          _toInt(event['status']),
+        );
+        final DateTime lockWindowEnd = adjustedEnd.add(
+          const Duration(hours: 6),
+        );
 
-        // Align selector with Home fragment: available + not yet concluded.
-        if (!isAvailable || !notEndedYet) continue;
+        // Selection is status-driven with Fallback window that hide event 6+ hours after its end time.
+        if (status != event_summary.EventStatus.available ||
+            !now.isBefore(lockWindowEnd)) {
+          continue;
+        }
 
         final String locationName =
             (event['locationName'] ?? 'Event #$eventId').toString().trim();
@@ -157,6 +164,7 @@ class _QrScanFabState extends State<QrScanFab>
         if (endCmp != 0) return endCmp;
       }
 
+      // For non-active
       return a.start.compareTo(b.start);
     });
 
@@ -199,8 +207,15 @@ class _QrScanFabState extends State<QrScanFab>
       final selected = _selectedEventId;
       if (selected != null && activeEvents.any((e) => e.eventId == selected)) {
         eventIdForScan = selected;
-      } else if (activeEvents.length == 1) {
-        eventIdForScan = activeEvents.first.eventId;
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hold scanner button to select an event first.'),
+            backgroundColor: Colors.orangeAccent,
+          ),
+        );
+        return;
       }
     }
 
@@ -224,7 +239,7 @@ class _QrScanFabState extends State<QrScanFab>
       if (activeEvents.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No available upcoming or active events found.'),
+            content: Text('No available events found.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -470,7 +485,7 @@ class _EventLockSheet extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Select an event to lock the scanner to. You can change this later by long-pressing the button again.',
+                'Only available-status events are shown. You can change this later by long-pressing again.',
                 style: TextStyle(color: Colors.white60, fontSize: 14),
                 textAlign: TextAlign.center,
               ),

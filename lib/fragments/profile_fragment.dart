@@ -230,7 +230,7 @@ class ProfileFragment extends StatelessWidget {
       builder: (_) => CustomAlertDialog(
         title: 'Attendance Strikes', 
         info: 
-          "A strike is issued when you do not attend or cancel an event.\n\n"
+          "A strike is issued when you do not attend an event you made a booking for, or if you do not cancel your booking to free up your seat for someone else.\n\n"
           "Strikes are issued per event. e.g. If there were bookings for multiple attendees for the same event and none attend, only one strike will be given.\n\n"
           "Once having three strikes accumulated, the account will be suspended from making bookings for 90 days."
       )       

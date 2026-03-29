@@ -400,7 +400,7 @@ class _QrScanViewState extends State<QrScanView> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -423,7 +423,20 @@ class _QrScanViewState extends State<QrScanView> {
                               color: Colors.black12,
                               thickness: 2,
                             ),
-                            const SizedBox(height: 16),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              'Booking Details',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.normalText
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+
+                            const SizedBox(height: 8),
 
                             if ((current.address ?? '').isNotEmpty)
                               _kvRow('Address', current.address!),
@@ -465,18 +478,30 @@ class _QrScanViewState extends State<QrScanView> {
                                 color: Colors.black12,
                                 thickness: 2,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 8),
 
-                              if (!auth.isStaff) ...[
+                              if (!auth.isUser || !auth.isGuest) ...[
+                                Text(
+                                  'Emergency Contact Info',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.normalText
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+
+                                const SizedBox(height: 8),
+
                                 _kvRow(
-                                  'Emergency Contact',
+                                  'Name',
                                   current.child!.emergencyContactName,
                                 ),
 
                                 const SizedBox(height: 4),
 
                                 _kvRow(
-                                  'Emergency Phone',
+                                  'Phone Number',
                                   current.child!.emergencyContactPhone,
                                 ),
 
@@ -486,10 +511,24 @@ class _QrScanViewState extends State<QrScanView> {
                                   color: Colors.black12,
                                   thickness: 2,
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 8),
+
+                                const SizedBox(height: 8),
+
+                                Text(
+                                  'Guardian Info',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.normalText
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+
+                                const SizedBox(height: 8),
 
                                 //guardian information
-                                _kvRow('Guardian', current.user!.fullName),
+                                _kvRow('Name', current.user!.fullName),
                                 _kvRow(
                                   'Phone Number',
                                   current.user?.phoneNumber ?? '-',

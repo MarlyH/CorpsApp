@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:corpsapp/fragments/home_fragment.dart';
+import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/models/medical_condition.dart';
 import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/theme/colors.dart';
@@ -10,12 +12,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_http_client.dart';
+import 'package:collection/collection.dart';
 
 class QrScanView extends StatefulWidget {
-  final int? expectedEventId;
-
-  const QrScanView({super.key, this.expectedEventId});
+  const QrScanView({super.key});
 
   @override
   State<QrScanView> createState() => _QrScanViewState();
@@ -25,12 +27,16 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? _controller;
   bool _lockedOnResult = false;
-  bool _flashOn = false;
+  static const String _selectedEventPrefKey = 'qr_scan_selected_event_id';
+  int? _selectedEventId;
+  _ActiveScanEvent? _selectedEvent;
+  bool _selectionLoaded = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeSelectionState();
   }
 
   @override
@@ -71,19 +77,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
   }
 
   void _onQRViewCreated(QRViewController ctrl) {
-    _controller = ctrl;
-
-    // Wait a bit for iOS scanner to fully initialize
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && _controller != null) {
-        _controller!
-            .getFlashStatus()
-            .then(
-              (on) => mounted ? setState(() => _flashOn = on ?? false) : null,
-            )
-            .catchError((_) {});
-      }
-    });
+    _controller = ctrl;  
 
     _controller!.scannedDataStream.listen((scanData) async {
       if (_lockedOnResult) return;
@@ -97,21 +91,140 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _toggleFlash() async {
-    final c = _controller;
-    if (c == null) return;
-    try {
-      await c.toggleFlash();
-      final on = await c.getFlashStatus();
-      if (mounted) setState(() => _flashOn = on ?? false);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Flash not available on this device'),
-          backgroundColor: AppColors.errorColor,
-        ),
-      );
+    Future<void> _loadSelectedEventId() async {
+    if (_selectionLoaded) return;
+    final prefs = await SharedPreferences.getInstance();
+    _selectedEventId = prefs.getInt(_selectedEventPrefKey);
+    _selectionLoaded = true;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _initializeSelectionState() async {
+    await _loadSelectedEventId();
+    await _refreshSelectedEventValidity();
+  }
+
+  Future<void> _clearSelectedEventId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedEventPrefKey);
+    if (!mounted) return;
+    setState(() => _selectedEventId = null);
+  }
+
+  Future<void> _refreshSelectedEventValidity() async {
+  if (_selectedEventId == null) return;
+
+  try {
+    final events = await _getCurrentAvailableEvents();
+
+    final match = events.firstWhereOrNull(
+      (e) => e.eventId == _selectedEventId,
+    );
+
+    if (match == null) {
+      await _clearSelectedEventId();
+    } else {
+      setState(() {
+        _selectedEvent = match;
+      });
+    }
+  } catch (e) {
+    debugPrint('Unable to refresh selected QR event lock: $e');
+  }
+}
+
+  Future<List<_ActiveScanEvent>> _getCurrentAvailableEvents() async {
+    final response = await AuthHttpClient.get('/api/events');
+    if (response.statusCode != 200) return const <_ActiveScanEvent>[];
+
+    final List<dynamic> events = jsonDecode(response.body) as List<dynamic>;
+    final now = DateTime.now();
+    final List<_ActiveScanEvent> currentEvents = <_ActiveScanEvent>[];
+
+    for (final event in events) {
+      if (event is! Map<String, dynamic>) continue;
+
+      try {
+        final int eventId = _toInt(event['eventId']);
+        if (eventId <= 0) continue;
+
+        final DateTime start = DateTime.parse(
+          '${event['startDate']}T${event['startTime']}',
+        );
+        final DateTime endRaw = DateTime.parse(
+          '${event['startDate']}T${event['endTime']}',
+        );
+        final DateTime adjustedEnd =
+            endRaw.isBefore(start)
+                ? endRaw.add(const Duration(days: 1))
+                : endRaw;
+        final event_summary.EventStatus status = event_summary.statusFromRaw(
+          _toInt(event['status']),
+        );
+        final DateTime lockWindowEnd = adjustedEnd.add(
+          const Duration(hours: 6),
+        );
+
+        // Selection is status-driven with Fallback window that hide event 6+ hours after its end time.
+        if (status != event_summary.EventStatus.available ||
+            !now.isBefore(lockWindowEnd)) {
+          continue;
+        }
+
+        final String locationName =
+            (event['locationName'] ?? 'Event #$eventId').toString().trim();
+        final String sessionType = _sessionTypeLabel(event['sessionType']);
+        final String dateLabel = DateFormat('EEE, d MMM yyyy').format(start);
+        final String timeLabel = _formatTimeRange(start, adjustedEnd);
+
+        currentEvents.add(
+          _ActiveScanEvent(
+            eventId: eventId,
+            title: locationName.isEmpty ? 'Event #$eventId' : locationName,
+            sessionLabel: sessionType == 'Session' ? '' : sessionType,
+            dateLabel: dateLabel,
+            timeLabel: timeLabel,
+            start: start,
+            end: adjustedEnd,
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error parsing event for QR selector: $e');
+      }
+    }
+
+    currentEvents.sort((a, b) {
+      final bool aActive = now.isAfter(a.start) && now.isBefore(a.end);
+      final bool bActive = now.isAfter(b.start) && now.isBefore(b.end);
+
+      if (aActive != bActive) {
+        return aActive ? -1 : 1;
+      }
+
+      if (aActive && bActive) {
+        final int endCmp = a.end.compareTo(b.end);
+        if (endCmp != 0) return endCmp;
+      }
+
+      // For non-active
+      return a.start.compareTo(b.start);
+    });
+
+    return currentEvents;
+  }
+
+  Future<void> _syncSelectedEventWithCurrent(
+    List<_ActiveScanEvent> events,
+  ) async {
+    await _loadSelectedEventId();
+    final selected = _selectedEventId;
+    if (selected == null) return;
+
+    final bool stillActive = events.any((e) => e.eventId == selected);
+    if (!stillActive) {
+      await _clearSelectedEventId();
     }
   }
 
@@ -133,10 +246,10 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final detail = _BookingScanDetail.fromJson(data);
 
-        if (widget.expectedEventId != null &&
-            detail.eventId != widget.expectedEventId) {
+        if (_selectedEventId != null &&
+            detail.eventId != _selectedEventId) {
           await _showErrorSheet(
-            'This scanner is locked to event #${widget.expectedEventId}. '
+            'This scanner is locked to event #$_selectedEventId. '
             'Scanned ticket belongs to event #${detail.eventId}.',
           );
           _controller?.resumeCamera();
@@ -198,6 +311,33 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
       return (jsonDecode(body) as Map<String, dynamic>)['message'] as String?;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _openEventLockSheet() async {
+    final events = await _getCurrentAvailableEvents(); 
+
+    if (!mounted) return;
+
+    final selected = await showModalBottomSheet<_ActiveScanEvent>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EventLockSheet(
+        events: events,
+        selectedEventId: _selectedEventId,
+      ),
+    );
+
+    if (selected != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_selectedEventPrefKey, selected.eventId);
+
+      if (!mounted) return;
+      setState(() {
+        _selectedEventId = selected.eventId;
+        _selectedEvent = selected; 
+      });
     }
   }
 
@@ -727,7 +867,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
         backgroundColor: AppColors.background,
         appBar: ProfileAppBar(title: 'Scan QR Code'),
         body: Padding(
-          padding: AppPadding.screen,
+          padding: AppPadding.screen.copyWith(bottom: bottomInset),
           child: Column(
             children: [
               Expanded(
@@ -760,37 +900,35 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-              ),
-              if (widget.expectedEventId != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    'LOCKED TO EVENT #${widget.expectedEventId}',
-                    style: const TextStyle(
-                      color: Colors.lightBlueAccent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+              ),     
+
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryColor,
+                    backgroundColor: AppColors.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.primaryColor, width: 1.5),
                     ),
                   ),
+                  onPressed: _openEventLockSheet, 
+                  child: Text(
+                    _selectedEventId != null
+                        ? 'Locked to event #$_selectedEventId ${_selectedEvent?.title} ${_selectedEvent?.sessionLabel} \n (CHANGE)'
+                        : 'Select Event',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontFamily: "WinnerSans",
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
+              ),
             ],
-          ),
-        ),
-
-        // Keep FAB within padding bounds
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        floatingActionButton: Padding(
-          padding: EdgeInsets.only(
-            right: AppPadding.screen.right,
-            bottom: AppPadding.screen.bottom + bottomInset + 32,
-          ),
-          child: FloatingActionButton(
-            heroTag: 'qr_flash_fab',
-            onPressed: _toggleFlash,
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            tooltip: _flashOn ? 'Turn Flash Off' : 'Turn Flash On',
-            child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
           ),
         ),
       ),
@@ -1081,3 +1219,186 @@ class _BookingScanDetail {
     );
   }
 }
+
+class _EventLockSheet extends StatelessWidget {
+  final List<_ActiveScanEvent> events;
+  final int? selectedEventId;
+
+  const _EventLockSheet({required this.events, required this.selectedEventId});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 24),
+            child: child,
+          ),
+        );
+      },
+      child: SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF101010),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Lock Scanner To Event',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'WinnerSans',
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Only available-status events are shown. You can change this later by long-pressing again.',
+                style: TextStyle(color: Colors.white60, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.only(right: 12),
+                    itemCount: events.length,
+                    separatorBuilder:
+                        (_, __) =>
+                            const Divider(color: Colors.white10, height: 1),
+                    itemBuilder: (ctx, index) {
+                      final item = events[index];
+                      final bool selected = item.eventId == selectedEventId;
+                      return ListTile(
+                        isThreeLine: true,
+                        onTap: () => Navigator.of(context).pop(item),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        title: Text(
+                          item.title,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (item.sessionLabel.isNotEmpty)
+                              Text(
+                                item.sessionLabel,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            Text(
+                              item.dateLabel,
+                              style: const TextStyle(color: Colors.white60),
+                            ),
+                            Text(
+                              item.timeLabel,
+                              style: const TextStyle(color: Colors.white60),
+                            ),
+                          ],
+                        ),
+                        trailing:
+                            selected
+                                ? const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.greenAccent,
+                                )
+                                : Text(
+                                  '#${item.eventId}',
+                                  style: const TextStyle(color: Colors.white38),
+                                ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveScanEvent {
+  final int eventId;
+  final String title;
+  final String sessionLabel;
+  final String dateLabel;
+  final String timeLabel;
+  final DateTime start;
+  final DateTime end;
+
+  const _ActiveScanEvent({
+    required this.eventId,
+    required this.title,
+    required this.sessionLabel,
+    required this.dateLabel,
+    required this.timeLabel,
+    required this.start,
+    required this.end,
+  });
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
+String _sessionTypeLabel(dynamic raw) {
+  final int value = _toInt(raw);
+  switch (value) {
+    case 0:
+      return 'Ages 8 to 11';
+    case 1:
+      return 'Ages 12 to 15';
+    case 2:
+      return 'Ages 16+';
+    default:
+      return 'Session';
+  }
+}
+
+String _formatTimeRange(DateTime start, DateTime end) {
+  final String startText = DateFormat('h:mm a').format(start).toUpperCase();
+  final String endText = DateFormat('h:mm a').format(end).toUpperCase();
+
+  final bool crossesDay =
+      start.year != end.year ||
+      start.month != end.month ||
+      start.day != end.day;
+
+  if (crossesDay) {
+    return '$startText - $endText (+1 day)';
+  }
+  return '$startText - $endText';
+}
+

@@ -98,7 +98,7 @@ class EventDetailsCard extends StatelessWidget {
           text: snap.data!.description,
           style: const TextStyle(color: Colors.white70, fontSize: 16),
           linkStyle: const TextStyle(
-            color: Colors.lightBlueAccent,
+            color: AppColors.primaryColor,
             fontSize: 16,
             decoration: TextDecoration.underline,
           ),

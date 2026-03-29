@@ -17,8 +17,8 @@ class EventDetail {
   final String description;
   final String address;
   EventDetail.fromJson(Map<String, dynamic> json)
-      : description = json['description'] as String? ?? '',
-        address = json['address'] as String? ?? '';
+    : description = json['description'] as String? ?? '',
+      address = json['address'] as String? ?? '';
 }
 
 class HomeFragment extends StatefulWidget {
@@ -71,10 +71,9 @@ class HomeFragmentState extends State<HomeFragment> {
       return DateTime(d.year, d.month, d.day, 23, 59, 59);
     }
 
-    final m =
-        RegExp(
-          r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?',
-        ).firstMatch(t);
+    final m = RegExp(
+      r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?',
+    ).firstMatch(t);
     if (m == null) {
       final d = e.startDate;
       return DateTime(d.year, d.month, d.day, 23, 59, 59);
@@ -95,15 +94,14 @@ class HomeFragmentState extends State<HomeFragment> {
     return DateTime(d.year, d.month, d.day, hh, mm);
   }
 
-  bool _canManageEvent(
-    AuthProvider auth,
-    event_summary.EventSummary event,
-  ) {
+  bool _canManageEvent(AuthProvider auth, event_summary.EventSummary event) {
     if (auth.isAdmin) return true;
     if (!auth.isEventManager) return false;
 
     final user = auth.userProfile ?? const <String, dynamic>{};
-    final myId = _toIntOrNull(user['userId'] ?? user['id'] ?? user['accountId']);
+    final myId = _toIntOrNull(
+      user['userId'] ?? user['id'] ?? user['accountId'],
+    );
     final myEmail = (user['email'] ?? '').toString().trim().toLowerCase();
 
     if (event.createdByUserId != null && myId != null) {
@@ -140,6 +138,7 @@ class HomeFragmentState extends State<HomeFragment> {
       if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
       return null;
     }
+
     final DateTime? suspensionUntil = readDate(
       user['suspensionUntil'] ??
           user['suspensionExpiresAt'] ??
@@ -156,9 +155,17 @@ class HomeFragmentState extends State<HomeFragment> {
           builder: (ctx, snap) {
             final hasError = snap.hasError;
             final all = snap.data ?? [];
+            final now = DateTime.now();
 
             final allLocations =
                 all
+                    .where(
+                      (e) =>
+                          e.category == event_summary.EventCategory.bookable &&
+                          e.requiresBooking &&
+                          e.status == event_summary.EventStatus.available &&
+                          eventEndDateTime(e).isAfter(now),
+                    )
                     .map((e) => e.locationName.trim())
                     .where((name) => name.isNotEmpty)
                     .toSet()
@@ -166,42 +173,46 @@ class HomeFragmentState extends State<HomeFragment> {
                   ..sort();
 
             final String? currentLocation =
-                (_filterLocation != null && allLocations.contains(_filterLocation))
+                (_filterLocation != null &&
+                        allLocations.contains(_filterLocation))
                     ? _filterLocation
                     : null;
-            
+
             if (_filterLocation != currentLocation) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) setState(() => _filterLocation = currentLocation);
               });
             }
 
-            final now = DateTime.now();
-
-            final events = all.where((e) {
-              if (e.status != event_summary.EventStatus.available) return false;
-              if (currentLocation != null && e.locationName != currentLocation) {
-                return false;
-              }
-              if (_filterSessionType != SessionType.all &&
-                  e.sessionType != _filterSessionType) {
-                return false;
-              }
-              if (!eventEndDateTime(e).isAfter(now)) return false;
-              return true;
-            }).toList()
-              ..sort((a, b) {
-                final aEnd = eventEndDateTime(a);
-                final bEnd = eventEndDateTime(b);
-                if (_dateAsc) {
-                  final c = aEnd.compareTo(bEnd);
-                  if (c != 0) return c;
-                } else if (_dateDesc) {
-                  final c = bEnd.compareTo(aEnd);
-                  if (c != 0) return c;
-                }
-                return 0;
-              });
+            final events =
+                all.where((e) {
+                    if (e.status != event_summary.EventStatus.available)
+                      return false;
+                    if (currentLocation != null &&
+                        e.locationName != currentLocation) {
+                      return false;
+                    }
+                    if (_filterSessionType != SessionType.all &&
+                        e.sessionType != _filterSessionType) {
+                      return false;
+                    }
+                    if (!eventEndDateTime(e).isAfter(now)) {
+                      return false;
+                    }
+                    return true;
+                  }).toList()
+                  ..sort((a, b) {
+                    final aEnd = eventEndDateTime(a);
+                    final bEnd = eventEndDateTime(b);
+                    if (_dateAsc) {
+                      final c = aEnd.compareTo(bEnd);
+                      if (c != 0) return c;
+                    } else if (_dateDesc) {
+                      final c = bEnd.compareTo(aEnd);
+                      if (c != 0) return c;
+                    }
+                    return 0;
+                  });
 
             return RefreshIndicator(
               color: Colors.white,
@@ -210,23 +221,33 @@ class HomeFragmentState extends State<HomeFragment> {
                 slivers: [
                   EventBrowserAppBar(
                     filterLocation: currentLocation,
-                    onLocationChanged: (v) => setState(() => _filterLocation = v),
+                    onLocationChanged:
+                        (v) => setState(() => _filterLocation = v),
                     allLocations: allLocations,
                     onDropdownOpen: () {
                       setState(() {
-                        dropdownOpenTime = DateTime.now().millisecondsSinceEpoch;
+                        dropdownOpenTime =
+                            DateTime.now().millisecondsSinceEpoch;
                       });
                     },
                     bottom: PreferredSize(
                       preferredSize: const Size.fromHeight(32),
                       child: Container(
                         color: AppColors.background,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             EventsFilter(
-                              onChanged: (v) => setState(() => _filterSessionType = v ?? SessionType.all),
+                              onChanged:
+                                  (v) => setState(
+                                    () =>
+                                        _filterSessionType =
+                                            v ?? SessionType.all,
+                                  ),
                               filterSessionType: _filterSessionType,
                             ),
                             EventsSort(
@@ -240,7 +261,7 @@ class HomeFragmentState extends State<HomeFragment> {
                               },
                             ),
                           ],
-                        ),               
+                        ),
                       ),
                     ),
                   ),
@@ -257,7 +278,7 @@ class HomeFragmentState extends State<HomeFragment> {
                                 'Error loading events',
                                 style: TextStyle(color: Colors.white),
                               ),
-                          )
+                            )
                           else if (events.isEmpty)
                             const Center(
                               child: Text(
@@ -267,25 +288,29 @@ class HomeFragmentState extends State<HomeFragment> {
                             )
                           else
                             Column(
-                              children: events
-                                  .map(
-                                    (e) => EventTile(
-                                      key: ValueKey(e.eventId),
-                                      summary: e,
-                                      isStaff: isStaff,
-                                      isUser: isUser,
-                                      isSuspended: isSuspended,
-                                      suspensionUntil: suspensionUntil,
-                                      canManage: _canManageEvent(auth, e),
-                                      loadDetail: (id) => AuthHttpClient
-                                          .getNoAuth('/api/events/$id')
-                                          .then((r) => EventDetail.fromJson(
-                                                jsonDecode(r.body),
-                                              )),
-                                      onAction: _refresh,
-                                    ),
-                                  )
-                                  .toList(),
+                              children:
+                                  events
+                                      .map(
+                                        (e) => EventTile(
+                                          key: ValueKey(e.eventId),
+                                          summary: e,
+                                          isStaff: isStaff,
+                                          isUser: isUser,
+                                          isSuspended: isSuspended,
+                                          suspensionUntil: suspensionUntil,
+                                          canManage: _canManageEvent(auth, e),
+                                          loadDetail:
+                                              (id) => AuthHttpClient.getNoAuth(
+                                                '/api/events/$id',
+                                              ).then(
+                                                (r) => EventDetail.fromJson(
+                                                  jsonDecode(r.body),
+                                                ),
+                                              ),
+                                          onAction: _refresh,
+                                        ),
+                                      )
+                                      .toList(),
                             ),
                         ],
                       ),

@@ -1,4 +1,5 @@
 import 'package:corpsapp/views/banned_users_view.dart';
+import 'package:corpsapp/views/admin_broadcast_notification_view.dart';
 import 'package:corpsapp/views/manage_events_view.dart';
 import 'package:corpsapp/views/manage_locations_view.dart';
 import 'package:corpsapp/views/report_generation_view.dart';
@@ -8,12 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AdminList extends StatelessWidget {
-
-
-  const AdminList({
-    super.key,
-
-  });
+  const AdminList({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +37,9 @@ class AdminList extends StatelessWidget {
           backgroundColor: Colors.transparent,
           children: [
             OptionTile(
-              icon: Icons.person_2_outlined, 
-              label: 'User Management', 
-              view: ManageUsersView()
+              icon: Icons.person_2_outlined,
+              label: 'User Management',
+              view: ManageUsersView(),
             ),
 
             OptionTile(
@@ -57,8 +53,14 @@ class AdminList extends StatelessWidget {
               label: "Location Management",
               view: ManageLocationsView(),
             ),
+
+            OptionTile(
+              icon: Icons.campaign,
+              label: "Send Notification",
+              view: AdminBroadcastNotificationView(),
+            ),
           ],
-        ),      
+        ),
       ],
     );
   }

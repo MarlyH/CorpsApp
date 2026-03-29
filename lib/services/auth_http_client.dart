@@ -468,6 +468,25 @@ class AuthHttpClient {
       throw Exception('Failed to register device token: ${resp.body}');
     }
   }
+<<<<<<< Updated upstream
+=======
+
+  static Future<void> sendBroadcastNotification({
+    required String message,
+    String? title,
+  }) async {
+    final payload = <String, dynamic>{
+      'message': message.trim(),
+      if (title != null && title.trim().isNotEmpty) 'title': title.trim(),
+    };
+
+    final resp = await post('/api/notification/broadcast', body: payload);
+    if (resp.statusCode != 200) {
+      throw Exception('Failed to send broadcast notification: ${resp.body}');
+    }
+  }
+
+>>>>>>> Stashed changes
   ///////////////////////////////////////////////////////////////////////
   // for handling Bans
   // in AuthHttpClient

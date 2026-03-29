@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/models/medical_condition.dart';
 import 'package:corpsapp/providers/auth_provider.dart';
@@ -213,19 +212,6 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
     });
 
     return currentEvents;
-  }
-
-  Future<void> _syncSelectedEventWithCurrent(
-    List<_ActiveScanEvent> events,
-  ) async {
-    await _loadSelectedEventId();
-    final selected = _selectedEventId;
-    if (selected == null) return;
-
-    final bool stillActive = events.any((e) => e.eventId == selected);
-    if (!stillActive) {
-      await _clearSelectedEventId();
-    }
   }
 
   Future<void> _handleScan(String rawPayload) async {
@@ -1264,7 +1250,7 @@ class _EventLockSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Lock Scanner To Event',
+                'LOCK SCANNING TO AN EVENT',
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'WinnerSans',
@@ -1273,7 +1259,7 @@ class _EventLockSheet extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Only available-status events are shown. You can change this later by long-pressing again.',
+                'Only available-status events are shown.',
                 style: TextStyle(color: Colors.white60, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
@@ -1303,7 +1289,7 @@ class _EventLockSheet extends StatelessWidget {
                         ),
                         title: Text(
                           item.title,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1311,7 +1297,7 @@ class _EventLockSheet extends StatelessWidget {
                             if (item.sessionLabel.isNotEmpty)
                               Text(
                                 item.sessionLabel,
-                                style: const TextStyle(color: Colors.white70),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
                             Text(
                               item.dateLabel,

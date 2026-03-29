@@ -1,13 +1,6 @@
-import 'dart:convert';
 
-import 'package:corpsapp/models/event_summary.dart' as event_summary;
-import 'package:corpsapp/services/auth_http_client.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../views/qr_scan_view.dart';
 
 class QrScanFab extends StatefulWidget {
@@ -28,11 +21,8 @@ class QrScanFab extends StatefulWidget {
 
 class _QrScanFabState extends State<QrScanFab>
     with SingleTickerProviderStateMixin {
-  static const String _selectedEventPrefKey = 'qr_scan_selected_event_id';
 
   late final AnimationController _shimmerController;
-  int? _selectedEventId;
-  bool _selectionLoaded = false;
 
   @override
   void initState() {

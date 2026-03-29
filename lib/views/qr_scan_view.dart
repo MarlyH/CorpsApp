@@ -21,11 +21,29 @@ class QrScanView extends StatefulWidget {
   State<QrScanView> createState() => _QrScanViewState();
 }
 
-class _QrScanViewState extends State<QrScanView> {
+class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? _controller;
   bool _lockedOnResult = false;
   bool _flashOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_controller == null) return;
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _controller!.pauseCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      _controller!.resumeCamera();
+    }
+  }
 
   @override
   void reassemble() {
@@ -36,16 +54,19 @@ class _QrScanViewState extends State<QrScanView> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
     final c = _controller;
     if (c != null) {
-      c
-          .getFlashStatus()
-          .then((on) {
-            if (on == true) c.toggleFlash();
-          })
-          .catchError((_) {});
+      try {
+        c.pauseCamera();   
+      } catch (_) {}
+
+      try {
+        c.dispose();
+      } catch (_) {}
     }
-    _controller?.dispose();
+
     super.dispose();
   }
 
@@ -697,74 +718,80 @@ class _QrScanViewState extends State<QrScanView> {
     final cutOut = MediaQuery.of(context).size.width * 0.8;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: ProfileAppBar(title: 'Scan QR Code'),
-      body: Padding(
-        padding: AppPadding.screen,
-        child: Column(
-          children: [
-            Expanded(
-              flex: 4,
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
-                overlay: QrScannerOverlayShape(
-                  overlayColor: AppColors.background,
-                  borderColor: Colors.white,
-                  borderRadius: 12,
-                  borderLength: 30,
-                  borderWidth: 10,
-                  cutOutSize: cutOut,
-                ),
-              ),
-            ),
-
-            Expanded(
-              flex: 1,
-              child: Center(
-                child: Text(
-                  _lockedOnResult
-                      ? 'HOLD ON…'
-                      : 'ALIGN THE QR CODE WITHIN THE FRAME',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    fontFamily: 'WinnerSans',
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        await _controller?.pauseCamera();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: ProfileAppBar(title: 'Scan QR Code'),
+        body: Padding(
+          padding: AppPadding.screen,
+          child: Column(
+            children: [
+              Expanded(
+                flex: 4,
+                child: QRView(
+                  key: qrKey,
+                  onQRViewCreated: _onQRViewCreated,
+                  overlay: QrScannerOverlayShape(
+                    overlayColor: AppColors.background,
+                    borderColor: Colors.white,
+                    borderRadius: 12,
+                    borderLength: 30,
+                    borderWidth: 10,
+                    cutOutSize: cutOut,
                   ),
                 ),
               ),
-            ),
-            if (widget.expectedEventId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  'LOCKED TO EVENT #${widget.expectedEventId}',
-                  style: const TextStyle(
-                    color: Colors.lightBlueAccent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+
+              Expanded(
+                flex: 1,
+                child: Center(
+                  child: Text(
+                    _lockedOnResult
+                        ? 'HOLD ON…'
+                        : 'ALIGN THE QR CODE WITHIN THE FRAME',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      fontFamily: 'WinnerSans',
+                    ),
                   ),
                 ),
               ),
-          ],
+              if (widget.expectedEventId != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'LOCKED TO EVENT #${widget.expectedEventId}',
+                    style: const TextStyle(
+                      color: Colors.lightBlueAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
 
-      // Keep FAB within padding bounds
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          right: AppPadding.screen.right,
-          bottom: AppPadding.screen.bottom + bottomInset + 32,
-        ),
-        child: FloatingActionButton(
-          heroTag: 'qr_flash_fab',
-          onPressed: _toggleFlash,
-          backgroundColor: AppColors.primaryColor,
-          foregroundColor: Colors.white,
-          tooltip: _flashOn ? 'Turn Flash Off' : 'Turn Flash On',
-          child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
+        // Keep FAB within padding bounds
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: Padding(
+          padding: EdgeInsets.only(
+            right: AppPadding.screen.right,
+            bottom: AppPadding.screen.bottom + bottomInset + 32,
+          ),
+          child: FloatingActionButton(
+            heroTag: 'qr_flash_fab',
+            onPressed: _toggleFlash,
+            backgroundColor: AppColors.primaryColor,
+            foregroundColor: Colors.white,
+            tooltip: _flashOn ? 'Turn Flash Off' : 'Turn Flash On',
+            child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off),
+          ),
         ),
       ),
     );

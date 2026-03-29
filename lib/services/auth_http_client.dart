@@ -11,15 +11,18 @@ import '../models/location.dart';
 
 class AuthHttpClient {
   AuthHttpClient._();
+  static const int _maxUploadImageBytes = 4 * 1024 * 1024;
   static final http.Client _client = http.Client();
   static final String _baseUrl =
       dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5133';
 
   // ─────────────────────────────────────────────────────────────── Generic ───
-  static Future<http.Response> get(String endpoint,
-    {Map<String, String>? extraHeaders}) async {
-        await _ensureValidToken();
-        final token = await TokenService.getAccessToken();
+  static Future<http.Response> get(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+  }) async {
+    await _ensureValidToken();
+    final token = await TokenService.getAccessToken();
 
     final resp = await _client.get(
       Uri.parse('$_baseUrl$endpoint'),
@@ -29,7 +32,10 @@ class AuthHttpClient {
     return resp;
   }
 
-  static Future<http.Response> getNoAuth(String endpoint, {Map<String, String>? extraHeaders}) async {
+  static Future<http.Response> getNoAuth(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+  }) async {
     final resp = await _client.get(
       Uri.parse('$_baseUrl$endpoint'),
       headers: extraHeaders,
@@ -38,8 +44,11 @@ class AuthHttpClient {
     return resp;
   }
 
-  static Future<http.Response> post(String endpoint,
-      {Map<String, String>? extraHeaders, dynamic body}) async {
+  static Future<http.Response> post(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+    dynamic body,
+  }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final resp = await _client.post(
@@ -51,8 +60,11 @@ class AuthHttpClient {
     return resp;
   }
 
-  static Future<http.Response> patch(String endpoint,
-      {Map<String, String>? extraHeaders, dynamic body}) async {
+  static Future<http.Response> patch(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+    dynamic body,
+  }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final resp = await _client.patch(
@@ -64,8 +76,11 @@ class AuthHttpClient {
     return resp;
   }
 
-  static Future<http.Response> put(String endpoint,
-      {Map<String, String>? extraHeaders, dynamic body}) async {
+  static Future<http.Response> put(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+    dynamic body,
+  }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final resp = await _client.put(
@@ -77,8 +92,10 @@ class AuthHttpClient {
     return resp;
   }
 
-  static Future<http.Response> delete(String endpoint,
-      {Map<String, String>? extraHeaders}) async {
+  static Future<http.Response> delete(
+    String endpoint, {
+    Map<String, String>? extraHeaders,
+  }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final resp = await _client.delete(
@@ -112,10 +129,10 @@ class AuthHttpClient {
       if (newFirstName != null) 'newFirstName': newFirstName,
       if (newLastName != null) 'newLastName': newLastName,
       if (newPhoneNumber != null) 'newPhoneNumber': newPhoneNumber,
-      if (newEmail != null) 'newEmail' : newEmail
+      if (newEmail != null) 'newEmail': newEmail,
     };
     final resp = await patch(
-      '/api/profile',  // ← **use** `/api/profile` not `/api/profile/profile`
+      '/api/profile', // ← **use** `/api/profile` not `/api/profile/profile`
       body: body,
     );
     if (resp.statusCode != 200) {
@@ -150,8 +167,7 @@ class AuthHttpClient {
       post('/api/child', body: data);
   static Future<http.Response> updateChild(int id, Map<String, dynamic> data) =>
       put('/api/child/$id', body: data);
-  static Future<http.Response> deleteChild(int id) =>
-      delete('/api/child/$id');
+  static Future<http.Response> deleteChild(int id) => delete('/api/child/$id');
 
   // ───────────────────────────────────────────────────────────── Event ───
 
@@ -207,20 +223,40 @@ class AuthHttpClient {
       );
     } else {
       await TokenService.clearTokens();
-      throw Exception(
-        'Refresh failed (${resp.statusCode}): ${resp.body}',
-      );
+      throw Exception('Refresh failed (${resp.statusCode}): ${resp.body}');
     }
   }
 
   static void _checkForErrors(http.Response response) {
     if (response.statusCode >= 400) {
-      final Map<String, dynamic> body = jsonDecode(response.body);
-      // Extract 'message' field, or fallback to the entire body if not present
-      final String message = body['message'] ?? response.body;
+      final raw = response.body.trim();
+      String message = 'Request failed (${response.statusCode})';
+
+      if (raw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map<String, dynamic>) {
+            if (decoded['message'] != null &&
+                decoded['message'].toString().trim().isNotEmpty) {
+              message = decoded['message'].toString();
+            } else if (decoded['title'] != null &&
+                decoded['title'].toString().trim().isNotEmpty) {
+              message = decoded['title'].toString();
+            } else {
+              message = decoded.toString();
+            }
+          } else {
+            message = decoded.toString();
+          }
+        } catch (_) {
+          message = 'Request failed (${response.statusCode}): $raw';
+        }
+      }
+
       throw message;
     }
   }
+
   /// GET /api/Locations
   static Future<http.Response> getLocations() {
     return get('/api/Locations');
@@ -240,13 +276,15 @@ class AuthHttpClient {
     final token = await TokenService.getAccessToken();
 
     final uri = Uri.parse('$_baseUrl/api/Locations');
-    final req = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..fields['name'] = name;
+    final req =
+        http.MultipartRequest('POST', uri)
+          ..headers['Authorization'] = 'Bearer $token'
+          ..fields['name'] = name;
 
     if (imageFile != null) {
-      final mimeType = lookupMimeType(imageFile.path) ?? 'application/octet-stream';
-      final parts    = mimeType.split('/');
+      final mimeType =
+          lookupMimeType(imageFile.path) ?? 'application/octet-stream';
+      final parts = mimeType.split('/');
       req.files.add(
         await http.MultipartFile.fromPath(
           'mascotImage',
@@ -257,14 +295,14 @@ class AuthHttpClient {
     }
 
     final streamed = await req.send();
-    final res      = await http.Response.fromStream(streamed);
+    final res = await http.Response.fromStream(streamed);
     _checkForErrors(res);
     return res;
   }
 
   /// PUT /api/Locations/{id}  (multipart/form-data)
   static Future<http.Response> updateLocation({
-    required int    id,
+    required int id,
     required String name,
     File? imageFile,
   }) async {
@@ -272,13 +310,15 @@ class AuthHttpClient {
     final token = await TokenService.getAccessToken();
 
     final uri = Uri.parse('$_baseUrl/api/Locations/$id');
-    final req = http.MultipartRequest('PUT', uri)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..fields['name'] = name;
+    final req =
+        http.MultipartRequest('PUT', uri)
+          ..headers['Authorization'] = 'Bearer $token'
+          ..fields['name'] = name;
 
     if (imageFile != null) {
-      final mimeType = lookupMimeType(imageFile.path) ?? 'application/octet-stream';
-      final parts    = mimeType.split('/');
+      final mimeType =
+          lookupMimeType(imageFile.path) ?? 'application/octet-stream';
+      final parts = mimeType.split('/');
       req.files.add(
         await http.MultipartFile.fromPath(
           'mascotImage',
@@ -289,7 +329,7 @@ class AuthHttpClient {
     }
 
     final streamed = await req.send();
-    final res      = await http.Response.fromStream(streamed);
+    final res = await http.Response.fromStream(streamed);
     _checkForErrors(res);
     return res;
   }
@@ -300,47 +340,96 @@ class AuthHttpClient {
   }
 
   /// POST /api/events  (multipart/form-data)
+  ///
+  /// Supports both:
+  /// - bookable events (requires booking-specific fields)
+  /// - non-bookable content events (announcement/promotional)
   static Future<http.Response> createEvent({
-    required int    locationId,
-    required String sessionType,
-    required String startDate,
-    required String startTime,
-    required String endTime,
-    required String availableDate,
-    required int    totalSeats,
-    String?         description,
-    String?         address,
-    File?           seatingMapImage,
+    required String category,
+    required bool requiresBooking,
+    int? locationId,
+    String? sessionType,
+    String? startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    String? availableDate,
+    int? totalSeats,
+    String? title,
+    String? description,
+    String? address,
+    File? seatingMapImage,
+    List<File>? promotionalImages,
   }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final uri = Uri.parse('$_baseUrl/api/events');
-    final req = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..fields.addAll({
-        'locationId':    locationId.toString(),
-        'sessionType':   sessionType,
-        'startDate':     startDate,
-        'startTime':     startTime,
-        'endTime':       endTime,
-        'availableDate': availableDate,
-        'totalSeats':    totalSeats.toString(),
-        if (description != null) 'description': description,
-        if (address     != null) 'address':     address,
-      });
+    final req =
+        http.MultipartRequest('POST', uri)
+          ..headers['Authorization'] = 'Bearer $token'
+          ..fields.addAll({
+            'category': category,
+            'eventCategory': category,
+            'requiresBooking': requiresBooking.toString(),
+            if (locationId != null) 'locationId': locationId.toString(),
+            if (sessionType != null && sessionType.trim().isNotEmpty)
+              'sessionType': sessionType.trim(),
+            if (startDate != null && startDate.trim().isNotEmpty)
+              'startDate': startDate.trim(),
+            if (startDate != null && startDate.trim().isNotEmpty)
+              'fromDate': startDate.trim(),
+            if (endDate != null && endDate.trim().isNotEmpty)
+              'endDate': endDate.trim(),
+            if (endDate != null && endDate.trim().isNotEmpty)
+              'toDate': endDate.trim(),
+            if (startTime != null && startTime.trim().isNotEmpty)
+              'startTime': startTime.trim(),
+            if (endTime != null && endTime.trim().isNotEmpty)
+              'endTime': endTime.trim(),
+            if (availableDate != null && availableDate.trim().isNotEmpty)
+              'availableDate': availableDate.trim(),
+            if (totalSeats != null) 'totalSeats': totalSeats.toString(),
+            if (title != null && title.trim().isNotEmpty) 'title': title.trim(),
+            if (description != null && description.trim().isNotEmpty)
+              'description': description.trim(),
+            if (address != null && address.trim().isNotEmpty)
+              'address': address.trim(),
+          });
 
     if (seatingMapImage != null) {
-      final mimeType = lookupMimeType(seatingMapImage.path) ?? 'application/octet-stream';
-      final parts    = mimeType.split('/');
-      req.files.add(await http.MultipartFile.fromPath(
-        'seatingMapImage',
-        seatingMapImage.path,
-        contentType: MediaType(parts[0], parts[1]),
-      ));
+      final mimeType =
+          lookupMimeType(seatingMapImage.path) ?? 'application/octet-stream';
+      final parts = mimeType.split('/');
+      req.files.add(
+        await http.MultipartFile.fromPath(
+          'seatingMapImage',
+          seatingMapImage.path,
+          contentType: MediaType(parts[0], parts[1]),
+        ),
+      );
+    }
+
+    if (promotionalImages != null && promotionalImages.isNotEmpty) {
+      for (final promotionalImage in promotionalImages) {
+        final imageSize = await promotionalImage.length();
+        if (imageSize > _maxUploadImageBytes) {
+          throw 'Each event image must be 4MB or smaller.';
+        }
+        final mimeType =
+            lookupMimeType(promotionalImage.path) ?? 'application/octet-stream';
+        final parts = mimeType.split('/');
+        req.files.add(
+          await http.MultipartFile.fromPath(
+            'eventImages',
+            promotionalImage.path,
+            contentType: MediaType(parts[0], parts[1]),
+          ),
+        );
+      }
     }
 
     final streamed = await req.send();
-    final res      = await http.Response.fromStream(streamed);
+    final res = await http.Response.fromStream(streamed);
     _checkForErrors(res);
     return res;
   }
@@ -370,20 +459,33 @@ class AuthHttpClient {
   }
 
   /// PUT /api/events/{id}/cancel
-  static Future<http.Response> cancelEvent(int id, {String? cancellationMessage}) {
+  static Future<http.Response> cancelEvent(
+    int id, {
+    String? cancellationMessage,
+  }) {
     return put(
       '/api/events/$id/cancel',
       body: {
-        if (cancellationMessage != null) 'cancellationMessage': cancellationMessage,
+        if (cancellationMessage != null)
+          'cancellationMessage': cancellationMessage,
       },
     );
   }
+
+  /// PUT /api/events/{id}/remove-listing
+  static Future<http.Response> removeEventListing(int id) {
+    return put('/api/events/$id/remove-listing');
+  }
+
   /////////////////////////////////////
-  // for medical conditions 
+  // for medical conditions
   // AuthHttpClient: profile medical
   // Raw JSON PATCH with explicit body (needed by your medical view)
-  static Future<http.Response> patchRaw(String path,
-      {required String body, Map<String, String>? headers}) async {
+  static Future<http.Response> patchRaw(
+    String path, {
+    required String body,
+    Map<String, String>? headers,
+  }) async {
     await _ensureValidToken();
     final token = await TokenService.getAccessToken();
     final resp = await _client.patch(
@@ -398,41 +500,47 @@ class AuthHttpClient {
     _checkForErrors(resp);
     return resp;
   }
+
   static Future<Map<String, dynamic>> getMyMedical() async {
     final r = await get('/api/profile/medical');
-    return jsonDecode(r.body) as Map<String,dynamic>;
+    return jsonDecode(r.body) as Map<String, dynamic>;
   }
 
   static Future<void> updateMyMedical({
     required bool hasMedicalConditions,
-    required List<Map<String, dynamic>> conditions, // [{name, notes, isAllergy}]
+    required List<Map<String, dynamic>>
+    conditions, // [{name, notes, isAllergy}]
   }) async {
-    final r = await patch('/api/profile/medical', body: {
-      'hasMedicalConditions': hasMedicalConditions,
-      'conditions': conditions,
-    });
+    final r = await patch(
+      '/api/profile/medical',
+      body: {
+        'hasMedicalConditions': hasMedicalConditions,
+        'conditions': conditions,
+      },
+    );
     if (r.statusCode != 200) {
       throw Exception('Failed to update medical info: ${r.body}');
     }
   }
 
-
   ////////////////////////////////////
-  // for updateing manuel attendence 
-  static Future<http.Response> postRaw(String path,
-    {required String body, Map<String,String>? headers}) async {
-  final token = await TokenService.getAccessToken();
-  return http.post(
-    Uri.parse('$_baseUrl$path'),
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-      ...?headers,
-    },
-    body: body,
-  );
-}
-
+  // for updateing manuel attendence
+  static Future<http.Response> postRaw(
+    String path, {
+    required String body,
+    Map<String, String>? headers,
+  }) async {
+    final token = await TokenService.getAccessToken();
+    return http.post(
+      Uri.parse('$_baseUrl$path'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        ...?headers,
+      },
+      body: body,
+    );
+  }
 
   /// GET /api/events/{eventId}/waitlist
   static Future<http.Response> getWaitlist(int eventId) {
@@ -450,24 +558,22 @@ class AuthHttpClient {
   // }
 
   static Future<http.Response> joinWaitlist(int eventId) =>
-    post('/api/events/$eventId/waitlist');
+      post('/api/events/$eventId/waitlist');
 
   static Future<http.Response> leaveWaitlist(int eventId) =>
-    delete('/api/events/$eventId/waitlist');
+      delete('/api/events/$eventId/waitlist');
 
   static Future<void> registerDeviceToken(String deviceToken) async {
     final platform = Platform.isAndroid ? 'Android' : 'iOS';
 
-    final body = {
-      'deviceToken': deviceToken,
-      'platform': platform,
-    };
+    final body = {'deviceToken': deviceToken, 'platform': platform};
 
     final resp = await post('/api/notification', body: body);
     if (resp.statusCode != 200) {
       throw Exception('Failed to register device token: ${resp.body}');
     }
   }
+
   ///////////////////////////////////////////////////////////////////////
   // for handling Bans
   // in AuthHttpClient
@@ -483,15 +589,13 @@ class AuthHttpClient {
   static Future<http.Response> getBannedUsers() =>
       get('/api/usermanagement/banned-users');
 
-
   // for handling QR code scanning systems
   static Future<http.Response> scanBookingInfo(String qr) =>
-    post('/api/booking/scan-info', body: {'qrCodeData': qr});
+      post('/api/booking/scan-info', body: {'qrCodeData': qr});
 
   static Future<http.Response> bookingCheckIn(int bookingId) =>
-    post('/api/booking/check-in', body: {'bookingId': bookingId});
+      post('/api/booking/check-in', body: {'bookingId': bookingId});
 
   static Future<http.Response> bookingCheckOut(int bookingId) =>
-    post('/api/booking/check-out', body: {'bookingId': bookingId});
-
+      post('/api/booking/check-out', body: {'bookingId': bookingId});
 }

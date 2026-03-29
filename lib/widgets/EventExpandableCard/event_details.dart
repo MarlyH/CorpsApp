@@ -20,16 +20,16 @@ class EventDetailsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(7)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(7)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSeatsRow(summary),
+          if (summary.requiresBooking) _buildSeatsRow(summary),
           const SizedBox(height: 12),
           _buildAddress(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildDescription(),
         ],
       ),
@@ -55,20 +55,31 @@ class EventDetailsCard extends StatelessWidget {
     ],
   );
 
-  Widget _buildAddress() => FutureBuilder<EventDetail>(
-    future: detailFut,
-    builder: (ctx, snap) {
-      final addr = snap.data?.address ?? '';
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.location_on, size: 20),
-          const SizedBox(width: 4),
-          Text(addr, style: TextStyle(fontSize: 16)),
-        ],
+  Widget _buildAddress() =>
+      FutureBuilder<EventDetail>(
+        future: detailFut,
+        builder: (ctx, snap) {
+          final addr = snap.data?.address ?? '';
+          if (addr.trim().isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final base = Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.location_on, size: 20, color: Colors.white),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  addr,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          );
+          return base;
+        },
       );
-    },
-  );
 
   Widget _buildDescription() => FutureBuilder<EventDetail>(
     future: detailFut,
@@ -92,17 +103,18 @@ class EventDetailsCard extends StatelessWidget {
         return const SizedBox.shrink(); // no description, no padding
       }
 
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _LinkifiedDescriptionText(
-          text: snap.data!.description,
-          style: const TextStyle(color: Colors.white70, fontSize: 16),
-          linkStyle: const TextStyle(
-            color: AppColors.primaryColor,
-            fontSize: 16,
-            decoration: TextDecoration.underline,
-          ),
+      final description = _LinkifiedDescriptionText(
+        text: snap.data!.description,
+        style: const TextStyle(color: Colors.white70, fontSize: 15),
+        linkStyle: const TextStyle(
+          color: AppColors.primaryColor,
+          fontSize: 15,
+          decoration: TextDecoration.underline,
         ),
+      );
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: description,
       );
     },
   );

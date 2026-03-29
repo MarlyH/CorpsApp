@@ -60,16 +60,31 @@ class HomeFragmentState extends State<HomeFragment> {
   }
 
   DateTime eventEndDateTime(event_summary.EventSummary e) {
+    if (!e.requiresBooking) {
+      final d = e.toDate;
+      return DateTime(d.year, d.month, d.day, 23, 59, 59);
+    }
+
     final t = (e.endTime).trim();
-    final m = RegExp(r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?').firstMatch(t);
+    if (t.isEmpty) {
+      final d = e.startDate;
+      return DateTime(d.year, d.month, d.day, 23, 59, 59);
+    }
+
+    final m =
+        RegExp(
+          r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM|am|pm)?',
+        ).firstMatch(t);
+    if (m == null) {
+      final d = e.startDate;
+      return DateTime(d.year, d.month, d.day, 23, 59, 59);
+    }
 
     int hh = 0, mm = 0;
     String? ampm;
-    if (m != null) {
-      hh = int.tryParse(m.group(1) ?? '0') ?? 0;
-      mm = int.tryParse(m.group(2) ?? '0') ?? 0;
-      ampm = m.group(3);
-    }
+    hh = int.tryParse(m.group(1) ?? '0') ?? 0;
+    mm = int.tryParse(m.group(2) ?? '0') ?? 0;
+    ampm = m.group(3);
     if (ampm != null) {
       final mer = ampm.toLowerCase();
       if (mer == 'pm' && hh < 12) hh += 12;
@@ -78,6 +93,36 @@ class HomeFragmentState extends State<HomeFragment> {
 
     final d = e.startDate;
     return DateTime(d.year, d.month, d.day, hh, mm);
+  }
+
+  bool _canManageEvent(
+    AuthProvider auth,
+    event_summary.EventSummary event,
+  ) {
+    if (auth.isAdmin) return true;
+    if (!auth.isEventManager) return false;
+
+    final user = auth.userProfile ?? const <String, dynamic>{};
+    final myId = _toIntOrNull(user['userId'] ?? user['id'] ?? user['accountId']);
+    final myEmail = (user['email'] ?? '').toString().trim().toLowerCase();
+
+    if (event.createdByUserId != null && myId != null) {
+      return event.createdByUserId == myId;
+    }
+    if (event.createdByEmail != null && myEmail.isNotEmpty) {
+      return event.createdByEmail!.toLowerCase() == myEmail;
+    }
+
+    // Fallback keeps existing manager behavior if backend creator metadata
+    // is not yet supplied.
+    return true;
+  }
+
+  int? _toIntOrNull(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 
   @override
@@ -113,7 +158,11 @@ class HomeFragmentState extends State<HomeFragment> {
             final all = snap.data ?? [];
 
             final allLocations =
-                all.map((e) => e.locationName).toSet().toList()
+                all
+                    .map((e) => e.locationName.trim())
+                    .where((name) => name.isNotEmpty)
+                    .toSet()
+                    .toList()
                   ..sort();
 
             final String? currentLocation =
@@ -134,7 +183,6 @@ class HomeFragmentState extends State<HomeFragment> {
               if (currentLocation != null && e.locationName != currentLocation) {
                 return false;
               }
-              // Filter logic updated for SessionType.all
               if (_filterSessionType != SessionType.all &&
                   e.sessionType != _filterSessionType) {
                 return false;
@@ -228,7 +276,7 @@ class HomeFragmentState extends State<HomeFragment> {
                                       isUser: isUser,
                                       isSuspended: isSuspended,
                                       suspensionUntil: suspensionUntil,
-                                      canManage: canManage,
+                                      canManage: _canManageEvent(auth, e),
                                       loadDetail: (id) => AuthHttpClient
                                           .getNoAuth('/api/events/$id')
                                           .then((r) => EventDetail.fromJson(

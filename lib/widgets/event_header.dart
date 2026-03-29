@@ -3,6 +3,7 @@ import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/models/event_detail.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventHeader extends StatelessWidget {
   final EventSummary event; // replace `dynamic` with your actual Event model type
@@ -30,15 +31,29 @@ class EventHeader extends StatelessWidget {
     } else {
       avatar = ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          mascotUrl!,
+        child: CachedNetworkImage(
+          imageUrl: mascotUrl!,
           height: avatarSize,
           width: avatarSize,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
-            'assets/logo/logo_transparent_1024px.png',           
-            color: Colors.white30,
-          ),
+          placeholder:
+              (_, __) => const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+          errorWidget:
+              (_, __, ___) => Image.asset(
+                'assets/logo/logo_transparent_1024px.png',
+                color: Colors.white30,
+              ),
+          fadeInDuration: const Duration(milliseconds: 200),
+          memCacheHeight: 512,
+          memCacheWidth: 512,
+          maxHeightDiskCache: 1024,
+          maxWidthDiskCache: 1024,
         ),
       );
     }

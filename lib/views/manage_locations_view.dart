@@ -6,6 +6,7 @@ import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/input_field.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -398,7 +399,25 @@ class _EditLocationModalState extends State<EditLocationModal> {
                   child: _pickedImage != null
                       ? Image.file(_pickedImage!, width: 188, height: 188, fit: BoxFit.cover)
                       : (imageUrl != null
-                          ? Image.network(imageUrl, width: 188, height: 188, fit: BoxFit.cover)
+                          ? CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              width: 188,
+                              height: 188,
+                              fit: BoxFit.cover,
+                              placeholder:
+                                  (_, __) => const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                              errorWidget:
+                                  (_, __, ___) => const Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.white54,
+                                  ),
+                            )
                           : Container(
                               width: 188,
                               height: 188,

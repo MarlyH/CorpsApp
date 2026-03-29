@@ -41,7 +41,12 @@ class _ManageEventsViewState extends State<ManageEventsView> {
     try {
       final resp = await AuthHttpClient.get('/api/events/manage');
       final list = jsonDecode(resp.body) as List<dynamic>;
-      _allEvents = list.cast<Map<String, dynamic>>().map(EventSummary.fromJson).toList();
+      _allEvents =
+          list
+              .cast<Map<String, dynamic>>()
+              .map(EventSummary.fromJson)
+              .where((event) => event.requiresBooking)
+              .toList();
       _filtered = List.from(_allEvents);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,6 +85,8 @@ class _ManageEventsViewState extends State<ManageEventsView> {
     final iso = '$yyyy-$mm-$dd';
 
     return [
+      e.title,
+      e.category.name,
       e.locationName,
       SessionTypeHelper.format(e.sessionType),
       weekdayFull, weekdayAbbr,

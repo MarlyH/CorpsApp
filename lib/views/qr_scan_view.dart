@@ -109,7 +109,10 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_selectedEventPrefKey);
     if (!mounted) return;
-    setState(() => _selectedEventId = null);
+    setState(() {
+      _selectedEventId = null;
+      _selectedEvent = null;
+    });
   }
 
   Future<void> _refreshSelectedEventValidity() async {
@@ -148,6 +151,11 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
       try {
         final int eventId = _toInt(event['eventId']);
         if (eventId <= 0) continue;
+        final bool requiresBooking =
+            event.containsKey('requiresBooking')
+                ? _toBool(event['requiresBooking'])
+                : _isBookableCategory(event['eventCategory'] ?? event['category']);
+        if (!requiresBooking) continue;
 
         final DateTime start = DateTime.parse(
           '${event['startDate']}T${event['startTime']}',
@@ -1259,7 +1267,7 @@ class _EventLockSheet extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Only available-status events are shown.',
+                'Only available bookable events are shown.',
                 style: TextStyle(color: Colors.white60, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
@@ -1357,6 +1365,31 @@ int _toInt(dynamic value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+bool _toBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+  return false;
+}
+
+bool _isBookableCategory(dynamic value) {
+  if (value is int) return value == 0;
+  if (value is String) {
+    final normalized =
+        value
+            .trim()
+            .toLowerCase()
+            .replaceAll(' ', '')
+            .replaceAll('_', '')
+            .replaceAll('-', '');
+    return normalized.contains('book');
+  }
+  return false;
 }
 
 String _sessionTypeLabel(dynamic raw) {

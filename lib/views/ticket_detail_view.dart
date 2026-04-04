@@ -341,6 +341,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                                 children: [
                                   _detailRow('Address', detail.address),
                                   _detailRow('Location', widget.booking.eventName),
+                                  _detailRow('Session Age', friendlySession(detail.sessionType)),
                                   _detailRow('Date', dateLabel),
                                   _detailRow('Time',
                                       '${_format12h(detail.startTime)} to ${_format12h(detail.endTime)}'),

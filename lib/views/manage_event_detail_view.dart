@@ -578,7 +578,7 @@ class _AttendeeDetailSheet extends StatelessWidget {
                 infoRow(context, label: 'Name', value: detail.displayName),
                 () {
                   final hasGuardianName = (detail.reservedGuardianName?.trim().isNotEmpty ?? false);
-                  final requireGuardian = hasGuardianName || !detail.canBeLeftAlone;
+                  final requireGuardian = hasGuardianName || detail.canBeLeftAlone;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

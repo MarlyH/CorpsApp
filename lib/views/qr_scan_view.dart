@@ -595,6 +595,12 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
 
                             const SizedBox(height: 4),
 
+                            if ((current.sessionType ?? '').trim().isNotEmpty)
+                              _kvRow('Session Age', current.sessionType!.trim()),
+
+                            if ((current.sessionType ?? '').trim().isNotEmpty)
+                              const SizedBox(height: 4),
+
                             _kvRow('Date', current.eventDateText),
 
                             const SizedBox(height: 4),
@@ -616,7 +622,10 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
                             if (current.isForChild) ...[
                               _kvRow(
                                 'MUST the attendee be picked up?',
-                                current.canBeLeftAlone ? 'Yes' : 'No',
+                                current.canBeLeftAlone
+                                    ? 'YES - GUARDIAN REQUIRED'
+                                    : 'No',
+                                isAlert: current.canBeLeftAlone,
                               ),
 
                               const SizedBox(height: 16),
@@ -720,15 +729,15 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
 
   // ====== Small UI helpers ======
 
-  static Widget _kvRow(String k, String v) {
-    return Row(
+  static Widget _kvRow(String k, String v, {bool isAlert = false}) {
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Text(
             k,
-            style: const TextStyle(
-              color: Colors.black54,
+            style: TextStyle(
+              color: isAlert ? const Color(0xFF7A0000) : Colors.black54,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -737,15 +746,28 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
         Expanded(
           child: Text(
             v,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 16,
+            style: TextStyle(
+              color: isAlert ? const Color(0xFF7A0000) : Colors.black,
+              fontSize: isAlert ? 17 : 16,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.right,
           ),
         ),
       ],
+    );
+
+    if (!isAlert) return row;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEFEF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE25D5D), width: 1.5),
+      ),
+      child: row,
     );
   }
 

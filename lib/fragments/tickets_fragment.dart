@@ -10,10 +10,15 @@ import '../views/ticket_detail_view.dart';
 class EventTime {
   final String? startTime;
   final String? endTime;
-  EventTime(this.startTime, this.endTime);
+  final String? sessionLabel;
+  EventTime(this.startTime, this.endTime, [this.sessionLabel]);
 
   factory EventTime.fromJson(Map<String, dynamic> j) =>
-      EventTime(j['startTime'] as String?, j['endTime'] as String?);
+      EventTime(
+        j['startTime'] as String?,
+        j['endTime'] as String?,
+        _sessionLabelFromRaw(j['sessionType'] ?? j['SessionType']),
+      );
 }
 
 class _BookingWithTime {
@@ -114,11 +119,12 @@ class _TicketsFragmentState extends State<TicketsFragment>
           final t = EventTime(
             (js['startTime'] ?? js['StartTime']) as String?,
             (js['endTime'] ?? js['EndTime']) as String?,
+            _sessionLabelFromRaw(js['sessionType'] ?? js['SessionType']),
           );
           return _BookingWithTime(b, t);
         } catch (_) {
           // fall back only if the event fetch fails
-          return _BookingWithTime(b, EventTime('00:00', '00:00'));
+          return _BookingWithTime(b, EventTime('00:00', '00:00', null));
         }
       }),
     );
@@ -608,6 +614,17 @@ class _BookingCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if ((time.sessionLabel ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      time.sessionLabel!.trim(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.normalText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                   
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -684,11 +701,14 @@ class _BookingCard extends StatelessWidget {
 
     switch (b) {
       case _Bucket.upcoming:
-        if (s == BookingStatus.CheckedIn) {
-          label = isLive ? 'CHECKED IN • LIVE' : 'CHECKED IN';
+        if (isLive) {
+          label = s == BookingStatus.CheckedIn ? 'LIVE - CHECKED IN' : 'LIVE';
+          bg = const Color(0xFF1FAF5B);
+        } else if (s == BookingStatus.CheckedIn) {
+          label = 'CHECKED IN';
           bg = Colors.green.shade700;
         } else {
-          label = isLive ? 'UPCOMING • LIVE' : 'UPCOMING';
+          label = 'UPCOMING';
           bg = AppColors.background;
         }
         break;
@@ -723,10 +743,42 @@ class _BookingCard extends StatelessWidget {
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
       ),
     );
   }
+}
+
+String _sessionLabelFromRaw(dynamic raw) {
+  if (raw is num) {
+    switch (raw.toInt()) {
+      case 0:
+        return 'Ages 8 to 11';
+      case 1:
+        return 'Ages 12 to 15';
+      case 2:
+        return 'Ages 16+';
+      default:
+        return '';
+    }
+  }
+
+  if (raw is String) {
+    final normalized =
+        raw.trim().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+    if (normalized.contains('8to11') || normalized.contains('kids')) {
+      return 'Ages 8 to 11';
+    }
+    if (normalized.contains('12to15') || normalized.contains('teen')) {
+      return 'Ages 12 to 15';
+    }
+    if (normalized.contains('16') || normalized.contains('adult')) {
+      return 'Ages 16+';
+    }
+  }
+
+  return '';
 }
 
 abstract class _Item {

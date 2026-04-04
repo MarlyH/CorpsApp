@@ -109,6 +109,41 @@ class _ManageEventsViewState extends State<ManageEventsView> {
     });
   }
 
+  DateTime? _parseEventDateTime(DateTime day, String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+
+    final match = RegExp(
+      r'^(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?\s*(AM|PM|am|pm)?$',
+    ).firstMatch(value);
+    if (match == null) return null;
+
+    var hour = int.tryParse(match.group(1) ?? '') ?? 0;
+    final minute = int.tryParse(match.group(2) ?? '') ?? 0;
+    final second = int.tryParse(match.group(3) ?? '0') ?? 0;
+    final meridiem = match.group(4)?.toLowerCase();
+
+    if (meridiem != null) {
+      if (meridiem == 'pm' && hour < 12) {
+        hour += 12;
+      } else if (meridiem == 'am' && hour == 12) {
+        hour = 0;
+      }
+    }
+
+    return DateTime(day.year, day.month, day.day, hour, minute, second);
+  }
+
+  bool _isLive(EventSummary e) {
+    if (e.status != EventStatus.available) return false;
+    final start = _parseEventDateTime(e.startDate, e.startTime);
+    var end = _parseEventDateTime(e.startDate, e.endTime);
+    if (start == null || end == null) return false;
+    if (!end.isAfter(start)) end = end.add(const Duration(days: 1));
+    final now = DateTime.now();
+    return now.isAfter(start) && now.isBefore(end);
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -155,7 +190,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                     itemBuilder: (_, i) {
                       final e = _filtered[_filtered.length - 1 - i];
                       return Padding(
-                        padding: EdgeInsetsGeometry.symmetric(vertical: 8),                       
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         child: GestureDetector(
                           onTap: () => Navigator.push(
                             context,
@@ -163,7 +198,36 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                               builder: (_) => ManageEventDetailView(event: e),
                             ),
                           ),
-                          child: EventSummaryCard(summary: e, isExpanded: false),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              EventSummaryCard(summary: e, isExpanded: false),
+                              if (_isLive(e))
+                                Positioned(
+                                  top: -8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1FAF5B),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Text(
+                                      'LIVE',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        fontFamily: 'WinnerSans',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         )                                                
                       );
                     },

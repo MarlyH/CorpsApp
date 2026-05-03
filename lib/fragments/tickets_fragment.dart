@@ -702,14 +702,11 @@ class _BookingCard extends StatelessWidget {
     switch (b) {
       case _Bucket.upcoming:
         if (isLive) {
-          label = s == BookingStatus.CheckedIn ? 'LIVE - CHECKED IN' : 'LIVE';
+          label = s == BookingStatus.CheckedIn ? 'CHECKED IN' : 'LIVE';
           bg = const Color(0xFF1FAF5B);
-        } else if (s == BookingStatus.CheckedIn) {
-          label = 'CHECKED IN';
-          bg = Colors.green.shade700;
         } else {
-          label = 'UPCOMING';
-          bg = AppColors.background;
+          label = '';
+          bg = Colors.transparent;
         }
         break;
 
@@ -727,8 +724,8 @@ class _BookingCard extends StatelessWidget {
         break;
 
       case _Bucket.cancelled:
-        label = 'CANCELLED';
-        bg = AppColors.background;
+        label = '';
+        bg = Colors.transparent;
         break;
     }
 

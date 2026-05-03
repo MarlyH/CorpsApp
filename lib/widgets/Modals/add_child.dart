@@ -121,7 +121,7 @@ final List<MedicalItem> medicalItems = [];
     } catch (e) {
       setState(() {
         isSubmitting = false;
-        errorMessage = 'Could not add child: $e';
+        errorMessage = 'Could not add attendee: $e';
       });    
       }
   }
@@ -153,7 +153,7 @@ final List<MedicalItem> medicalItems = [];
               const SizedBox(height: 12),
 
               Text(
-                'ADD NEW CHILD',
+                'ADD NEW ATTENDEE',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -224,7 +224,7 @@ final List<MedicalItem> medicalItems = [];
                 onChanged: (v) => setState(() => hasMedical = v),
                 activeColor: AppColors.primaryColor,
                 title: const Text(
-                  'Does child have any medical conditions or allergies?',
+                  'Does attendee have any medical conditions or allergies?',
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),       
                 contentPadding: EdgeInsets.zero,
@@ -335,7 +335,7 @@ final List<MedicalItem> medicalItems = [];
                 ),
 
                 Button(
-                  label: 'Add Child', 
+                  label: 'Add attendee', 
                   onPressed: _submit,
                   loading: isSubmitting,
                 ),         

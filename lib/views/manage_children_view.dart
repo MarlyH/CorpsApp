@@ -64,7 +64,7 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProfileAppBar(title: 'My Children'),     
+      appBar: ProfileAppBar(title: 'Saved Attendees'),     
       body: SafeArea(
         bottom: true,
         child: Padding(
@@ -99,7 +99,7 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
                       children: [
                         Icon(Icons.person_outline, color: Colors.white70, size: 48),
                         SizedBox(height: 4),
-                        Text("No children added yet", style: TextStyle(color: Colors.white70)),
+                        Text("No attendee added yet", style: TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
@@ -134,7 +134,7 @@ class _ManageChildrenViewState extends State<ManageChildrenView> {
 
               const SizedBox(height: 16),
                 
-              Button(label: 'Add Child', onPressed: _goCreate),                    
+              Button(label: 'Add Attendee', onPressed: _goCreate),                    
             ],
           ),
         ),      

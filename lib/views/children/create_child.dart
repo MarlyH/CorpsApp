@@ -96,7 +96,7 @@ class _CreateChildViewState extends State<CreateChildView> {
       if (res.statusCode == 200) {
         Navigator.pop(context, true);
       } else {
-        final msg = _extractMsg(res.body) ?? 'Failed to create child.';
+        final msg = _extractMsg(res.body) ?? 'Failed to create attendee.';
         _snack(msg, err: true);
       }
     } catch (e) {
@@ -167,7 +167,7 @@ class _CreateChildViewState extends State<CreateChildView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProfileAppBar(title: 'Add Child'),
+      appBar: ProfileAppBar(title: 'Add Attendee'),
       body: SafeArea(
         bottom: true,
         child: SingleChildScrollView(
@@ -228,7 +228,7 @@ class _CreateChildViewState extends State<CreateChildView> {
                   onChanged: (v) => setState(() => _hasMedical = v),
                   activeColor: AppColors.primaryColor,
                   title: const Text(
-                    'Does child have any medical conditions or allergies?',
+                    'Does attendee have any medical conditions or allergies?',
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                   ), 
                   contentPadding: EdgeInsets.zero,

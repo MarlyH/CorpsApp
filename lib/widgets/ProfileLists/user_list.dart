@@ -31,8 +31,8 @@ class UserList extends StatelessWidget {
               )
             ] else ... [
               OptionTile(
-                icon: Icons.child_care,
-                label: "My Children",
+                icon: Icons.person,
+                label: "Saved Attendees",
                 view: ManageChildrenView()
               ),
             ],

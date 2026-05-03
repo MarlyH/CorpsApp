@@ -114,7 +114,7 @@ class _EditChildViewState extends State<EditChildView> {
       if (res.statusCode == 200) {
         Navigator.pop(context, true);
       } else {
-        final msg = _extractMsg(res.body) ?? 'Failed to update child.';
+        final msg = _extractMsg(res.body) ?? 'Failed to update attendee.';
         _snack(msg, err: true);
       }
     } catch (e) {
@@ -128,8 +128,8 @@ class _EditChildViewState extends State<EditChildView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => CustomAlertDialog(
-        title: 'Delete Child', 
-        info: 'Are you sure you want to remove this child from your account? This action cannot be undone.',
+        title: 'Delete Attendee', 
+        info: 'Are you sure you want to remove this attendee from your account? This action cannot be undone.',
         cancel: true,
         buttonLabel: 'Delete',
         buttonAction: () => Navigator.pop(context, true),
@@ -143,7 +143,7 @@ class _EditChildViewState extends State<EditChildView> {
       if (res.statusCode == 200) {
         Navigator.pop(context, true);
       } else {
-        final msg = _extractMsg(res.body) ?? 'Failed to delete child.';
+        final msg = _extractMsg(res.body) ?? 'Failed to delete attendee.';
         _snack(msg, err: true);
       }
     } catch (e) {
@@ -208,7 +208,7 @@ class _EditChildViewState extends State<EditChildView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: ProfileAppBar(
-        title: 'Edit Child',
+        title: 'Edit Attendee',
         actionButton: Icon(Icons.delete_outline, color: AppColors.errorColor),
         actionOnTap: _saving ? null : _delete,
       ),
@@ -291,13 +291,13 @@ class _EditChildViewState extends State<EditChildView> {
                         value: _hasMedical,
                         onChanged: (v) => setState(() => _hasMedical = v),
                         activeColor: AppColors.primaryColor,
-                        title: const Text('Has medical conditions or allergies?',
+                        title: const Text('Does attendee have any medical conditions or allergies?',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)
                         ),       
                         contentPadding: EdgeInsets.zero,            
                       ),
 
-                      const SizedBox(height: 4),              
+                      const SizedBox(height: 4),   
 
                       if (_hasMedical) ...[
                         const SizedBox(height: 4),
@@ -373,17 +373,17 @@ class _EditChildViewState extends State<EditChildView> {
                                     )
                                   );                                
                                 },
-                              ),
+                              ),                       
+                      ],     
 
-                        const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                        Button(
-                          label: 'Update', 
-                          onPressed: _update,
-                          loading: _saving,
-                        ),                          
-                      ],                     
-                    ],
+                      Button(
+                        label: 'Update', 
+                        onPressed: _update,
+                        loading: _saving,
+                      ),                   
+                    ],                                         
                   ),
                 ),
               ),

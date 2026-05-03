@@ -614,17 +614,17 @@ class _BookingCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if ((time.sessionLabel ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      time.sessionLabel!.trim(),
+
+                  Text(
+                      time.sessionLabel!,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.normalText,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
+
+                  const SizedBox(height: 2),
                   
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

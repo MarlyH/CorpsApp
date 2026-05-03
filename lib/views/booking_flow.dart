@@ -57,28 +57,27 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   Future<EventDetail> _loadEventDetail() async {
-  final resp = await AuthHttpClient.get(
-    '/api/events/${widget.event.eventId}',
-  );
+    final resp = await AuthHttpClient.get(
+      '/api/events/${widget.event.eventId}',
+    );
 
-  if (resp.statusCode == 200) {
-    final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
-    final detail = EventDetail.fromJson(jsonData);
+    if (resp.statusCode == 200) {
+      final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
+      final detail = EventDetail.fromJson(jsonData);
 
-    // Assign locationMascotImgSrc to _mascotUrl
-    final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
-    if (mascotUrl != null &&
-        mascotUrl.isNotEmpty) {
-      _mascotUrl = mascotUrl;
+      // Assign locationMascotImgSrc to _mascotUrl
+      final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
+      if (mascotUrl != null && mascotUrl.isNotEmpty) {
+        _mascotUrl = mascotUrl;
+      } else {
+        _mascotUrl = null;
+      }
+
+      return detail;
     } else {
-      _mascotUrl = null;
+      throw Exception('Failed to load event detail: ${resp.statusCode}');
     }
-
-    return detail;
-  } else {
-    throw Exception('Failed to load event detail: ${resp.statusCode}');
   }
-}
 
   bool get _needsFullFlow {
     final age = context.read<AuthProvider>().userProfile?['age'] as int? ?? 0;
@@ -86,14 +85,14 @@ class _BookingFlowState extends State<BookingFlow> {
   }
 
   void _next() async {
-  final last = _needsFullFlow ? 3 : 2;
+    final last = _needsFullFlow ? 3 : 2;
 
-  if (_step < last) {
-    setState(() => _step++);
-  } else {
-    _submitBooking();
+    if (_step < last) {
+      setState(() => _step++);
+    } else {
+      _submitBooking();
+    }
   }
-}
 
   void _back() {
     if (_step > 0) {
@@ -148,61 +147,67 @@ class _BookingFlowState extends State<BookingFlow> {
       body: SafeArea(
         bottom: false,
         child: Padding(
-          padding: AppPadding.screen.copyWith(bottom:MediaQuery.of(context).padding.bottom + 8),
+          padding: AppPadding.screen.copyWith(
+            bottom: MediaQuery.of(context).padding.bottom + 8,
+          ),
           child: Column(
-          children: [
-            if (_step > 0)
-              EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl),
-   
-            // content
-            Expanded(
-              child: IndexedStack(
-                index: _step,
-                children: [
-                  // always Terms first
-                  TermsView(onCancel: _back, onAgree: _next),
-                  SeatPickerSheet(
-                    isReserveFlow: false,
-                    futureDetail: _detailFut,
-                    initialSelected: _selectedSeat,
-                    eventTotalSeats: widget.event.totalSeats,
-                    onSeatPicked: (seat) {
-                      setState(() {
-                        _selectedSeat = seat;
-                      });
-                    }, 
-                  ),
-                  if (_needsFullFlow) _attendeeView(),
-                  _confirmView(),
-                ],
-              ),
-            ),
+            children: [
+              if (_step > 0)
+                EventHeader(
+                  event: widget.event,
+                  detailFuture: _detailFut,
+                  mascotUrl: _mascotUrl,
+                ),
 
-            // BACK / NEXT bar
+              // content
+              Expanded(
+                child: IndexedStack(
+                  index: _step,
+                  children: [
+                    // always Terms first
+                    TermsView(onCancel: _back, onAgree: _next),
+                    SeatPickerSheet(
+                      isReserveFlow: false,
+                      futureDetail: _detailFut,
+                      initialSelected: _selectedSeat,
+                      eventTotalSeats: widget.event.totalSeats,
+                      onSeatPicked: (seat) {
+                        setState(() {
+                          _selectedSeat = seat;
+                        });
+                      },
+                    ),
+                    if (_needsFullFlow) _attendeeView(),
+                    _confirmView(),
+                  ],
+                ),
+              ),
+
+              // BACK / NEXT bar
               Row(
                 children: [
                   if (_step == 0) ...[
                     IntrinsicWidth(
                       child: Button(
-                      label: 'CANCEL',
-                      onPressed: _back,
-                      isCancelOrBack: true,             
-                      fontSize: MediaQuery.of(context).size.width < 360 ? 12 : 16,
+                        label: 'CANCEL',
+                        onPressed: _back,
+                        isCancelOrBack: true,
+                        fontSize:
+                            MediaQuery.of(context).size.width < 360 ? 12 : 16,
                       ),
                     ),
-                    
+
                     const SizedBox(width: 12),
 
                     Expanded(
                       child: Button(
                         label: 'AGREE',
                         onPressed: _next,
-                        fontSize: MediaQuery.of(context).size.width < 360 ? 12 : 16,
+                        fontSize:
+                            MediaQuery.of(context).size.width < 360 ? 12 : 16,
                       ),
                     ),
-
                   ] else ...[
-
                     // Both buttons take equal space
                     Expanded(
                       child: Button(
@@ -217,17 +222,21 @@ class _BookingFlowState extends State<BookingFlow> {
                     Expanded(
                       child: Button(
                         label: _step == totalSteps - 1 ? 'COMPLETE' : 'NEXT',
-                        onPressed: (_step == 1 && _selectedSeat == null) ||
-                                   (_needsFullFlow && _step == 2 && (_allowAlone == null || _selectedChildId == null))
-                            ? null
-                            : _next,
+                        onPressed:
+                            (_step == 1 && _selectedSeat == null) ||
+                                    (_needsFullFlow &&
+                                        _step == 2 &&
+                                        (_allowAlone == null ||
+                                            _selectedChildId == null))
+                                ? null
+                                : _next,
                       ),
                     ),
                   ],
                 ],
-              )
-          ],
-        ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -237,287 +246,295 @@ class _BookingFlowState extends State<BookingFlow> {
   Widget _attendeeView() {
     return SingleChildScrollView(
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Attendee',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Attendee',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
+          ),
 
-            const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DropdownMenu<String>(
-                  key: ValueKey('${_selectedChildId ?? 'none'}|${_children.length}'),
-                  width: MediaQuery.of(context).size.width,
-                  initialSelection: _selectedChildId,
-                  hintText: "Select Child",
-                  textStyle: const TextStyle(
-                    color: AppColors.normalText,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownMenu<String>(
+                key: ValueKey(
+                  '${_selectedChildId ?? 'none'}|${_children.length}',
+                ),
+                width: MediaQuery.of(context).size.width,
+                initialSelection: _selectedChildId,
+                hintText: "Select Attendee",
+                textStyle: const TextStyle(
+                  color: AppColors.normalText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                leadingIcon: const Icon(
+                  Icons.person_outline,
+                  color: AppColors.normalText,
+                ),
+                trailingIcon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.normalText,
+                  size: 20,
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintStyle: const TextStyle(
+                    color: Color(0xFFA3A3A3),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
-                  leadingIcon: const Icon(
-                    Icons.person_outline,
-                    color: AppColors.normalText,
-                  ),
-                  trailingIcon: const Icon(
-                    Icons.arrow_drop_down,
-                    color: AppColors.normalText,
-                    size: 20,
-                  ),
-                  inputDecorationTheme: InputDecorationTheme(
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
+                ),
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(Colors.white),
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                    hintStyle: const TextStyle(
-                      color: Color(0xFFA3A3A3),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
                     ),
                   ),
-                  menuStyle: MenuStyle(                   
-                    backgroundColor: WidgetStatePropertyAll(Colors.white),                   
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  padding: WidgetStatePropertyAll(
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  elevation: WidgetStatePropertyAll(4),
+                ),
+                onSelected: (v) async {
+                  if (v == 'ADD') {
+                    setState(() => _selectedChildId = null);
+
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder:
+                          (ctx) => AddChildModal(
+                            onChildAdded: (newChildId) async {
+                              if (newChildId != null) {
+                                await _loadChildren();
+                                setState(() => _selectedChildId = newChildId);
+                              }
+                            },
+                          ),
+                    );
+                  } else {
+                    setState(() => _selectedChildId = v);
+                  }
+                },
+                dropdownMenuEntries: [
+                  for (final c in _children)
+                    DropdownMenuEntry<String>(
+                      value: c.childId.toString(),
+                      label: '${c.firstName} ${c.lastName}',
+                      style: ButtonStyle(
+                        foregroundColor: WidgetStatePropertyAll(
+                          AppColors.normalText,
+                        ),
                       ),
                     ),
-                    padding: WidgetStatePropertyAll(
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  DropdownMenuEntry<String>(
+                    value: 'ADD',
+                    label: 'Add Attendee',
+                    style: ButtonStyle(
+                      alignment: Alignment.center,
+                      foregroundColor: WidgetStatePropertyAll(
+                        AppColors.primaryColor,
+                      ),
+                      textStyle: WidgetStatePropertyAll(
+                        const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    elevation: WidgetStatePropertyAll(4),
                   ),
-                  onSelected: (v) async {
-                    if (v == 'ADD') {
-                      setState(() => _selectedChildId = null);
+                ],
+              ),
+            ],
+          ),
 
-                      await showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (ctx) => AddChildModal(
-                          onChildAdded: (newChildId) async {
-                            if (newChildId != null) {
-                              await _loadChildren();
-                              setState(() => _selectedChildId = newChildId);
-                            }
-                          },
-                        ),
-                      );
-                    } else {
-                      setState(() => _selectedChildId = v);
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white30, height: 1),
+          const SizedBox(height: 16),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Permission to Leave',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+
+              const Text(
+                'Do you allow the selected attendee to leave on their own after the event?',
+                style: TextStyle(fontSize: 16),
+              ),
+
+              const SizedBox(height: 4),
+
+              // Yes, allow child to leave
+              ListTile(
+                leading: Radio<bool?>(
+                  value: false,
+                  groupValue: _allowAlone,
+                  onChanged: (v) async {
+                    if (v == false) {
+                      final ok = await _confirmPermissionChange(true);
+                      if (ok) setState(() => _allowAlone = false);
                     }
                   },
-                  dropdownMenuEntries: [
-                    for (final c in _children)
-                      DropdownMenuEntry<String>(
-                        value: c.childId.toString(),
-                        label: '${c.firstName} ${c.lastName}',
-                        style: ButtonStyle(
-                          foregroundColor: WidgetStatePropertyAll(AppColors.normalText),
-                        ),
-                      ),
-                    DropdownMenuEntry<String>(
-                      value: 'ADD',
-                      label: 'Add Child',
-                      style: ButtonStyle(
-                        alignment: Alignment.center,
-                        foregroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
-                        textStyle: WidgetStatePropertyAll(
-                          const TextStyle(fontWeight: FontWeight.bold),                       
-                        ),
-                      ),
-                    ),
-                  ],
+                  activeColor: AppColors.primaryColor,
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white30, height: 1),
-            const SizedBox(height: 16),
-            
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Permission to Leave',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const Text(
-                    'Do you allow child to leave on their own after the event?',
-                    style: TextStyle(fontSize: 16),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // Yes, allow child to leave                 
-                  ListTile(
-                    leading: Radio<bool?>(
-                      value: false,                
-                      groupValue: _allowAlone,     
-                      onChanged: (v) async {
-                        if (v == false) {
-                          final ok = await _confirmPermissionChange(true); 
-                          if (ok) setState(() => _allowAlone = false);     
-                        }
-                      },
-                      activeColor: AppColors.primaryColor,
-                    ),
-                    onTap: () async {
-                      // tap behavior: if already selected -> clear (null). Otherwise ask confirmation and set false.
-                      if (_allowAlone == false) {
-                        setState(() => _allowAlone = null); 
-                      } else {
-                        final ok = await _confirmPermissionChange(true);
-                        if (ok) setState(() => _allowAlone = false);
-                      }
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    minLeadingWidth: 0,
-                    horizontalTitleGap: 4,
-                    title: const Text.rich(
+                onTap: () async {
+                  // tap behavior: if already selected -> clear (null). Otherwise ask confirmation and set false.
+                  if (_allowAlone == false) {
+                    setState(() => _allowAlone = null);
+                  } else {
+                    final ok = await _confirmPermissionChange(true);
+                    if (ok) setState(() => _allowAlone = false);
+                  }
+                },
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                minLeadingWidth: 0,
+                horizontalTitleGap: 4,
+                title: const Text.rich(
+                  TextSpan(
+                    children: [
                       TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Yes', 
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ', allow the child to leave on their own.',
-                            style: TextStyle(
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                        text: 'Yes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ),
-
-                  // No, parent/guardian will collect
-                  ListTile(
-                    leading: Radio<bool?>(
-                      value: true,                 
-                      groupValue: _allowAlone,     
-                      onChanged: (v) async {
-                        if (v == true) {
-                          final ok = await _confirmPermissionChange(false); 
-                          if (ok) setState(() => _allowAlone = true);
-                        }
-                      },
-                      activeColor: AppColors.primaryColor,
-                    ),
-                    onTap: () async {
-                      if (_allowAlone == true) {
-                        setState(() => _allowAlone = null); 
-                      } else {
-                        final ok = await _confirmPermissionChange(false);
-                        if (ok) setState(() => _allowAlone = true);
-                      }
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    minLeadingWidth: 0,
-                    horizontalTitleGap: 4,
-                    title: const Text.rich(
                       TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'No', 
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ', an authorised parent/guardian must pick the child up.',
-                            style: TextStyle(
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                        text: ', allow the attendee to leave on their own.',
+                        style: TextStyle(fontSize: 16),
                       ),
-                    ),                   
-                  ),                                       
-                ],
-              ),           
-          ],
-        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // No, parent/guardian will collect
+              ListTile(
+                leading: Radio<bool?>(
+                  value: true,
+                  groupValue: _allowAlone,
+                  onChanged: (v) async {
+                    if (v == true) {
+                      final ok = await _confirmPermissionChange(false);
+                      if (ok) setState(() => _allowAlone = true);
+                    }
+                  },
+                  activeColor: AppColors.primaryColor,
+                ),
+                onTap: () async {
+                  if (_allowAlone == true) {
+                    setState(() => _allowAlone = null);
+                  } else {
+                    final ok = await _confirmPermissionChange(false);
+                    if (ok) setState(() => _allowAlone = true);
+                  }
+                },
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                minLeadingWidth: 0,
+                horizontalTitleGap: 4,
+                title: const Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'No',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            ', an authorised parent/guardian must pick the attendee up.',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   // CONFIRM
-Widget _confirmView() {
-  final selectedChild = _children.firstWhere(
-    (c) => c.childId.toString() == _selectedChildId,
-    orElse: () => ChildModel(
-      childId: -1,
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      emergencyContactName: '',
-      emergencyContactPhone: '',
-      age: 0,
-      ageGroup: '',
-      ageGroupLabel: ''
-    ),
-  );
+  Widget _confirmView() {
+    final selectedChild = _children.firstWhere(
+      (c) => c.childId.toString() == _selectedChildId,
+      orElse:
+          () => ChildModel(
+            childId: -1,
+            firstName: '',
+            lastName: '',
+            dateOfBirth: '',
+            emergencyContactName: '',
+            emergencyContactPhone: '',
+            age: 0,
+            ageGroup: '',
+            ageGroupLabel: '',
+          ),
+    );
 
-  final childName = '${selectedChild.firstName} ${selectedChild.lastName}';
+    final childName = '${selectedChild.firstName} ${selectedChild.lastName}';
 
-  return Center(
-    child: Text(
-      'About to book Ticket #$_selectedSeat\nfor $childName',
-      textAlign: TextAlign.center,
-      style: const TextStyle(fontSize: 16),
-    ),
-  );
-}
+    return Center(
+      child: Text(
+        'About to book Ticket #$_selectedSeat\nfor $childName',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 16),
+      ),
+    );
+  }
 
   Future<bool> _confirmPermissionChange(bool allowAlone) async {
-    final title = allowAlone
-        ? 'Allow Child to Leave Alone?'
-        : 'Require Parent/Guardian to Pick Up?';
+    final title =
+        allowAlone
+            ? 'Allow Attendee to Leave Alone?'
+            : 'Require Parent/Guardian to Pick Up?';
 
-    final body = allowAlone
-      ? 'You consent to your child leaving the venue on their own after the event concludes.\n\n'
-        'Your Corps will not be responsible for the child’s safety once they leave the venue.'
-      : 'Your child is not allowed to leave on their own and must be picked up by an authorised parent/guardian.\n\n'
-        "The parent/guardian must present the ticket's QR code when picking them up at after the event.\n\n"
-        'Your child will remain at the venue under supervision until they are claimed with the QR code.';
+    final body =
+        allowAlone
+            ? 'You allow the attendee to leave the venue on their own during or after the event.\n\n'
+                'You take full responsibility for the attendee once they have left the venue.\n\n'
+                'Your Corps is not responsible for the attendee’s safety or wellbeing after they have left the venue.'
+            : 'The Attendee is not permitted to leave on their own and must be collected by an authorised person.\n\n'
+                "The authorised person must present the booking QR code when picking the attendee up after the event.\n\n"
+                'The booking QR code may be shared with another authorised person for collection.\n\n'
+                'The Attendee will remain at the venue under supervision until they are collected using the booking QR code.';
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => CustomAlertDialog(
-        title: title,
-        info: body,
-        buttonAction: () => Navigator.of(ctx).pop(true),
-        buttonLabel: 'Confirm',
-        cancel: true,
-      ),
+      builder:
+          (ctx) => CustomAlertDialog(
+            title: title,
+            info: body,
+            buttonAction: () => Navigator.of(ctx).pop(true),
+            buttonLabel: 'Confirm',
+            cancel: true,
+          ),
     );
 
     return result == true;
-  } 
+  }
 }
-
-

@@ -620,13 +620,31 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
                             const SizedBox(height: 4),
 
                             if (current.isForChild) ...[
-                              _kvRow(
-                                'MUST the attendee be picked up?',
-                                current.canBeLeftAlone
-                                    ? 'YES - GUARDIAN REQUIRED'
-                                    : 'No',
-                                isAlert: current.canBeLeftAlone,
-                              ),
+                              current.canBeLeftAlone
+                                ? 
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFEFEF),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFE25D5D), width: 1.5),
+                                    ),
+                                    child: Text(
+                                      'ATTENDEE MUST BE PICKED UP BY GUARDIAN',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.normalText
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )                                 
+                                : 
+                                  _kvRow(
+                                    'MUST the attendee be picked up?',                              
+                                    'No',
+                                  ),
 
                               const SizedBox(height: 16),
                               const Divider(

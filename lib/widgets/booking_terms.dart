@@ -1,5 +1,8 @@
+import 'package:corpsapp/theme/spacing.dart' as spacing;
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
+
+import '../theme/spacing.dart';
 
 class TermsView extends StatelessWidget {
   final VoidCallback onCancel;
@@ -45,13 +48,11 @@ class TermsView extends StatelessWidget {
     return Container(
       color: AppColors.background,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Booking Agreement',
+                'BOOKING AGREEMENT',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -134,7 +135,6 @@ class TermsView extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

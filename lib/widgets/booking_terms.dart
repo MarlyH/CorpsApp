@@ -1,8 +1,5 @@
-import 'package:corpsapp/theme/spacing.dart' as spacing;
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
-
-import '../theme/spacing.dart';
 
 class TermsView extends StatelessWidget {
   final VoidCallback onCancel;
@@ -84,7 +81,7 @@ class TermsView extends StatelessWidget {
                         '• You may register multiple participants, but each must be registered separately',
                       ),
                       _bulletText(
-                        '• Game content: Ages 8–11 G–PG, Ages 12–15 M, Ages 16+ approved restricted titles',
+                        '• Game content: Ages 8–11 = G and PG rated. Ages 12–15 = M rated. Ages 16+ = approved restricted titles',
                       ),
                       _bulletText(
                         '• Parents or guardians must register participants under 16',

@@ -61,17 +61,8 @@ class PoliciesView extends StatelessWidget {
               backgroundColor: AppColors.background,
               hasLeading: false,
               children: [
-                _buildTile('Child Protection Policy', () {
-                  _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_5d58ed0ed7f74328aa1dc0524ef00410.pdf');
-                }),
-                _buildTile('Child Protection Prevention Framework', () {
-                  _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_13c2b4f95fca4ac9abc97661e8387e27.pdf');
-                }),
-                _buildTile('Health and Safety Manual', () {
-                  _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_d193389476e34ac89da4ab0dd1067afc.pdf');
-                }),
-                _buildTile('Code of Conduct for Interacting with Children', () {
-                  _open(context, 'https://www.yourcorps.co.nz/_files/ugd/ff8734_57085482bbd8423dbbea34e8989bd4eb.pdf');
+                _buildTile('Child Protection Policies', () {
+                  _open(context, 'https://www.yourcorps.co.nz/child-protection-policies');
                 }),
               ],
             ),  

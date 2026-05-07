@@ -64,7 +64,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
     final c = _controller;
     if (c != null) {
       try {
-        c.pauseCamera();   
+        c.pauseCamera();
       } catch (_) {}
 
       try {
@@ -76,7 +76,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
   }
 
   void _onQRViewCreated(QRViewController ctrl) {
-    _controller = ctrl;  
+    _controller = ctrl;
 
     _controller!.scannedDataStream.listen((scanData) async {
       if (_lockedOnResult) return;
@@ -301,7 +301,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
   }
 
   Future<void> _openEventLockSheet() async {
-    final events = await _getCurrentAvailableEvents(); 
+    final events = await _getCurrentAvailableEvents();
 
     if (!mounted) return;
 
@@ -322,7 +322,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() {
         _selectedEventId = selected.eventId;
-        _selectedEvent = selected; 
+        _selectedEvent = selected;
       });
     }
   }
@@ -478,6 +478,10 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
           builder: (ctx, setSB) {
             final enabled = primaryEnabled(current.status);
             final label = primaryLabel(current.status);
+            final primaryButtonColor =
+                current.status == BookingStatusX.checkedIn
+                    ? AppColors.errorColor
+                    : AppColors.primaryColor;
             final auth = context.watch<AuthProvider>();
 
             return SizedBox(
@@ -534,6 +538,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
                         label: busy ? 'Working…' : label,
                         onPressed:
                             busy || !enabled ? null : () => doPrimary(setSB),
+                        buttonColor: primaryButtonColor,
                       ),
 
                       const SizedBox(height: 16),
@@ -926,7 +931,7 @@ class _QrScanViewState extends State<QrScanView> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-              ),     
+              ),
 
               SizedBox(
                 width: double.infinity,
@@ -1427,4 +1432,3 @@ String _formatTimeRange(DateTime start, DateTime end) {
   }
   return '$startText - $endText';
 }
-

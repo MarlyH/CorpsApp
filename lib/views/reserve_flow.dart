@@ -11,18 +11,26 @@ import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/event_header.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_http_client.dart';
+import '../services/persistent_image_cache.dart';
 
 class ReserveFlow extends StatefulWidget {
   final int eventId;
   final EventSummary event;
-  const ReserveFlow({super.key, required this.eventId, required this.event});
+  final String? initialMascotUrl;
+
+  const ReserveFlow({
+    super.key,
+    required this.eventId,
+    required this.event,
+    this.initialMascotUrl,
+  });
 
   @override
   _ReserveFlowState createState() => _ReserveFlowState();
 }
 
 class _ReserveFlowState extends State<ReserveFlow> {
-  final _formKey  = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _seatCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -43,6 +51,10 @@ class _ReserveFlowState extends State<ReserveFlow> {
   @override
   void initState() {
     super.initState();
+    _mascotUrl =
+        _normalizeMascotUrl(widget.initialMascotUrl) ??
+        _normalizeMascotUrl(widget.event.mascotUrl);
+    _warmMascot(_mascotUrl);
     _detailFut = _loadEventDetail();
     _seatCtrl.addListener(_syncTypedSeat);
   }
@@ -63,10 +75,9 @@ class _ReserveFlowState extends State<ReserveFlow> {
   }
 
   // Allow only digits and '+'; strip spaces etc before sending
-  String _cleanPhone(String s) =>
-      String.fromCharCodes(
-        s.trim().runes.where((c) => (c >= 0x30 && c <= 0x39) || c == 0x2B),
-      );
+  String _cleanPhone(String s) => String.fromCharCodes(
+    s.trim().runes.where((c) => (c >= 0x30 && c <= 0x39) || c == 0x2B),
+  );
 
   bool _needsGuardian() => _cannotBeLeftAlone;
 
@@ -82,13 +93,9 @@ class _ReserveFlowState extends State<ReserveFlow> {
       final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
       final detail = EventDetail.fromJson(jsonData);
 
-      // Assign locationMascotImgSrc to _mascotUrl
-      final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
-      if (mascotUrl != null &&
-          mascotUrl.isNotEmpty) {
-        _mascotUrl = mascotUrl;
-      } else {
-        _mascotUrl = null;
+      if (jsonData.containsKey('locationMascotImgSrc')) {
+        final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
+        _setMascotUrl(mascotUrl);
       }
 
       return detail;
@@ -97,17 +104,59 @@ class _ReserveFlowState extends State<ReserveFlow> {
     }
   }
 
+  void _setMascotUrl(String? mascotUrl) {
+    final nextUrl = _normalizeMascotUrl(mascotUrl);
+
+    if (_mascotUrl == nextUrl) {
+      _warmMascot(nextUrl);
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _mascotUrl = nextUrl);
+    } else {
+      _mascotUrl = nextUrl;
+    }
+
+    _warmMascot(nextUrl);
+  }
+
+  String? _normalizeMascotUrl(String? mascotUrl) {
+    final normalizedUrl = mascotUrl?.trim();
+    return normalizedUrl != null && normalizedUrl.isNotEmpty
+        ? normalizedUrl
+        : null;
+  }
+
+  Future<void> _warmMascot(String? mascotUrl) async {
+    final normalizedUrl = mascotUrl?.trim();
+    if (normalizedUrl == null || normalizedUrl.isEmpty) return;
+
+    try {
+      final file = await PersistentImageCache.instance.getFile(normalizedUrl);
+      if (!mounted || file == null) return;
+
+      await precacheImage(FileImage(file), context);
+    } catch (_) {
+      // The header still has a placeholder/fallback if warming cannot finish.
+    }
+  }
+
   Future<_SeatData> _fetchSeatData() async {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final r = await AuthHttpClient.get('/api/events/${widget.eventId}?_=$ts'); // bust caches
+    final r = await AuthHttpClient.get(
+      '/api/events/${widget.eventId}?_=$ts',
+    ); // bust caches
     final json = jsonDecode(r.body) as Map<String, dynamic>;
 
-    final available = (json['availableSeats'] as List<dynamic>?)
+    final available =
+        (json['availableSeats'] as List<dynamic>?)
             ?.map((e) => (e as num).toInt())
             .toSet() ??
         <int>{};
 
-    final total = (json['totalSeats'] as num?)?.toInt() ??
+    final total =
+        (json['totalSeats'] as num?)?.toInt() ??
         (available.isNotEmpty ? available.reduce(math.max) : 0);
 
     return _SeatData(totalSeats: total, availableSeats: available);
@@ -123,25 +172,26 @@ class _ReserveFlowState extends State<ReserveFlow> {
       final picked = await showModalBottomSheet<int>(
         useSafeArea: true,
         context: context,
-        builder: (_) => Padding(
-          padding: AppPadding.screen,
-          child: SeatPickerSheet(
-            futureDetail: _detailFut, 
-            initialSelected: _selectedSeat, 
-            eventTotalSeats: data.totalSeats, 
-            isReserveFlow: true,
-            onSeatPicked: (seat) {
-              // Update both controller and local state
-              setState(() {
-                _selectedSeat = seat;
-                _seatCtrl.text = seat.toString();
-              });
+        builder:
+            (_) => Padding(
+              padding: AppPadding.screen,
+              child: SeatPickerSheet(
+                futureDetail: _detailFut,
+                initialSelected: _selectedSeat,
+                eventTotalSeats: data.totalSeats,
+                isReserveFlow: true,
+                onSeatPicked: (seat) {
+                  // Update both controller and local state
+                  setState(() {
+                    _selectedSeat = seat;
+                    _seatCtrl.text = seat.toString();
+                  });
 
-              // Close the modal after choosing a seat
-              Navigator.of(context).pop();
-            },
-          )
-        )
+                  // Close the modal after choosing a seat
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
       );
 
       if (picked != null) {
@@ -153,7 +203,9 @@ class _ReserveFlowState extends State<ReserveFlow> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load any tickets. Please try again later.')),
+        const SnackBar(
+          content: Text('Could not load any tickets. Please try again later.'),
+        ),
       );
     }
   }
@@ -189,7 +241,8 @@ class _ReserveFlowState extends State<ReserveFlow> {
         'phoneNumber': cleanedPhone,
         // NEW: API expects canBeLeftAlone (inverse of the toggle)
         'canBeLeftAlone': !_cannotBeLeftAlone,
-        'reservedBookingParentGuardianName': _cannotBeLeftAlone ? guardian : null,
+        'reservedBookingParentGuardianName':
+            _cannotBeLeftAlone ? guardian : null,
       });
 
       // Prefer JSON explicitly
@@ -207,12 +260,17 @@ class _ReserveFlowState extends State<ReserveFlow> {
       final text = resp.body.toString();
 
       if (status >= 200 && status < 300) {
-        final data = (text.isNotEmpty)
-            ? (jsonDecode(text) as Map<String, dynamic>)
-            : const <String, dynamic>{};
+        final data =
+            (text.isNotEmpty)
+                ? (jsonDecode(text) as Map<String, dynamic>)
+                : const <String, dynamic>{};
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message']?.toString() ?? 'Reserved successfully')),
+          SnackBar(
+            content: Text(
+              data['message']?.toString() ?? 'Reserved successfully',
+            ),
+          ),
         );
         Navigator.of(context).pop(true);
         return;
@@ -273,7 +331,6 @@ class _ReserveFlowState extends State<ReserveFlow> {
   // ────────────────────────────────────────────────────────────────────────────
   // UI helpers
 
-
   // ────────────────────────────────────────────────────────────────────────────
 
   @override
@@ -290,37 +347,43 @@ class _ReserveFlowState extends State<ReserveFlow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EventHeader(event: widget.event, detailFuture: _detailFut, mascotUrl: _mascotUrl),
+                  EventHeader(
+                    event: widget.event,
+                    detailFuture: _detailFut,
+                    mascotUrl: _mascotUrl,
+                  ),
 
                   const Text(
                     'Ticket',
-                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
 
                   const Text(
                     'The ticket number does not represent a physical seat.',
-                    style: TextStyle( fontSize: 14 ),
+                    style: TextStyle(fontSize: 14),
                   ),
 
                   const SizedBox(height: 8),
 
                   // Choose seat button (opens centered overlay)
                   Button(
-                    label: _selectedSeat == null
-                                        ? 'Choose Ticket'
-                                        : 'Ticket #$_selectedSeat', 
+                    label:
+                        _selectedSeat == null
+                            ? 'Choose Ticket'
+                            : 'Ticket #$_selectedSeat',
                     subLabel: 'Change Ticket',
-                    onPressed: _openSeatPicker),
-                  
+                    onPressed: _openSeatPicker,
+                  ),
+
                   const SizedBox(height: 16),
                   Divider(color: Colors.white24, height: 1, thickness: 2),
                   const SizedBox(height: 16),
 
                   const Text(
                     'Attendee Details',
-                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  
+
                   const SizedBox(height: 8),
 
                   InputField(
@@ -343,35 +406,43 @@ class _ReserveFlowState extends State<ReserveFlow> {
 
                   const Text(
                     'Leave Permission',
-                    style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-              
+
                   // NEW: Cannot be left alone toggle
                   SwitchListTile.adaptive(
                     value: _cannotBeLeftAlone,
                     onChanged: (v) => setState(() => _cannotBeLeftAlone = v),
                     title: const Text(
                       'MUST the attendee be picked up by a guardian?',
-                      style: TextStyle( fontSize: 16),
-                    ),                 
+                      style: TextStyle(fontSize: 16),
+                    ),
                     activeColor: AppColors.primaryColor,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  
+
                   // NEW: Parent/Guardian Name (conditional)
-                  if (_cannotBeLeftAlone) ... [
+                  if (_cannotBeLeftAlone) ...[
                     const SizedBox(height: 8),
-                    InputField(hintText: 'Full Name', label: 'Guardian Name', controller: _guardianCtrl),
+                    InputField(
+                      hintText: 'Full Name',
+                      label: 'Guardian Name',
+                      controller: _guardianCtrl,
+                    ),
                   ],
 
                   if (_error != null) ...[
                     const SizedBox(height: 16),
-                    Text(_error!, style: const TextStyle(color: Colors.red)),                   
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
                   ],
 
                   const SizedBox(height: 24),
 
-                  Button(label: 'Reserve', onPressed: _reserve, loading: _loading),
+                  Button(
+                    label: 'Reserve',
+                    onPressed: _reserve,
+                    loading: _loading,
+                  ),
                 ],
               ),
             ),
@@ -387,5 +458,3 @@ class _SeatData {
   final Set<int> availableSeats;
   _SeatData({required this.totalSeats, required this.availableSeats});
 }
-
-

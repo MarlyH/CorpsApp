@@ -6,10 +6,12 @@ import 'package:corpsapp/widgets/alert_dialog.dart';
 import 'package:corpsapp/widgets/app_bar.dart';
 import 'package:corpsapp/widgets/button.dart';
 import 'package:corpsapp/widgets/input_field.dart';
+import 'package:corpsapp/widgets/persistent_cached_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_http_client.dart';
+import '../services/persistent_image_cache.dart';
 
 class ManageLocationsView extends StatefulWidget {
   const ManageLocationsView({super.key});
@@ -45,33 +47,53 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
     try {
       final resp = await AuthHttpClient.getLocations();
       final data = jsonDecode(resp.body) as List<dynamic>;
-      setState(() => _locations = data.cast<Map<String, dynamic>>());
+      final locations = data.cast<Map<String, dynamic>>();
+      final mascotUrls =
+          locations.map((loc) => loc['mascotImgSrc'] as String?).toList();
+
+      await _loadVisibleMascots(mascotUrls);
+      if (!mounted) return;
+
+      setState(() => _locations = locations);
     } catch (e) {
       _showSnack('Error loading locations: $e', isError: true);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  Future<void> _loadVisibleMascots(List<String?> mascotUrls) async {
+    final imageFiles = await Future.wait(
+      mascotUrls.whereType<String>().map(PersistentImageCache.instance.getFile),
+    );
 
-    Future<void> _createLocation(String name, [File? image]) async {
-      setState(() => _isLoading = true);
-      try {
-        final resp = await AuthHttpClient.createLocation(
-          name: name.trim(),
-          imageFile: image,
-        );
-        if (resp.statusCode == 200 || resp.statusCode == 201) {
-          _showSnack('Location created');
-          await _loadAllLocations();
-        } else {
-          _showSnack('Failed to create (${resp.statusCode})', isError: true);
-        }
-      } catch (e) {
-        _showSnack('Error: $e', isError: true);
-      } finally {
-        setState(() => _isLoading = false);
+    for (final file in imageFiles) {
+      if (!mounted || file == null) continue;
+
+      await precacheImage(FileImage(file), context);
+    }
+  }
+
+  Future<void> _createLocation(String name, [File? image]) async {
+    setState(() => _isLoading = true);
+    try {
+      final resp = await AuthHttpClient.createLocation(
+        name: name.trim(),
+        imageFile: image,
+      );
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        _showSnack('Location created');
+        await _loadAllLocations();
+      } else {
+        _showSnack('Failed to create (${resp.statusCode})', isError: true);
       }
+    } catch (e) {
+      _showSnack('Error: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -85,75 +107,93 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
   }
 
   Widget _buildList() {
-  return _isLoading
-    ? Center(child: CircularProgressIndicator(color: Colors.white))
-    : CupertinoListSection.insetGrouped(
-      margin: EdgeInsets.all(0),
-      backgroundColor: Colors.transparent,
-      children: _locations.map((loc) {
-        return CupertinoListTile(
-          leadingSize: 46,
-          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          leading: loc['mascotImgSrc'] != null
-              ? CircleAvatar(
-                  radius: 32,
-                  backgroundImage: NetworkImage(
-                    loc['mascotImgSrc'] as String,
+    return _isLoading
+        ? Center(child: CircularProgressIndicator(color: Colors.white))
+        : CupertinoListSection.insetGrouped(
+          margin: EdgeInsets.all(0),
+          backgroundColor: Colors.transparent,
+          children:
+              _locations.map((loc) {
+                final mascotUrl = loc['mascotImgSrc'] as String?;
+
+                return CupertinoListTile(
+                  leadingSize: 46,
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  leading:
+                      mascotUrl != null
+                          ? ClipOval(
+                            child: PersistentCachedImage(
+                              imageUrl: mascotUrl,
+                              width: 46,
+                              height: 46,
+                              fit: BoxFit.cover,
+                              placeholderBuilder: (_) => _locationIcon(),
+                              errorBuilder: (_, __, ___) => _locationIcon(),
+                            ),
+                          )
+                          : _locationIcon(),
+                  title: Text(
+                    loc['name'] as String,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  backgroundColor: Colors.transparent,              
-                )
-              : CircleAvatar(
-                  radius: 24,   
-                  backgroundColor: Colors.transparent,            
-                  child: const Icon(
-                    Icons.location_on,
+                  trailing: const Icon(
+                    Icons.navigate_next,
                     color: Colors.white70,
                   ),
-                ),
-          title: Text(
-            loc['name'] as String,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),       
-          trailing: const Icon(Icons.navigate_next, color: Colors.white70),
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              useSafeArea: true,
-              backgroundColor: AppColors.background,
-              builder: (_) => EditLocationModal(
-                location: loc,
-                onUpdate: (id, name, image) async {
-                  await AuthHttpClient.updateLocation(id: id, name: name, imageFile: image);
-                  await _loadAllLocations();
-                  _showSnack('Location updated');
-                },
-                onDelete: (id) async {
-                  await AuthHttpClient.deleteLocation(id);
-                  await _loadAllLocations();
-                  _showSnack('Location deleted');
-                },
-              ),
-            );
-          },
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      backgroundColor: AppColors.background,
+                      builder:
+                          (_) => EditLocationModal(
+                            location: loc,
+                            onUpdate: (id, name, image) async {
+                              await AuthHttpClient.updateLocation(
+                                id: id,
+                                name: name,
+                                imageFile: image,
+                              );
+                              if (image != null) {
+                                await PersistentImageCache.instance.evict(
+                                  mascotUrl,
+                                );
+                              }
+                              await _loadAllLocations();
+                              _showSnack('Location updated');
+                            },
+                            onDelete: (id) async {
+                              await AuthHttpClient.deleteLocation(id);
+                              await _loadAllLocations();
+                              _showSnack('Location deleted');
+                            },
+                          ),
+                    );
+                  },
+                );
+              }).toList(),
         );
-    }).toList(),
-  ); 
-}
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ProfileAppBar(
-        title: 'Location Management', 
-        actionButton: Icon(Icons.refresh), 
+        title: 'Location Management',
+        actionButton: Icon(Icons.refresh),
         actionOnTap: _isLoading ? null : _loadAllLocations,
-        specialBackAction: _editingLocation != null ? () { _loadAllLocations(); } : null,
-      ),     
+        specialBackAction:
+            _editingLocation != null
+                ? () {
+                  _loadAllLocations();
+                }
+                : null,
+      ),
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: true,
@@ -163,23 +203,33 @@ class _ManageLocationsViewState extends State<ManageLocationsView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Button(
-                label: 'New Location', 
-                onPressed: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  backgroundColor: AppColors.background,
-                  builder: (_) => CreateLocationModal(onCreate: _createLocation),
-                )
+                label: 'New Location',
+                onPressed:
+                    () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      backgroundColor: AppColors.background,
+                      builder:
+                          (_) => CreateLocationModal(onCreate: _createLocation),
+                    ),
               ),
 
               const SizedBox(height: 16),
-              
+
               _buildList(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _locationIcon() {
+    return const SizedBox(
+      width: 46,
+      height: 46,
+      child: Icon(Icons.location_on, color: Colors.white70),
     );
   }
 }
@@ -198,7 +248,6 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
   bool _isLoading = false;
   File? _pickedImage;
 
-
   @override
   void dispose() {
     nameController.dispose();
@@ -214,7 +263,6 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
     if (mounted) Navigator.pop(context);
   }
 
-
   Future<void> _pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
@@ -222,12 +270,13 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: AppPadding.screen.copyWith(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: AppPadding.screen.copyWith(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -247,7 +296,7 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
 
               const SizedBox(height: 16),
 
-              if (_pickedImage != null) ... [
+              if (_pickedImage != null) ...[
                 Center(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -256,24 +305,26 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
                       width: 188,
                       height: 188,
                       fit: BoxFit.cover,
-                    )                     
+                    ),
                   ),
                 ),
               ],
-                
+
               const SizedBox(height: 8),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton.icon(             
+                  ElevatedButton.icon(
                     onPressed: _pickImage,
                     icon: const Icon(Icons.image, color: AppColors.normalText),
                     label: Text(
                       _pickedImage != null ? 'Change Image' : 'Pick Image',
                       style: const TextStyle(color: AppColors.normalText),
                     ),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -292,12 +343,12 @@ class _CreateLocationModalState extends State<CreateLocationModal> {
                 label: 'Create',
                 onPressed: _isLoading ? null : _handleCreate,
                 loading: _isLoading,
-              ), 
+              ),
 
-              const SizedBox(height: 16),         
+              const SizedBox(height: 16),
             ],
           ),
-        ),       
+        ),
       ),
     );
   }
@@ -353,10 +404,12 @@ class _EditLocationModalState extends State<EditLocationModal> {
   }
 
   Future<void> _handleDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _DeleteLocationConfirmDialog(),
-    ) ?? false;
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (_) => const _DeleteLocationConfirmDialog(),
+        ) ??
+        false;
     if (!confirmed) return;
 
     setState(() => _isLoading = true);
@@ -372,7 +425,9 @@ class _EditLocationModalState extends State<EditLocationModal> {
       child: AnimatedPadding(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        padding: AppPadding.screen.copyWith(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: AppPadding.screen.copyWith(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -395,16 +450,30 @@ class _EditLocationModalState extends State<EditLocationModal> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: _pickedImage != null
-                      ? Image.file(_pickedImage!, width: 188, height: 188, fit: BoxFit.cover)
-                      : (imageUrl != null
-                          ? Image.network(imageUrl, width: 188, height: 188, fit: BoxFit.cover)
-                          : Container(
-                              width: 188,
-                              height: 188,
-                              color: Colors.white12,
-                              child: const Icon(Icons.image_not_supported, color: Colors.white54),
-                            )),
+                  child:
+                      _pickedImage != null
+                          ? Image.file(
+                            _pickedImage!,
+                            width: 188,
+                            height: 188,
+                            fit: BoxFit.cover,
+                          )
+                          : (imageUrl != null
+                              ? PersistentCachedImage(
+                                imageUrl: imageUrl,
+                                width: 188,
+                                height: 188,
+                                fit: BoxFit.cover,
+                              )
+                              : Container(
+                                width: 188,
+                                height: 188,
+                                color: Colors.white12,
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.white54,
+                                ),
+                              )),
                 ),
               ),
 
@@ -420,7 +489,9 @@ class _EditLocationModalState extends State<EditLocationModal> {
                       _pickedImage != null ? 'Change Image' : 'Pick Image',
                       style: const TextStyle(color: AppColors.normalText),
                     ),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -453,9 +524,9 @@ class _EditLocationModalState extends State<EditLocationModal> {
                       onPressed: _isLoading ? null : _handleUpdate,
                       loading: _isLoading,
                     ),
-                  ),                             
+                  ),
                 ],
-              ),            
+              ),
 
               const SizedBox(height: 16),
             ],
@@ -488,7 +559,7 @@ class _DeleteLocationConfirmDialogState
   @override
   Widget build(BuildContext context) {
     return CustomAlertDialog(
-      title: 'Delete Location', 
+      title: 'Delete Location',
       info: 'Are you sure you want to delete this location?',
       cancel: true,
       buttonLabel: 'Confirm',

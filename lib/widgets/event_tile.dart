@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:corpsapp/models/session_type_helper.dart';
 import 'package:corpsapp/theme/colors.dart';
@@ -8,6 +9,7 @@ import 'package:corpsapp/fragments/home_fragment.dart';
 import 'package:corpsapp/models/event_summary.dart' as event_summary;
 import 'package:corpsapp/providers/auth_provider.dart';
 import 'package:corpsapp/services/auth_http_client.dart';
+import 'package:corpsapp/services/persistent_image_cache.dart';
 import 'package:corpsapp/views/booking_flow.dart';
 import 'package:corpsapp/views/reserve_flow.dart';
 import 'package:corpsapp/widgets/EventExpandableCard/event_summary.dart';
@@ -18,7 +20,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 class EventTile extends StatefulWidget {
   final event_summary.EventSummary summary;
@@ -39,13 +40,12 @@ class EventTile extends StatefulWidget {
     required this.onAction,
     required this.isSuspended,
     required this.suspensionUntil,
-    required this.isStaff
+    required this.isStaff,
   });
 
   @override
   EventTileState createState() => EventTileState();
 }
-
 
 class EventTileState extends State<EventTile> {
   bool _expanded = false;
@@ -56,12 +56,12 @@ class EventTileState extends State<EventTile> {
 
   bool get _isFull => widget.summary.availableSeatsCount <= 0;
   // guard we only auto-clear once per “available” session render
-  
+
   bool _isWaitlisted = false;
   final bool _waitlistSubmitting = false;
   late final String _waitlistPrefKey;
   bool _autoClearedBecauseNowAvailable = false;
-
+  bool _openingReserve = false;
 
   @override
   void initState() {
@@ -70,9 +70,8 @@ class EventTileState extends State<EventTile> {
 
     // Build a stable per-user key so different users on the same device don't clash
     final auth = context.read<AuthProvider>();
-    final uid = auth.userProfile?['email'] ??
-                auth.userProfile?['userName'] ??
-                'anon';
+    final uid =
+        auth.userProfile?['email'] ?? auth.userProfile?['userName'] ?? 'anon';
     _waitlistPrefKey = 'waitlist_${uid}_${widget.summary.eventId}';
 
     _loadWaitlistFlag();
@@ -81,12 +80,50 @@ class EventTileState extends State<EventTile> {
   @override
   void didUpdateWidget(EventTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // If the event ID changed, reload the details
     if (oldWidget.summary.eventId != widget.summary.eventId) {
       _detailFut = widget.loadDetail(widget.summary.eventId);
-      _autoClearedBecauseNowAvailable = false; // reset auto-clear guard for new event
+      _autoClearedBecauseNowAvailable =
+          false; // reset auto-clear guard for new event
     }
+  }
+
+  Future<String?> _prepareMascotForVisibleHeader() async {
+    final mascotUrl = await _resolveMascotUrl();
+    if (mascotUrl == null) return null;
+
+    try {
+      final file = await PersistentImageCache.instance.getFile(mascotUrl);
+      if (!mounted || file == null) return mascotUrl;
+
+      await precacheImage(FileImage(file), context);
+      return mascotUrl;
+    } catch (_) {}
+
+    return mascotUrl;
+  }
+
+  Future<String?> _resolveMascotUrl() async {
+    final summaryMascotUrl = widget.summary.mascotUrl?.trim();
+    if (summaryMascotUrl != null && summaryMascotUrl.isNotEmpty) {
+      return summaryMascotUrl;
+    }
+
+    try {
+      final resp = await AuthHttpClient.get(
+        '/api/events/${widget.summary.eventId}',
+      );
+      final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
+      final detailMascotUrl =
+          (jsonData['locationMascotImgSrc'] as String?)?.trim();
+
+      if (detailMascotUrl != null && detailMascotUrl.isNotEmpty) {
+        return detailMascotUrl;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   void _maybeAutoDisableWaitlist() {
@@ -104,7 +141,7 @@ class EventTileState extends State<EventTile> {
     final ctrl = TextEditingController();
     final msg = await showModalBottomSheet<String>(
       isDismissible: false,
-      isScrollControlled: true, 
+      isScrollControlled: true,
       context: context,
       builder: (_) => EventCancellationModal(controller: ctrl),
     );
@@ -185,62 +222,69 @@ class EventTileState extends State<EventTile> {
   }
 
   void _showNotifyOverlay({required bool isOn}) {
-  showDialog(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) {
-      bool working = false;
-      final s = widget.summary;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        bool working = false;
+        final s = widget.summary;
 
-      Future<void> confirm(StateSetter setSB) async {
-        setSB(() {
-          working = true;
-        });
+        Future<void> confirm(StateSetter setSB) async {
+          setSB(() {
+            working = true;
+          });
 
-        final ok = await _setWaitlistEnabled(!isOn);
+          final ok = await _setWaitlistEnabled(!isOn);
 
-        setSB(() {
-          working = false;
-        });
+          setSB(() {
+            working = false;
+          });
 
-        // Show the appropriate SnackBar after closing the dialog
-        if (ok) {
-          final joining = !isOn;
-          CustomSnackBar.show(
-            context: context,
-            dialogContext: ctx,
-            icon: joining ? 'assets/icons/notify.svg' : 'assets/icons/success.svg',
-            message: joining ? "You've joined the waitlist!" : "You've left the waitlist.",
-          );
-        } else {
-          // ERROR: show SnackBar after dialog closes
-          CustomSnackBar.show(
-            context: context,
-            dialogContext: ctx,
-            message: 'Could not update notifications. Please try again.'
-          );        
+          // Show the appropriate SnackBar after closing the dialog
+          if (ok) {
+            final joining = !isOn;
+            CustomSnackBar.show(
+              context: context,
+              dialogContext: ctx,
+              icon:
+                  joining
+                      ? 'assets/icons/notify.svg'
+                      : 'assets/icons/success.svg',
+              message:
+                  joining
+                      ? "You've joined the waitlist!"
+                      : "You've left the waitlist.",
+            );
+          } else {
+            // ERROR: show SnackBar after dialog closes
+            CustomSnackBar.show(
+              context: context,
+              dialogContext: ctx,
+              message: 'Could not update notifications. Please try again.',
+            );
+          }
         }
-      }
 
-      return StatefulBuilder(
-        builder: (ctx, setSB) {
-          final joining = !isOn;
+        return StatefulBuilder(
+          builder: (ctx, setSB) {
+            final joining = !isOn;
 
-          return CustomAlertDialog(
-            title: joining ? 'No Available Seats' : 'Leave Waitlist',
-            info: joining
-                ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
-                : "You won't receive alerts for this event anymore.",
-            extraContentText:
-                '${SessionTypeHelper.format(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
-            buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
-            buttonAction: working ? null : () => confirm(setSB),
-          );
-        },
-      );
-    },
-  );
-}
+            return CustomAlertDialog(
+              title: joining ? 'No Available Seats' : 'Leave Waitlist',
+              info:
+                  joining
+                      ? "Don't worry! You may join the waitlist and we will inform you if a seat becomes available."
+                      : "You won't receive alerts for this event anymore.",
+              extraContentText:
+                  '${SessionTypeHelper.format(s.sessionType)} • ${_formatDate(s.startDate)} • ${s.startTime} @ ${s.locationName}',
+              buttonLabel: joining ? 'JOIN WAITLIST' : 'LEAVE WAITLIST',
+              buttonAction: working ? null : () => confirm(setSB),
+            );
+          },
+        );
+      },
+    );
+  }
 
   // notify button on event booked out
   Widget _notifyPill({
@@ -248,30 +292,24 @@ class EventTileState extends State<EventTile> {
     required bool busy,
     required VoidCallback onTap,
   }) {
-
     final main = isOn ? 'Leave Waitlist' : 'Join Waitlist';
 
-    return Button(
-      label: main, 
-      onPressed: onTap,
-      loading: busy,
-      radius: 100,
-    );
-}
+    return Button(label: main, onPressed: onTap, loading: busy, radius: 100);
+  }
 
   @override
   Widget build(BuildContext context) {
     _maybeAutoDisableWaitlist();
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(0,8,0, _expanded ? 32 : 16),
+      padding: EdgeInsets.fromLTRB(0, 8, 0, _expanded ? 32 : 16),
 
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _expanded = !_expanded),
         child: Stack(
           clipBehavior: Clip.none,
-          children: [           
+          children: [
             // Outer border
             Positioned.fill(
               child: Container(
@@ -281,15 +319,14 @@ class EventTileState extends State<EventTile> {
                 ),
               ),
             ),
-            
+
             Padding(
               padding: const EdgeInsets.all(3),
               child: _buildContentPanels(),
             ),
 
             // Action buttons when expanded
-            if(!widget.isStaff)
-              _buildActionButtons(),
+            if (!widget.isStaff) _buildActionButtons(),
           ],
         ),
       ),
@@ -306,11 +343,14 @@ class EventTileState extends State<EventTile> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // SUMMARY card
-            EventSummaryCard(summary: s, isFull: _isFull, isExpanded: _expanded),
+            EventSummaryCard(
+              summary: s,
+              isFull: _isFull,
+              isExpanded: _expanded,
+            ),
 
             // DETAILS PANEL (only when expanded)
-            if (_expanded)
-              EventDetailsCard(summary: s, detailFut: _detailFut),           
+            if (_expanded) EventDetailsCard(summary: s, detailFut: _detailFut),
           ],
         ),
       ],
@@ -345,7 +385,7 @@ class EventTileState extends State<EventTile> {
     //do not allow user to make bookings or join waitlsit if suspended
     if (isSuspended) {
       return Button(
-        label: s.availableSeatsCount > 0 ? 'Book Now': 'Join Waitlist', 
+        label: s.availableSeatsCount > 0 ? 'Book Now' : 'Join Waitlist',
         onPressed: () => _showSuspensionOverlay(context, suspensionUntil),
         buttonColor: AppColors.disabled,
         radius: 100,
@@ -355,17 +395,23 @@ class EventTileState extends State<EventTile> {
     //if there are available seats allow users to book
     if (s.availableSeatsCount > 0) {
       return Button(
-        label: 'Book Now', 
+        label: 'Book Now',
         onPressed: () {
           if (widget.isUser) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => BookingFlow(event: widget.summary)));
+            unawaited(_prepareMascotForVisibleHeader());
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BookingFlow(event: widget.summary),
+              ),
+            );
           } else {
             showModalBottomSheet<void>(
               context: context,
               builder: (_) => const RequireLoginModal(),
             );
           }
-        },        
+        },
         radius: 100,
       );
     }
@@ -375,12 +421,12 @@ class EventTileState extends State<EventTile> {
       isOn: _isWaitlisted,
       busy: _waitlistSubmitting,
       onTap: () {
-        if (!widget.isUser) { 
+        if (!widget.isUser) {
           showModalBottomSheet<void>(
             context: context,
             builder: (_) => const RequireLoginModal(),
           );
-          return; 
+          return;
         }
         _showNotifyOverlay(isOn: _isWaitlisted);
       },
@@ -388,22 +434,26 @@ class EventTileState extends State<EventTile> {
   }
 
   void _showSuspensionOverlay(BuildContext context, DateTime? unsuspendDate) {
-    final formattedDate = unsuspendDate != null
-          ? DateFormat('MMM d, yyyy').format(unsuspendDate)
-          : null;
+    final formattedDate =
+        unsuspendDate != null
+            ? DateFormat('MMM d, yyyy').format(unsuspendDate)
+            : null;
 
-    final title = formattedDate != null
-        ? 'Account Suspended Until\n $formattedDate'
-        : 'Account Suspended';
+    final title =
+        formattedDate != null
+            ? 'Account Suspended Until\n $formattedDate'
+            : 'Account Suspended';
 
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => CustomAlertDialog(
-        title: title,
-        info: 'Your account is suspended from booking events due to 3 attendance strikes. '
-            'If you believe this is a mistake, you can submit an appeal through Profile -> Appeal Ban.',
-      ),
+      builder:
+          (_) => CustomAlertDialog(
+            title: title,
+            info:
+                'Your account is suspended from booking events due to 3 attendance strikes. '
+                'If you believe this is a mistake, you can submit an appeal through Profile -> Appeal Ban.',
+          ),
     );
   }
 
@@ -411,7 +461,7 @@ class EventTileState extends State<EventTile> {
     children: [
       Expanded(
         child: Button(
-          label: 'Cancel', 
+          label: 'Cancel',
           onPressed: _cancelEvent,
           buttonColor: AppColors.disabled,
           radius: 100,
@@ -422,33 +472,58 @@ class EventTileState extends State<EventTile> {
 
       Expanded(
         child: Button(
-          label: 'Reserve', 
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReserveFlow(eventId: widget.summary.eventId, event: widget.summary),
-              ),
-            );
+          label: 'Reserve',
+          loading: _openingReserve,
+          onPressed: () async {
+            setState(() => _openingReserve = true);
+            try {
+              final initialMascotUrl = await _prepareMascotForVisibleHeader();
+              if (!mounted) return;
+
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (_) => ReserveFlow(
+                        eventId: widget.summary.eventId,
+                        event: widget.summary,
+                        initialMascotUrl: initialMascotUrl,
+                      ),
+                ),
+              );
+            } finally {
+              if (mounted) {
+                setState(() => _openingReserve = false);
+              }
+            }
           },
           radius: 100,
-        )
-      )
+        ),
+      ),
     ],
   );
-  
+
   String _formatDate(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
 
-    final eventDate = d.day.toString(); 
+    final eventDate = d.day.toString();
     final eventMonth = months[d.month - 1];
     final eventYear = d.year;
-    
-    return '$eventMonth $eventDate, $eventYear';
-  } 
 
+    return '$eventMonth $eventDate, $eventYear';
+  }
 
   String formatTime(String time) {
     // Parse from "HH:mm:ss"

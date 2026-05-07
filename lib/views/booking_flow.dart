@@ -9,6 +9,7 @@ import 'package:corpsapp/widgets/event_header.dart';
 import 'package:corpsapp/widgets/seat_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/persistent_image_cache.dart';
 import '../services/auth_http_client.dart';
 import '../providers/auth_provider.dart';
 import '../models/event_summary.dart' show EventSummary;
@@ -36,6 +37,8 @@ class _BookingFlowState extends State<BookingFlow> {
   @override
   void initState() {
     super.initState();
+    _mascotUrl = widget.event.mascotUrl;
+    _warmMascot(_mascotUrl);
     _loadChildren();
     _detailFut = _loadEventDetail();
 
@@ -65,17 +68,49 @@ class _BookingFlowState extends State<BookingFlow> {
       final jsonData = jsonDecode(resp.body) as Map<String, dynamic>;
       final detail = EventDetail.fromJson(jsonData);
 
-      // Assign locationMascotImgSrc to _mascotUrl
-      final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
-      if (mascotUrl != null && mascotUrl.isNotEmpty) {
-        _mascotUrl = mascotUrl;
-      } else {
-        _mascotUrl = null;
+      if (jsonData.containsKey('locationMascotImgSrc')) {
+        final mascotUrl = jsonData['locationMascotImgSrc'] as String?;
+        _setMascotUrl(mascotUrl);
       }
 
       return detail;
     } else {
       throw Exception('Failed to load event detail: ${resp.statusCode}');
+    }
+  }
+
+  void _setMascotUrl(String? mascotUrl) {
+    final normalizedUrl = mascotUrl?.trim();
+    final nextUrl =
+        normalizedUrl != null && normalizedUrl.isNotEmpty
+            ? normalizedUrl
+            : null;
+
+    if (_mascotUrl == nextUrl) {
+      _warmMascot(nextUrl);
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _mascotUrl = nextUrl);
+    } else {
+      _mascotUrl = nextUrl;
+    }
+
+    _warmMascot(nextUrl);
+  }
+
+  Future<void> _warmMascot(String? mascotUrl) async {
+    final normalizedUrl = mascotUrl?.trim();
+    if (normalizedUrl == null || normalizedUrl.isEmpty) return;
+
+    try {
+      final file = await PersistentImageCache.instance.getFile(normalizedUrl);
+      if (!mounted || file == null) return;
+
+      await precacheImage(FileImage(file), context);
+    } catch (_) {
+      // The header still has a placeholder/fallback if warming cannot finish.
     }
   }
 

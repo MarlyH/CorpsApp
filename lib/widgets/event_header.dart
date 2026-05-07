@@ -1,11 +1,12 @@
 import 'package:corpsapp/models/event_summary.dart';
 import 'package:corpsapp/models/session_type_helper.dart';
+import 'package:corpsapp/widgets/persistent_cached_image.dart';
 import 'package:flutter/material.dart';
 import 'package:corpsapp/theme/colors.dart';
 import 'package:corpsapp/models/event_detail.dart';
 
 class EventHeader extends StatelessWidget {
-  final EventSummary event; // replace `dynamic` with your actual Event model type
+  final EventSummary event;
   final Future<EventDetail> detailFuture;
   final String? mascotUrl;
 
@@ -24,21 +25,22 @@ class EventHeader extends StatelessWidget {
     Widget avatar;
 
     if (mascotUrl == null) {
-      avatar = Image.asset(
-        'assets/logo/logo_transparent_1024px.png',
-      );
+      avatar = _fallbackMascot();
     } else {
       avatar = ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          mascotUrl!,
+        child: PersistentCachedImage(
+          imageUrl: mascotUrl!,
           height: avatarSize,
           width: avatarSize,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
-            'assets/logo/logo_transparent_1024px.png',           
-            color: Colors.white30,
-          ),
+          placeholderBuilder:
+              (_) => _fallbackMascot(
+                height: avatarSize,
+                width: avatarSize,
+                color: Colors.white30,
+              ),
+          errorBuilder: (_, __, ___) => _fallbackMascot(color: Colors.white30),
         ),
       );
     }
@@ -65,12 +67,12 @@ class EventHeader extends StatelessWidget {
                   children: [
                     Text(
                       _format12h(event.startTime),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ), 
-                    
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+
                     Text(
                       _headerDate(event.startDate),
                       style: const TextStyle(
@@ -78,11 +80,11 @@ class EventHeader extends StatelessWidget {
                         fontSize: 16,
                       ),
                     ),
-                                                
+
                     const SizedBox(height: 4),
 
                     Text(
-                    SessionTypeHelper.format(event.sessionType),
+                      SessionTypeHelper.format(event.sessionType),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: screenWidth < 360 ? 24 : 28,
@@ -92,19 +94,26 @@ class EventHeader extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 4),
-                    
+
                     FutureBuilder<EventDetail>(
                       future: detailFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Text(
                             'Loading...',
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
                           );
                         } else if (snapshot.hasError) {
                           return const Text(
                             '—',
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
                           );
                         } else {
                           return Text(
@@ -117,7 +126,7 @@ class EventHeader extends StatelessWidget {
                           );
                         }
                       },
-                    ),                                                                           
+                    ),
                   ],
                 ),
               ),
@@ -133,13 +142,39 @@ class EventHeader extends StatelessWidget {
 
   // ---- Helper methods ----
 
+  Widget _fallbackMascot({double? height, double? width, Color? color}) {
+    return Image.asset(
+      'assets/logo/logo_transparent_1024px.png',
+      height: height,
+      width: width,
+      fit: BoxFit.contain,
+      color: color,
+    );
+  }
+
   String _headerDate(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'March', 'April', 'May', 'June',
-      'July', 'Aug', 'Sept', 'October', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'Aug',
+      'Sept',
+      'October',
+      'Nov',
+      'Dec',
     ];
     const weekdays = [
-      'Monday', 'Tueday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+      'Monday',
+      'Tueday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
     return '${weekdays[d.weekday - 1]} ${d.day} ${months[d.month - 1]}';
   }

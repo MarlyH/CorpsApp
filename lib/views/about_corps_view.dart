@@ -77,7 +77,7 @@ class AboutCorpsView extends StatelessWidget {
                   trailing: const Icon(Icons.keyboard_arrow_right),
                   onTap: () async {
                     const String googleStoreUrl =
-                        'https://play.google.com/store/apps/details?id=com.example.corpsapp'; 
+                        'https://play.google.com/store/apps/details?id=com.digicool.corpsapp'; 
                     const String appleStoreUrl = 'https://apps.apple.com/app/id6756507205?action=write-review'; //
 
                     final Uri? url = Platform.isAndroid
